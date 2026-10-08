@@ -1,0 +1,23 @@
+{
+  "name": "WalletMV — Budget & Shop",
+  "short_name": "WalletMV",
+  "description": "Know exactly what you can spend today. Budget app and MVSHOP shop tools made in the Maldives.",
+  "id": "/",
+  "start_url": "/?app=1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1A2C",
+  "theme_color": "#0B1A2C",
+  "lang": "en",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Add expense", "url": "/?app=1#addx", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "MVSHOP", "url": "/?app=1#shop", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
