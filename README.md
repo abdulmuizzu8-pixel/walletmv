@@ -20,6 +20,18 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Mobile app (React Native)
+
+The React Native app lives in `mobile/` (Expo, TypeScript) and has its own dependencies:
+
+```bash
+cd mobile
+npm install
+npm start      # then scan the QR code with Expo Go, or press a / i / w
+```
+
+Add native packages with `npx expo install <package>` so versions match the Expo SDK.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
