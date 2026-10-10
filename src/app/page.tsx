@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 
 type PageKey =
   | "Dashboard"
@@ -88,7 +89,7 @@ const shortDate = (value: string) => {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
 
-function SectionHeading({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {
+function SectionHeading({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
   return (
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -221,7 +222,7 @@ export default function Home() {
       ["Date", "Description", "Category", "Type", "Amount (MVR)", "Wallet"],
       ...filteredTransactions.map((item) => [item.date, item.merchant, item.category, item.kind, String(item.amount), item.wallet]),
     ];
-    const csv = rows.map((row) => row.map((cell) => '"' + cell.replaceAll('"', '""') + '"').join(",")).join("\r\n");
+    const csv = rows.map((row) => row.map((cell) => '"' + cell.replace(/"/g, '""') + '"').join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     const anchor = document.createElement("a");
     anchor.href = url;
