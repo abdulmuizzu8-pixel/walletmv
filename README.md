@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WalletMV — walletmv.com
 
-## Getting Started
+Budget app and MVSHOP shop tools for the Maldives. This repository is the live website and the installable phone app.
+It is a ready-made static site: no build step, nothing to install.
 
-First, run the development server:
+| File | What it is |
+|---|---|
+| `index.html` | The whole website and app |
+| `manifest.webmanifest`, `sw.js`, `icons/` | Make WalletMV installable on phones and open offline |
+| `vercel.json` | Settings for Vercel (security headers) |
+| `_headers` | The same settings, if you ever host on Cloudflare instead |
+| `robots.txt`, `sitemap.xml` | Help Google find the site |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploy in 4 steps (about 10 minutes, no coding)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. Create the GitHub repository
+1. Go to **github.com** → top-right **+** → **New repository**.
+2. Name: `walletmv` · choose **Private** · leave everything else as it is → **Create repository**.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. Upload these files
+1. On the new, empty repository page click the link **"uploading an existing file"**.
+2. Open this unzipped `walletmv-site` folder on your computer, select **everything inside it**
+   (all files **and** the `icons` folder) and drag them into the GitHub page.
+   Upload the *contents*, not the outer folder, so `index.html` sits at the top level.
+3. Wait until every file shows in the list → at the bottom click **Commit changes**.
 
-## Learn More
+### 3. Publish on Vercel
+1. Go to **vercel.com** → **Sign up / Log in** → **Continue with GitHub**.
+2. **Add New… → Project** → find `walletmv` → **Import**
+   (if it isn't listed, click *Adjust GitHub App Permissions* and allow the `walletmv` repository).
+3. Framework Preset: **Other** · Root Directory: `./` · leave Build and Output settings empty → **Deploy**.
+4. In about 30 seconds you get a live link such as `walletmv.vercel.app`. Open it on your phone to check.
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Connect walletmv.com
+1. In the Vercel project → **Settings → Domains** → type `walletmv.com` → **Add**, then add `www.walletmv.com`.
+2. If you buy the domain on Vercel it connects by itself. If you bought it somewhere else, copy the
+   DNS records Vercel shows you (an **A** record for `walletmv.com`, a **CNAME** for `www`) into your
+   domain company's DNS settings. HTTPS is switched on automatically.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Updating the site later
+1. In the GitHub repository → **Add file → Upload files**.
+2. Drag in the new `index.html` (and any other changed files) → **Commit changes**.
+3. Vercel publishes the new version automatically within about a minute.
+4. For a big update, open `sw.js` and change `walletmv-v3` to the next number (`walletmv-v4`)
+   so phones with the app installed pick it up straight away.
 
-## Deploy on Vercel
+## The phone app
+Once the site is live on https://walletmv.com:
+- **Android:** open the site in Chrome → tap **Get the app** (footer or More menu) → **Install**.
+- **iPhone:** open in Safari → **Share** → **Add to Home Screen**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Before inviting real customers
+- The admin login and the free test login are inside `index.html`, so anyone could read them on the live
+  site. Move both to proper server sign-in before launch.
+- Customer data is saved only in each person's browser until the database (Supabase) is connected.
+- Never upload passwords, API keys or bank logins to this repository.
+- Problems and concerns → WhatsApp **+960 798 7770**.
