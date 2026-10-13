@@ -2395,7 +2395,8 @@ function BillSheet(){if(!S.bill)return'';const d=billData();if(!d){S.bill=null;r
 
 /* ============ INSTALLABLE APP ============ */
 let _installEvt=null;
-const isStandalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
+const isNativeApp=()=>{try{return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())}catch(e){return false}};
+const isStandalone=()=>{try{return isNativeApp()||matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent||'')||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 function installApp(){S.sheet=null;
  if(isStandalone())return toast('WalletMV is already installed on this device');
@@ -2411,6 +2412,7 @@ function registerApp(){try{
  if(typeof window==='undefined'||!('serviceWorker' in navigator))return;
  if(location.protocol!=='https:'&&location.hostname!=='localhost')return;
  if(window.claude||window.top!==window.self)return; // not inside previews
+ if(isNativeApp())return; // phone app already has the files
  navigator.serviceWorker.register('/sw.js').catch(()=>{});
  addEventListener('beforeinstallprompt',e=>{e.preventDefault();_installEvt=e;render()});
  addEventListener('appinstalled',()=>{_installEvt=null;toast('WalletMV is installed — find it on your home screen')});

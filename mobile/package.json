@@ -1,0 +1,25 @@
+{
+  "name": "walletmv-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WalletMV phone app for Android and iPhone, built with Capacitor from the WalletMV website",
+  "scripts": {
+    "sync-web": "node scripts/copy-web.js",
+    "setup": "npm run sync-web && npx cap add android && npx capacitor-assets generate --android",
+    "setup-ios": "npm run sync-web && npx cap add ios && npx capacitor-assets generate --ios",
+    "build": "npm run sync-web && npx cap sync",
+    "android": "npm run build && npx cap open android",
+    "ios": "npm run build && npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "latest",
+    "@capacitor/core": "latest",
+    "@capacitor/ios": "latest",
+    "@capacitor/splash-screen": "latest",
+    "@capacitor/status-bar": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "latest",
+    "@capacitor/cli": "latest"
+  }
+}

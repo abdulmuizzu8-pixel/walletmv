@@ -1,0 +1,17 @@
+{
+  "appId": "com.walletmv.app",
+  "appName": "WalletMV",
+  "webDir": "www",
+  "backgroundColor": "#0B1A2C",
+  "android": { "backgroundColor": "#0B1A2C" },
+  "ios": { "backgroundColor": "#0B1A2C", "contentInset": "always" },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0B1A2C",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#0B1A2C" }
+  }
+}

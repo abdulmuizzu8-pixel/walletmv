@@ -69,6 +69,7 @@ walletmv/
 ├─ vercel.json             ← Vercel settings (security headers)
 ├─ _headers                ← same, for Cloudflare
 ├─ robots.txt, sitemap.xml ← Google
+├─ mobile/                 ← phone app for Google Play & App Store (see mobile/README.md)
 ├─ README.md               ← deploy steps
 └─ WALLETMV.md             ← this guide
 ```
