@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "WalletMV",
+    "slug": "walletmv",
+    "owner": "muisssss-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "walletmv",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1A2C"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.walletmv.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.walletmv.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0B1A2C"
+      },
+      "softwareKeyboardLayoutMode": "resize"
+    }
+  }
+}
