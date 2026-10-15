@@ -351,7 +351,7 @@ const SHOP_EXP_CAT=['Stock/Inventory','Rent','Utilities','Staff wages','Transpor
 const SHOP_INC_CAT=['Sales','Other income'];
 const DEFAULT_QUICK=[{n:'Ferry',cat:'Transport',amt:10,ic:'⛴'},{n:'Coffee',cat:'Food & Dining',amt:35,ic:'☕'},{n:'Lunch',cat:'Food & Dining',amt:85,ic:'🍛'},{n:'Groceries',cat:'Groceries',amt:250,ic:'🛒'},{n:'Taxi',cat:'Transport',amt:60,ic:'🚕'},{n:'Data top-up',cat:'Bills',amt:100,ic:'📶'}].map((q,i)=>({...q,id:i+1}));
 
-const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:true,name:'Aisha Ibrahim',email:'aisha@example.mv',
+const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:true,name:'',email:'',
  filter:'All',tab:'all',q:'',addType:'expense',edit:null,saved:null,armed:null,repMonth:curMk(),
  repMode:'month',repFrom:'',repTo:'',shopRepMode:'month',shopRepFrom:'',shopRepTo:'',
  subscription:{plan:'plus',status:'active',requestedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),approvedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),verified:true,startsAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),expiresAt:isoD(new Date(new Date().setDate(new Date().getDate()+22)))},
@@ -360,7 +360,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
   {id:'plus',name:'Muraka',meaning:'Coral — strong, growing, beautiful',icon:'users',tag:'For couples and small households — snap bills instead of typing them.',best:'Most popular',price:399,days:30,members:3,scan:true,on:true,popular:true,features:['Everything in Boli','Scan receipts & bills','Home inventory from receipts','Unlimited goals & bills','Full reports & Excel export','25 currencies','Priority support']},
   {id:'family',name:'Atholhu',meaning:'Atoll — a family of islands',icon:'heart',tag:'For the whole family — up to 9 people on one wallet.',best:'Best value per person',price:699,days:30,members:9,scan:true,on:true,popular:false,features:['Everything in Muraka','Everyone can scan bills','Shared family budget & bills','Everyone logs their own spending','See who spent what','Pocket-money goals for children','Shared groceries lists']},
   {id:'mvshop',name:'Dhoni',meaning:'The trading boat — built for business',icon:'store',tag:'For shops and small businesses — sell, stock and GST in one place.',best:'Best for shops',price:899,days:30,members:4,scan:true,on:true,popular:false,features:['Everything in Muraka for the owner','MVSHOP sales, POS & invoices','Bill inbox — bills sort themselves','Stock & smart reordering','GST return tools','AI shop assistant','Loyalty & discount cards for your customers']}],
- shared:[{id:1,name:'Aisha Ibrahim',contact:'aisha@example.mv',role:'owner',status:'joined',since:isoD(new Date(new Date().setDate(new Date().getDate()-40)))},{id:2,name:'Ibrahim Rasheed',contact:'+960 777 2211',role:'edit',status:'joined',since:isoD(new Date(new Date().setDate(new Date().getDate()-12)))}],sharedOpen:null,scanReview:null,homeStock:[{id:1,name:'Rice',qty:3,unit:'kg'},{id:2,name:'Cooking oil',qty:1,unit:'bottle'},{id:3,name:'Milk',qty:0,unit:'L'}],
+ shared:[{id:1,name:'WalletMV User',contact:'',role:'owner',status:'joined',since:isoD(new Date(new Date().setDate(new Date().getDate()-40)))},{id:2,name:'Ibrahim Rasheed',contact:'+960 777 2211',role:'edit',status:'joined',since:isoD(new Date(new Date().setDate(new Date().getDate()-12)))}],sharedOpen:null,scanReview:null,homeStock:[{id:1,name:'Rice',qty:3,unit:'kg'},{id:2,name:'Cooking oil',qty:1,unit:'bottle'},{id:3,name:'Milk',qty:0,unit:'L'}],
  planTax:0,period:'month',checkoutStep:'pay',lastSubId:null,
  pendingSubs:[{id:1,plan:'plus',price:399,total:399,method:'bank',ref:'BML-2409251187',requestedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),status:'approved',slipName:'bml-slip.jpg'}],checkoutPlan:'plus',
  ownerWhatsapp:'+960 798 7770',supportWhatsapp:'+960 798 7770',issues:[],issueOpen:null,errLog:[],ruleOff:{},inbox:[],waGroupLink:'',inboxBusy:0,ownerViber:'',checkoutSlip:null,checkoutSlipName:'',checkoutMethod:null,checkoutRef:'',
@@ -425,7 +425,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
   {id:3,name:'Fathimath Nasheeda',phone:'+960 778 1111',email:'fathi@example.com',status:'Active',priority:'Regular'},
   {id:4,name:'Ali Waheed',phone:'+960 778 2222',email:'ali@example.com',status:'Active',priority:'Medium'},
   {id:5,name:'Aishath Nazima',phone:'+960 778 3333',email:'aishath@example.com',status:'Inactive',priority:'Regular'},
-  {id:6,name:'Aisha Ibrahim',phone:'+960 779 4040',email:'aisha@example.mv',status:'Active',priority:'Medium',card:'WM-7730-2641'}],
+  {id:6,name:'Aisha Ibrahim',phone:'+960 779 4040',email:'',status:'Active',priority:'Medium',card:'WM-7730-2641'}],
  walletCard:{number:'WM-7730-2641',since:'2026-06-14'},showCard:null,discForm:{},
  offerCat:'All',showOffer:null,pfSent:null,pfPrefill:null,
  partners:[
@@ -1207,7 +1207,7 @@ function AdminLogin(){return `${PageHeader('packages',false)}
  <label for="adu">Admin username</label><input id="adu" value="admin">
  <label for="adp">Admin password</label><input id="adp" type="password" placeholder="Enter admin password">
  <button class="btn" style="margin-top:18px;width:100%" onclick="attemptAdminLogin()">Sign in</button>
- <p class="sub" style="margin-top:12px;font-size:13px">Prototype account, stored in this browser session only — change the password in the code before sharing this with anyone.</p>
+ <p class="sub" style="margin-top:12px;font-size:13px">Admin sign-in requires secure server-side authentication. Do not store an admin password in this page’s source code.</p>
  </div>
  <button class="btn ghost sm" style="margin-top:22px" onclick="go('money')">← Back to the app</button>
  </div>`}
@@ -1773,8 +1773,8 @@ function Login(){return `<div class="tmlogin">
 <div class="tm-icon">${LOGO('#14304B')}</div>
 <h1 class="tm-h">Welcome back</h1>
 <p class="tm-sub">Log in to your WalletMV account.</p>
-<div class="tm-field"><label class="tm-lbl" for="em">Email or username</label><input id="em" type="text" autocomplete="username" autocapitalize="none" value="${S.email}" placeholder="you@example.com"></div>
-<div class="tm-field"><label class="tm-lbl" for="pw">Password</label><input id="pw" type="password" value="password123"></div>
+<div class="tm-field"><label class="tm-lbl" for="em">Email or username</label><input id="em" type="text" autocomplete="username" autocapitalize="none" value="${esc(S.email)}" placeholder="you@example.com"></div>
+<div class="tm-field"><label class="tm-lbl" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Enter your password"></div>
 <div class="tm-row"><a href="#" class="tm-link" onclick="event.preventDefault();toast('A reset link would be emailed')">Forgot password?</a></div>
 <button class="tm-btn primary" onclick="attemptLogin()">Log in</button>
 <button class="tm-btn ghost" onclick="attemptLogin()">Create an account</button>
