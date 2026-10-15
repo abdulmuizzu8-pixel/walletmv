@@ -439,16 +439,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
   {id:902,card:'WM-7730-2641',shop:'Maafushi Fresh Mart',type:'fixed',value:25,minSpend:200,expires:isoD(new Date(new Date().setDate(new Date().getDate()+5))),note:'Weekend groceries',status:'active',issued:isoD(new Date(new Date().setDate(new Date().getDate()-1)))},
   {id:903,card:'WM-7730-2641',shop:'Island Pharmacy',type:'percent',value:5,minSpend:0,expires:isoD(new Date(new Date().setDate(new Date().getDate()-3))),note:'',status:'active',issued:isoD(new Date(new Date().setDate(new Date().getDate()-40)))},
   {id:904,card:'WM-5512-0098',shop:'Sunset Corner Store',type:'fixed',value:50,minSpend:500,expires:isoD(new Date(new Date().setDate(new Date().getDate()+20))),note:'Loyal customer reward',status:'active',issued:isoD(new Date(new Date().setDate(new Date().getDate()-4)))}],
- tx:[
-  {id:1,date:dAgo(0),desc:'Lunch at Hulhumalé café',cat:'Food & Dining',amt:85,type:'expense',accId:1},{id:2,date:dAgo(1),desc:'Ferry Malé to Hulhumalé',cat:'Transport',amt:10,type:'expense',accId:1},
-  {id:3,date:dAgo(2),desc:'Salary',cat:'Salary',amt:18500,type:'income',accId:2},{id:4,date:dAgo(2),desc:'STELCO electricity',cat:'Bills',amt:640,type:'expense',accId:2},
-  {id:5,date:dAgo(3),desc:'Ooredoo broadband',cat:'Bills',amt:499,type:'expense',accId:2},{id:6,date:dAgo(4),desc:'Weekly groceries',cat:'Groceries',amt:1150,type:'expense',accId:1},
-  {id:7,date:dAgo(5),desc:'Sent to family',cat:'Family',amt:3000,type:'expense',accId:2},{id:8,date:dAgo(6),desc:'Taxi to airport',cat:'Transport',amt:120,type:'expense',accId:3},
-  {id:9,date:dAgo(8),desc:'New shoes',cat:'Shopping',amt:1450,type:'expense',accId:3},{id:10,date:dAgo(9),desc:'Dinner with friends',cat:'Food & Dining',amt:620,type:'expense',accId:1},
-  {id:11,date:dAgo(11),desc:'Fresh tuna and produce',cat:'Groceries',amt:740,type:'expense',accId:1},{id:12,date:dAgo(13),desc:'Water bill',cat:'Bills',amt:210,type:'expense',accId:2},
-  {id:13,date:dAgo(38),desc:'Salary',cat:'Salary',amt:18500,type:'income',accId:2},{id:14,date:dAgo(40),desc:'Groceries',cat:'Groceries',amt:2100,type:'expense',accId:1},{id:15,date:dAgo(45),desc:'Family support',cat:'Family',amt:3000,type:'expense',accId:2}],
- accounts:[{id:1,name:'Cash wallet',type:'cash',start:6000},{id:2,name:'BML Savings',type:'bank',start:25000},{id:3,name:'Ooredoo M-Faisaa',type:'ewallet',start:3000}],
- transfers:[{id:201,date:dAgo(7),from:2,to:1,amt:2000,note:'Cash withdrawal'}],
+ tx:[], accounts:[{id:1,name:'Cash wallet',type:'cash',start:0},{id:2,name:'Bank account',type:'bank',start:0},{id:3,name:'E-wallet',type:'ewallet',start:0}], transfers:[],
  editAccount:null,addAcc:1,
  groc:{auto:true,lastAuto:'',acc:1,
   staples:[
@@ -463,17 +454,17 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
    {id:9,name:'Cooking oil',ic:'🫒',qty:'1 L',price:55,freq:'weekly'},
    {id:10,name:'Tea / coffee',ic:'☕',qty:'1 pack',price:40,freq:'weekly'}
   ],
-  list:[{id:101,name:'Onions',qty:'1 kg',price:18,done:false,stapleId:null},{id:102,name:'Chicken',qty:'1 kg',price:65,done:false,stapleId:null}],
+  list:[],
   saved:[
    {id:201,name:'Weekly family shop',items:[{name:'Rice',qty:'5 kg',price:85},{name:'Chicken',qty:'2 kg',price:130},{name:'Fresh fish / tuna',qty:'1 kg',price:90},{name:'Onions',qty:'1 kg',price:18},{name:'Potatoes',qty:'2 kg',price:30},{name:'Eggs',qty:'30',price:110},{name:'Milk',qty:'4 L',price:88},{name:'Cooking oil',qty:'1 L',price:55}]},
    {id:202,name:'Quick top-up',items:[{name:'Bread',qty:'1 loaf',price:12},{name:'Milk',qty:'1 L',price:22},{name:'Bananas',qty:'1 bunch',price:15}]}
   ]},
- budget:{income:18500,limit:14000},
- goals:[{id:1,name:'Umrah trip',target:40000,saved:14500},{id:2,name:'New laptop',target:16000,saved:4800},{id:3,name:'Island holiday: Maafushi',target:9000,saved:6100}],
+ budget:{income:0,limit:0},
+ goals:[],
  cats:[...Object.keys(CATC).map(n=>({n,t:'expense'})),{n:'Salary',t:'income'},{n:'Business',t:'income'},{n:'Other',t:'income'}],
  editGoal:null,
- bills:[{id:1,name:'STELCO electricity',cat:'Bills',amt:640,due:5,paidThisMonth:false},{id:2,name:'Ooredoo broadband',cat:'Bills',amt:499,due:8,paidThisMonth:false},{id:3,name:'Rent',cat:'Bills',amt:6000,due:1,paidThisMonth:true},{id:4,name:'Water',cat:'Bills',amt:210,due:15,paidThisMonth:false}],
- calNotes:[{id:301,date:isoD(new Date(new Date().getFullYear(),new Date().getMonth(),18)),deadline:'',time:'10:30',person:'',text:'Dentist appointment',module:'money'},{id:302,date:isoD(new Date(new Date().getFullYear(),new Date().getMonth(),22)),deadline:isoD(new Date(new Date().getFullYear(),new Date().getMonth(),26)),time:'14:00',person:'Malé Wholesale Traders',text:'Ramadan stock delivery',module:'shop'}],
+ bills:[],
+ calNotes:[],
  schedulePrefill:null,
 };
 
@@ -2297,6 +2288,8 @@ function resetAppData(){
  S.calNotes=S.calNotes.filter(n=>n.module!=='money');
  S.groc.list=[];
  S.budget={income:0,limit:0};
+ S.accounts=S.accounts.map(a=>({...a,start:0}));
+ S.groc.list=[];
  S.edit=null;S.saved=null;S.editGoal=null;S.schedulePrefill=null;S.armed=null;
  toast('Personal app data reset. Your account and package were kept.');
  S.page='money';S.mview='today';render();
@@ -2307,7 +2300,7 @@ function Settings(){return `<div style="max-width:680px">${Head('Settings','Mana
  <label for="s5">Appearance</label><select id="s5" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select>
  <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--ink)"><input id="s3" type="checkbox" ${S.notif?'checked':''}> Notify me at 90% of my budget</label>
  <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.cur=$('#s2').value;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button></div>
-  <div class="card" style="margin-top:18px;border:1px solid rgba(180,67,78,.35)"><h3>Reset App Data</h3><p class="sub" style="margin:6px 0 14px">Clear personal transactions, transfers, savings goals, bill reminders, personal calendar notes, grocery list, and budget targets. Your account, profile, package entitlement, shop records, products, customers, and saved grocery templates will remain.</p><button class="btn rose" onclick="resetAppData()">Reset App Data</button></div>
+  <div class="card" style="margin-top:18px;border:1px solid rgba(180,67,78,.35)"><h3>Reset App Data</h3><p class="sub" style="margin:6px 0 14px">Clear personal transactions, transfers, savings goals, bill reminders, personal calendar notes, grocery list, budget targets, and account opening balances. Your profile, package entitlement, shop records, products, customers, and saved grocery templates will remain.</p><button class="btn rose" onclick="resetAppData()">Reset App Data</button></div>
  <div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:10px"><div><h3>Help &amp; support</h3><p class="sub" style="margin:4px 0 0">Something not right? Send it to the WalletMV team on WhatsApp: <b style="user-select:all">${esc(S.supportWhatsapp)}</b></p></div><button class="btn sm" onclick="reportProblem()">${IC('chat',15)} Report a problem</button></div></div>
  <div class="card" style="margin-top:18px"><h3>Recurring bills</h3><p class="sub" style="margin:6px 0 14px">These appear on your Today board with due dates.</p>
  <ul class="list">${S.bills.map(b=>`<li><span><b>${esc(b.name)}</b> <small style="color:var(--ink2)">· due day ${b.due} · ${money(b.amt)}</small></span><span class="flex" style="gap:6px"><span class="badge" style="background:${b.paidThisMonth?'rgba(47,143,107,.18)':'rgba(227,168,87,.25)'}">${b.paidThisMonth?'Paid':'Unpaid'}</span><button class="btn ghost sm" onclick="S.bills=S.bills.filter(x=>x.id!==${b.id});render()">Remove</button></span></li>`).join('')}</ul>
