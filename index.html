@@ -1734,12 +1734,17 @@ function ShopSettingsTab(){const p=S.shopProfile;const mv=isMV();
  <button class="btn" style="margin-top:14px" onclick="saveLoyalty()">Save loyalty settings</button></div>
  <div class="card" style="margin-top:18px;max-width:520px"><h3>Appearance</h3><label for="spt">Theme</label><select id="spt" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select></div>`}
 function attemptLogin(){const em=$('#em').value.trim(),pw=$('#pw').value;
- const fk=em.toLowerCase();if(FREE_ACCOUNTS[fk]!==undefined){if(pw!==FREE_ACCOUNTS[fk])return toast('Wrong password for '+em);
-  S.allAccess=true;S.name=em.charAt(0).toUpperCase()+em.slice(1);S.email=fk+'@walletmv.com';S.signed=true;S.page='money';S.mview='today';toast('Welcome '+S.name+' — all packages are unlocked, free');render();return}
- S.allAccess=false;
- if(!em.includes('@')||!em.includes('.'))return toast('Enter a valid email address');
- if(pw.length<6)return toast('Password must be at least 6 characters');
- S.email=em;S.signed=true;render()}
+  const fk=em.toLowerCase();if(FREE_ACCOUNTS[fk]!==undefined){if(pw!==FREE_ACCOUNTS[fk])return toast('Wrong password for '+em);
+   S.allAccess=true;S.name=em.charAt(0).toUpperCase()+em.slice(1);S.email=fk+'@walletmv.com';S.signed=true;S.page='money';S.mview='today';toast('Welcome '+S.name+' — all packages are unlocked, free');render();return}
+  S.allAccess=false;
+  if(!em||!em.includes('@')||!em.split('@')[1]?.includes('.'))return toast('Enter a valid email address');
+  if(pw.length<6)return toast('Password must be at least 6 characters');
+  S.email=em;S.name=em.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,ch=>ch.toUpperCase());S.signed=true;S.page='money';S.mview='today';toast('Signed in to the WalletMV demo');render()}
+function createAccount(){const em=$('#em').value.trim(),pw=$('#pw').value;
+  if(!em||!em.includes('@')||!em.split('@')[1]?.includes('.'))return toast('Enter a valid email address');
+  if(pw.length<8)return toast('Create a password with at least 8 characters');
+  if(FREE_ACCOUNTS[em.toLowerCase()]!==undefined)return toast('This email is reserved for a demo account. Use another email.');
+  S.email=em;S.name=em.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,ch=>ch.toUpperCase());S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Demo account opened. This prototype does not save accounts or passwords securely.');render()}
 function Login(){return `<div class="tmlogin">
 <style>
 .tmlogin{--tm-teal:#14304B;--tm-teal-d:#0B1A2C;--tm-teal-l:#1C4266;--tm-bg:#FFFFFF;--tm-ink:#0F1C2B;--tm-ink2:#6A6658;--tm-line:#ECE5D6;--tm-gold:#D4B26A;--tm-gold-d:#9A7330;
@@ -1777,8 +1782,8 @@ function Login(){return `<div class="tmlogin">
 <div class="tm-field"><label class="tm-lbl" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Enter your password"></div>
 <div class="tm-row"><a href="#" class="tm-link" onclick="event.preventDefault();toast('A reset link would be emailed')">Forgot password?</a></div>
 <button class="tm-btn primary" onclick="attemptLogin()">Log in</button>
-<button class="tm-btn ghost" onclick="attemptLogin()">Create an account</button>
-<p class="tm-note">Prototype: either button checks the email/password format, then opens the demo account.<br>By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')" style="color:var(--tm-teal-d);font-weight:600">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')" style="color:var(--tm-teal-d);font-weight:600">Privacy Policy</a>.</p>
+<button class="tm-btn ghost" onclick="createAccount()">Create an account</button>
+<p class="tm-note">Prototype: account creation is a demo only; accounts and passwords are not securely saved yet.<br>By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')" style="color:var(--tm-teal-d);font-weight:600">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')" style="color:var(--tm-teal-d);font-weight:600">Privacy Policy</a>.</p>
 </div></div>
 </div>`}
 function calc(month){const c=S.tx.filter(t=>mk(t.date)===month);const inc=c.filter(t=>t.type==='income').reduce((a,t)=>a+t.amt,0);const by={};c.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);const exp=Object.values(by).reduce((a,b)=>a+b,0);return{inc,exp,by}}
