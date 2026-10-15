@@ -1,0 +1,35 @@
+name: WalletMV Uptime Check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check WalletMV production website
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://walletmv.com/"
+          BODY="$(mktemp)"
+          trap 'rm -f "$BODY"' EXIT
+
+          if ! STATUS="$(curl --location --silent --show-error --max-time 20 \
+            --output "$BODY" --write-out '%{http_code}' "$URL")"; then
+            echo "::error title=WalletMV is unreachable::Could not connect to $URL"
+            exit 1
+          fi
+
+          if [[ "$STATUS" != "200" ]]; then
+            echo "::error title=WalletMV returned an unexpected status::HTTP $STATUS from $URL"
+            exit 1
+          fi
+
+          echo "WalletMV returned HTTP 200."
