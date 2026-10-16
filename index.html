@@ -1750,6 +1750,11 @@ async function resendConfirmation(){const em=$('#em').value.trim();if(!walletAut
   if(error)return toast(error.message||'Unable to create account');
   if(data.session&&data.user){S.email=data.user.email||em;S.name=data.user.user_metadata?.full_name||em.split('@')[0];S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Account created successfully');render()}
   else toast('Account created. Check your email to confirm it, then log in.')}
+async function saveNewPassword(){const a=$('#npw').value,b=$('#npw2').value;
+  if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');
+  if(a.length<8)return toast('Use at least 8 characters');if(a!==b)return toast('The two passwords do not match');
+  const {error}=await walletAuth.auth.updateUser({password:a});if(error)return toast(error.message||'Unable to save the new password');
+  S.recovery=false;S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Password changed. You are signed in.');render()}
 async function sendPasswordReset(){const em=$('#em').value.trim();if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');if(!em||!em.includes('@'))return toast('Enter your email address first');const {error}=await walletAuth.auth.resetPasswordForEmail(em,{redirectTo:location.origin});if(error)return toast(error.message||'Unable to send reset email');toast('If an account exists for this email, a password reset link will be sent.')}
 async function logoutUser(){if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.name='';S.email='';S.page='home';go('home')}
 function Login(){return `<div class="tmlogin">
@@ -1783,14 +1788,18 @@ function Login(){return `<div class="tmlogin">
 <div class="tm-nav"><span class="tm-brand"><span class="tm-mark">${LOGO()}</span>${BRAND()}</span><a href="#" class="tm-navlink" onclick="event.preventDefault();sendPasswordReset()">Need help?</a></div>
 <div class="tm-wrap"><div class="tm-card">
 <div class="tm-icon">${LOGO('#14304B')}</div>
-<h1 class="tm-h">Welcome back</h1>
+${S.recovery?`<h1 class="tm-h">Set a new password</h1>
+<p class="tm-sub">Choose a new password for ${esc(S.email)}.</p>
+<div class="tm-field"><label class="tm-lbl" for="npw">New password</label><input id="npw" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+<div class="tm-field"><label class="tm-lbl" for="npw2">Type it again</label><input id="npw2" type="password" autocomplete="new-password" placeholder="Same password again"></div>
+<button class="tm-btn primary" onclick="saveNewPassword()">Save new password</button>`:`<h1 class="tm-h">Welcome back</h1>
 <p class="tm-sub">Log in to your WalletMV account.</p>
-<div class="tm-field"><label class="tm-lbl" for="em">Email or username</label><input id="em" type="text" autocomplete="username" autocapitalize="none" value="${esc(S.email)}" placeholder="you@example.com"></div>
+<div class="tm-field"><label class="tm-lbl" for="em">Email</label><input id="em" type="email" inputmode="email" autocomplete="username" autocapitalize="none" value="${esc(S.email)}" placeholder="you@example.com"></div>
 <div class="tm-field"><label class="tm-lbl" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Enter your password"></div>
 <div class="tm-row"><a href="#" class="tm-link" onclick="event.preventDefault();sendPasswordReset()">Forgot password?</a><a href="#" class="tm-link" onclick="event.preventDefault();resendConfirmation()">Resend confirmation email</a></div>
 <button class="tm-btn primary" onclick="attemptLogin()">Log in</button>
 <button class="tm-btn ghost" onclick="createAccount()">Create an account</button>
-<p class="tm-note">Secure sign-in powered by Supabase. New accounts may need email confirmation before logging in.<br>By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')" style="color:var(--tm-teal-d);font-weight:600">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')" style="color:var(--tm-teal-d);font-weight:600">Privacy Policy</a>.</p>
+<p class="tm-note">Secure sign-in powered by Supabase. New accounts may need email confirmation before logging in.<br>By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')" style="color:var(--tm-teal-d);font-weight:600">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')" style="color:var(--tm-teal-d);font-weight:600">Privacy Policy</a>.</p>`}
 </div></div>
 </div>`}
 function calc(month){const c=S.tx.filter(t=>mk(t.date)===month);const inc=c.filter(t=>t.type==='income').reduce((a,t)=>a+t.amt,0);const by={};c.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);const exp=Object.values(by).reduce((a,b)=>a+b,0);return{inc,exp,by}}
@@ -2461,7 +2470,11 @@ function registerApp(){try{
 // opened from the home-screen icon → go straight to the app, not the website
 try{if(/[?&]app=1\b/.test(location.search)||isStandalone()){const h=(location.hash||'').slice(1);if(h==='shop')S.page='shop';else if(S.page==='home'){S.page='money';if(h==='addx'||h==='addi')S.mview=h}}}catch(e){}
 registerApp();
-if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{if(session?.user){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;}else if(event==='SIGNED_OUT'){S.signed=false;S.allAccess=false;}});}
+if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{const was=S.signed;
+ if(event==='PASSWORD_RECOVERY'&&session?.user){S.email=session.user.email||'';S.recovery=true;S.signed=false;S.page='login';render();return}
+ if(session?.user&&!S.recovery){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;
+  if(!was&&event==='SIGNED_IN'){if(S.page==='login'||S.page==='home'){S.page='money';S.mview='today'}if(/[#&](access_token|type=signup)/.test(location.hash)){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}toast('Email confirmed. You are signed in.')}render()}else if(event==='INITIAL_SESSION')render()}
+ else if(event==='SIGNED_OUT'){S.signed=false;S.allAccess=false;S.recovery=false}},0)});}
 
 /* ============ STUDIO ============ */
 render();
