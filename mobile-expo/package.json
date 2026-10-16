@@ -1,0 +1,22 @@
+{
+  "name": "walletmv-expo",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "doctor": "npx expo-doctor@latest",
+    "eas:init": "npx eas-cli project:init --account muisssss-team",
+    "build:android:preview": "npx eas-cli build --platform android --profile preview",
+    "build:android:production": "npx eas-cli build --platform android --profile production",
+    "build:ios:production": "npx eas-cli build --platform ios --profile production"
+  },
+  "dependencies": {
+    "expo": "~57.0.21",
+    "react": "19.2.0",
+    "react-native": "0.86.0",
+    "react-native-webview": "13.16.1"
+  }
+}
