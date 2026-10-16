@@ -8,24 +8,58 @@
     "scheme": "walletmv",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0B1A2C"
-    },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.walletmv.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "WalletMV uses Face ID to keep your money private when you open the app.",
+        "NSCameraUsageDescription": "WalletMV uses the camera to snap receipts, bills and payment slips.",
+        "NSPhotoLibraryUsageDescription": "WalletMV lets you pick a photo of a receipt, bill or payment slip."
+      }
     },
     "android": {
       "package": "com.walletmv.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B1A2C"
       },
-      "softwareKeyboardLayoutMode": "resize"
-    }
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ],
+      "blockedPermissions": [
+        "RECORD_AUDIO",
+        "READ_CONTACTS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "backgroundColor": "#0B1A2C",
+          "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "WalletMV uses Face ID to keep your money private when you open the app."
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "primaryColor": "#0B1A2C",
+    "backgroundColor": "#0B1A2C"
   }
 }

@@ -1,5 +1,14 @@
 # WalletMV Expo app
 
+**To put the app on Google Play and the App Store, follow `../store-listing/README.md`.** Builds run from GitHub → Actions → "Build the phone apps".
+
+What this app adds on top of the website:
+- Opens `https://walletmv.com/?app=1&store=android|ios`. Store mode hides prices and payment pages, as store rules require in the Maldives.
+- Face ID / Touch ID / fingerprint lock. People are asked on first launch, and can switch it in Settings → App lock. The app locks again after one minute in the background.
+- Offline "could not connect" screen, the Android back button, and external links opening in the phone's browser.
+
+After pulling changes, run `npm install` and then `npx expo install --fix`, so the Expo packages match the SDK.
+
 This folder creates the Android/iOS native shell for WalletMV using Expo and React Native WebView. It opens https://walletmv.com/?app=1, so the website should be deployed and working before testing the native app. Website updates appear in the app without rebuilding it; native-code or app-icon changes require a new build.
 
 ## Link it to your existing Expo project

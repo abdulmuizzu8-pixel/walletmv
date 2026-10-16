@@ -1,0 +1,6 @@
+# Files that are not part of the website (kept out of the walletmv.com deployment)
+store-listing
+mobile-expo
+supabase
+*.md
+setup-claude-code.ps1
