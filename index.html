@@ -1800,6 +1800,12 @@ function syncNote(){if(!S.signed)return'';return S.syncErr?`<p class="sub" style
    apps (opened with ?store=android or ?store=ios) hide prices and payment pages. Customers buy on walletmv.com. */
 function storeTidy(){if(!STORE_APP)return;try{document.querySelectorAll('#app [onclick*="requestUpgrade("],#app [onclick*="go(\'packages\')"],#app [onclick*="go(\'checkout\')"],#app [onclick*="go(\'services\')"],#app [onclick*="waOrder("]').forEach(e=>e.remove());document.querySelectorAll('#app .store-hide').forEach(e=>e.remove())}catch(e){}}
 
+/* ---------- Phone app lock (Face ID / fingerprint), only inside the WalletMV phone apps ---------- */
+function AppLockCard(){const a=window.WalletMVApp;if(!a||!a.canLock)return'';const on=!!a.lock,name=a.platform==='ios'?'Face ID or Touch ID':'your fingerprint or face';
+ return `<div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:10px;align-items:center"><div style="flex:1;min-width:200px"><h3>App lock</h3><p class="sub" style="margin:4px 0 0">Open WalletMV with ${name}, so only you can see your money.</p></div><button class="btn ${on?'ghost':''} sm" role="switch" aria-checked="${on}" onclick="appLock(${!on})">${on?'Turn off':'Turn on'}</button></div></div>`}
+function appLock(on){try{window.ReactNativeWebView.postMessage(JSON.stringify({type:'lock',on}));window.WalletMVApp.lock=on}catch(e){}toast(on?'App lock is on':'App lock is off');render()}
+addEventListener('walletmvapp',()=>{if(S.page==='money'&&S.mview==='settings')render()});
+
 /* ---------- Account: change password, delete account ---------- */
 async function changePassword(btn){const v=($('#pw2')||{}).value||'';if(v.length<8)return toast('Use at least 8 characters');if(!walletAuth)return toast('Sign-in couldn’t load. Refresh and try again.');
  btn.disabled=true;const {error}=await walletAuth.auth.updateUser({password:v});btn.disabled=false;if(error)return toast(auNice(error,'We couldn’t change your password'));$('#pw2').value='';toast('Password changed')}
@@ -2574,7 +2580,7 @@ function Settings(){return `<div style="max-width:680px">${Head('Settings','Mana
  <label for="s2">Currency</label><select id="s2">${curOptions()}</select>
  <label for="s5">Appearance</label><select id="s5" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select>
  <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--ink)"><input id="s3" type="checkbox" ${S.notif?'checked':''}> Notify me at 90% of my budget</label>
- <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.cur=$('#s2').value;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>
+ <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.cur=$('#s2').value;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>${AppLockCard()}
   <div class="card" style="margin-top:18px;border:1px solid rgba(180,67,78,.35)"><h3>Reset App Data</h3><p class="sub" style="margin:6px 0 14px">Clear personal transactions, transfers, savings goals, bill reminders, personal calendar notes, grocery list, budget targets, and account opening balances. Your profile, package entitlement, shop records, products, customers, and saved grocery templates will remain.</p><button class="btn rose" onclick="resetAppData()">Reset App Data</button></div>
  <div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:10px"><div><h3>Help &amp; support</h3><p class="sub" style="margin:4px 0 0">Something not right? Send it to the WalletMV team on WhatsApp: <b style="user-select:all">${esc(S.supportWhatsapp)}</b></p></div><button class="btn sm" onclick="reportProblem()">${IC('chat',15)} Report a problem</button></div></div>
  <div class="card" style="margin-top:18px"><h3>Recurring bills</h3><p class="sub" style="margin:6px 0 14px">These appear on your Today board with due dates.</p>

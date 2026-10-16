@@ -7,3 +7,9 @@ web-build/
 .env
 .env.*
 !.env.example
+
+# Store upload keys (never commit)
+google-play-key.json
+*.p8
+*.p12
+*.mobileprovision

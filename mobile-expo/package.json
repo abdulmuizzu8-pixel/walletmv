@@ -11,12 +11,16 @@
     "eas:init": "npx eas-cli project:init --account muisssss-team",
     "build:android:preview": "npx eas-cli build --platform android --profile preview",
     "build:android:production": "npx eas-cli build --platform android --profile production",
-    "build:ios:production": "npx eas-cli build --platform ios --profile production"
+    "build:ios:production": "npx eas-cli build --platform ios --profile production",
+    "fix-versions": "npx expo install --fix"
   },
   "dependencies": {
     "expo": "~57.0.21",
     "react": "19.2.0",
     "react-native": "0.86.0",
-    "react-native-webview": "13.16.1"
+    "react-native-webview": "13.16.1",
+    "expo-local-authentication": "*",
+    "expo-secure-store": "*",
+    "expo-splash-screen": "*"
   }
 }
