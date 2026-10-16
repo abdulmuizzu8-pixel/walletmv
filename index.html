@@ -1738,21 +1738,6 @@ function ShopSettingsTab(){const p=S.shopProfile;const mv=isMV();
  <p class="sub" style="font-size:13px;margin:10px 0 0">With these settings, spending ${money(S.loyalty.earnPer*S.loyalty.minRedeem)} earns a ${money(S.loyalty.minRedeem*S.loyalty.pointValue)} discount.</p>
  <button class="btn" style="margin-top:14px" onclick="saveLoyalty()">Save loyalty settings</button></div>
  <div class="card" style="margin-top:18px;max-width:520px"><h3>Appearance</h3><label for="spt">Theme</label><select id="spt" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select></div>`}
-async function attemptLogin(){const em=$('#em').value.trim(),pw=$('#pw').value;
-  if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');
-  if(!em||!em.includes('@')||!em.split('@')[1]?.includes('.'))return toast('Enter the email address you registered with');
-  if(!pw)return toast('Enter your password');
-  const {data,error}=await walletAuth.auth.signInWithPassword({email:em,password:pw});
-  if(error){const msg=String(error.message||'');if(/email not confirmed/i.test(msg)||/email_not_confirmed/i.test(msg))return toast('Your email is not confirmed. Check your inbox, or select “Resend confirmation email” below.');return toast(msg||'Unable to sign in')}
-  S.email=data.user.email||em;S.name=data.user.user_metadata?.full_name||em.split('@')[0];S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Signed in successfully');render()}
-async function resendConfirmation(){const em=$('#em').value.trim();if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');if(!em||!em.includes('@')||!em.split('@')[1]?.includes('.'))return toast('Enter the email address you used to register');const {error}=await walletAuth.auth.resend({type:'signup',email:em,options:{emailRedirectTo:location.origin}});if(error)return toast(error.message||'Unable to resend confirmation email');toast('If this account still needs confirmation, a new email will be sent. Check your inbox and spam folder.')}async function createAccount(){const em=$('#em').value.trim(),pw=$('#pw').value;
-  if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');
-  if(!em||!em.includes('@')||!em.split('@')[1]?.includes('.'))return toast('Enter a valid email address');
-  if(pw.length<8)return toast('Create a password with at least 8 characters');
-  const {data,error}=await walletAuth.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin}});
-  if(error)return toast(error.message||'Unable to create account');
-  if(data.session&&data.user){S.email=data.user.email||em;S.name=data.user.user_metadata?.full_name||em.split('@')[0];S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Account created successfully');render()}
-  else toast('Account created. Check your email to confirm it, then log in.')}
 async function loadAccess(){if(!walletAuth||!S.email)return;const em=S.email.toLowerCase();
   try{const [c,a]=await Promise.all([walletAuth.from('walletmv_comp_access').select('plan').eq('email',em).maybeSingle(),walletAuth.from('walletmv_admins').select('email').eq('email',em).maybeSingle()]);
    const before=JSON.stringify([S.comp,S.isOwner]);S.comp=c.data?{plan:c.data.plan}:null;S.isOwner=!!a.data;if(S.isOwner&&S.page==='admin')loadFreeList();
@@ -1774,58 +1759,250 @@ function AdminFreeHTML(){const opts=[...S.plans.map(p=>[p.id,p.name]),['all','Al
  <div><label for="frnote" style="margin-top:0">Note (optional)</label><input id="frnote" placeholder="e.g. Friend, tester"></div></div>
  <button class="btn sm" style="margin-top:12px" onclick="addFree()">Give free package</button>
  <div style="margin-top:16px">${list.length?list.map(r=>`<div class="today-row"><span class="dot" style="background:var(--ok)"></span><span style="flex:1;min-width:0"><b style="word-break:break-all">${esc(r.email)}</b><br><small style="color:var(--ink2)">${esc(r.plan==='all'?'All packages':(planInfo(r.plan)||{}).short||r.plan)} · free forever${r.note?' · '+esc(r.note):''}</small></span><button class="btn ghost sm" style="color:var(--rose)" aria-label="Remove free access for ${esc(r.email)}" onclick="removeFree('${esc(r.email).replace(/'/g,"&#39;")}')">Remove</button></div>`).join(''):'<p class="sub">No free packages given yet.</p>'}</div></div>`}
-async function saveNewPassword(){const a=$('#npw').value,b=$('#npw2').value;
-  if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');
-  if(a.length<8)return toast('Use at least 8 characters');if(a!==b)return toast('The two passwords do not match');
-  const {error}=await walletAuth.auth.updateUser({password:a});if(error)return toast(error.message||'Unable to save the new password');
-  S.recovery=false;S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Password changed. You are signed in.');render()}
-async function sendPasswordReset(){const em=$('#em').value.trim();if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');if(!em||!em.includes('@'))return toast('Enter your email address first');const {error}=await walletAuth.auth.resetPasswordForEmail(em,{redirectTo:location.origin});if(error)return toast(error.message||'Unable to send reset email');toast('If an account exists for this email, a password reset link will be sent.')}
-async function logoutUser(){if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.page='home';go('home')}
-function Login(){return `<div class="tmlogin">
-<style>
-.tmlogin{--tm-teal:#14304B;--tm-teal-d:#0B1A2C;--tm-teal-l:#1C4266;--tm-bg:#FFFFFF;--tm-ink:#0F1C2B;--tm-ink2:#6A6658;--tm-line:#ECE5D6;--tm-gold:#D4B26A;--tm-gold-d:#9A7330;
- min-height:100vh;background:var(--tm-bg);font-family:'Jost',system-ui,-apple-system,'Segoe UI',sans-serif;color:var(--tm-ink);display:flex;flex-direction:column}
-.tmlogin .tm-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;background:#fff;border-bottom:1px solid var(--tm-line)}
-.tmlogin .tm-brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:1.15rem;color:var(--tm-ink)}
-.tmlogin .tm-brand .tm-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--tm-teal-l),var(--tm-teal-d));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex:none}
-.tmlogin .tm-navlink{font-size:14px;font-weight:600;color:var(--tm-ink2)}
-.tmlogin .tm-wrap{flex:1;display:grid;place-items:center;padding:32px 20px 60px}
-.tmlogin .tm-card{width:100%;max-width:400px;background:#fff;border:1px solid var(--tm-line);border-radius:20px;padding:34px 32px;box-shadow:0 24px 50px -28px rgba(11,26,44,.28)}
-.tmlogin .tm-icon{width:52px;height:52px;border-radius:14px;background:rgba(212,178,106,.14);display:flex;align-items:center;justify-content:center;margin-bottom:18px}
-.tmlogin h1.tm-h{font-family:var(--head);font-size:2.1rem;font-weight:600;margin:0 0 6px;color:var(--tm-ink)}
-.tmlogin .tm-sub{font-size:14px;color:var(--tm-ink2);margin:0 0 26px}
-.tmlogin label.tm-lbl{display:block;font-size:13px;font-weight:600;color:var(--tm-ink);margin:0 0 6px}
-.tmlogin .tm-field{margin-bottom:16px}
-.tmlogin .tm-field input{width:100%;background:var(--tm-bg);border:1.5px solid var(--tm-line);border-radius:11px;padding:12px 14px;font-size:14px;color:var(--tm-ink);font-family:inherit;transition:border-color .15s,background .15s}
-.tmlogin .tm-field input:focus{outline:none;border-color:var(--tm-gold);background:#fff}
-.tmlogin .tm-row{display:flex;justify-content:flex-end;margin:-6px 0 20px}
-.tmlogin .tm-link{font-size:13px;font-weight:600;color:var(--tm-gold-d);text-decoration:none}
-.tmlogin .tm-btn{width:100%;border:0;border-radius:11px;padding:13px;font-weight:600;font-size:15px;font-family:inherit;cursor:pointer;transition:filter .15s,transform .1s}
-.tmlogin .tm-btn:active{transform:translateY(1px)}
-.tmlogin .tm-btn.primary{background:linear-gradient(180deg,var(--tm-teal-l),var(--tm-teal));color:#FFFFFF;border:1px solid rgba(212,178,106,.45);letter-spacing:.04em;box-shadow:0 10px 24px -10px rgba(11,26,44,.45)}
-.tmlogin .tm-btn.primary:hover{filter:brightness(1.05)}
-.tmlogin .tm-btn.ghost{background:#fff;color:var(--tm-ink);border:1.5px solid var(--tm-line);margin-top:10px}
-.tmlogin .tm-btn.ghost:hover{border-color:var(--tm-gold)}
-.tmlogin .tm-note{font-size:12.5px;color:var(--tm-ink2);text-align:center;margin-top:18px;line-height:1.5}
-@media(max-width:480px){.tmlogin .tm-nav{padding:14px 18px}.tmlogin .tm-card{padding:26px 22px;border-radius:16px}}
-</style>
-<div class="tm-nav"><span class="tm-brand"><span class="tm-mark">${LOGO()}</span>${BRAND()}</span><a href="#" class="tm-navlink" onclick="event.preventDefault();sendPasswordReset()">Need help?</a></div>
-<div class="tm-wrap"><div class="tm-card">
-<div class="tm-icon">${LOGO('#14304B')}</div>
-${S.recovery?`<h1 class="tm-h">Set a new password</h1>
-<p class="tm-sub">Choose a new password for ${esc(S.email)}.</p>
-<div class="tm-field"><label class="tm-lbl" for="npw">New password</label><input id="npw" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
-<div class="tm-field"><label class="tm-lbl" for="npw2">Type it again</label><input id="npw2" type="password" autocomplete="new-password" placeholder="Same password again"></div>
-<button class="tm-btn primary" onclick="saveNewPassword()">Save new password</button>`:`<h1 class="tm-h">Welcome back</h1>
-<p class="tm-sub">Log in to your WalletMV account.</p>
-<div class="tm-field"><label class="tm-lbl" for="em">Email</label><input id="em" type="email" inputmode="email" autocomplete="username" autocapitalize="none" value="${esc(S.email)}" placeholder="you@example.com"></div>
-<div class="tm-field"><label class="tm-lbl" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="Enter your password"></div>
-<div class="tm-row"><a href="#" class="tm-link" onclick="event.preventDefault();sendPasswordReset()">Forgot password?</a><a href="#" class="tm-link" onclick="event.preventDefault();resendConfirmation()">Resend confirmation email</a></div>
-<button class="tm-btn primary" onclick="attemptLogin()">Log in</button>
-<button class="tm-btn ghost" onclick="createAccount()">Create an account</button>
-<p class="tm-note">Secure sign-in powered by Supabase. New accounts may need email confirmation before logging in.<br>By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')" style="color:var(--tm-teal-d);font-weight:600">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')" style="color:var(--tm-teal-d);font-weight:600">Privacy Policy</a>.</p>`}
-</div></div>
-</div>`}
+async function logoutUser(){if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.auth='login';S.recovery=false;S.page='home';go('home')}
+/* ---------- Log in, sign up and password help ----------
+   Screens: S.auth = 'login' | 'signup' | 'forgot' | 'resend' | 'sent'; S.recovery shows "Set a new password".
+   Supabase lets each email address get one auth email every 60 seconds, so "Resend" waits that long. */
+const AUTH_GAP=60;let _auTick=null;
+const auEmailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e||'');
+function auVal(id){const el=$('#'+id);return el?el.value.trim():''}
+function auSay(m,kind){const el=$('#au-msg');if(!el)return m&&toast(m);el.className='au-msg '+(kind||'err');el.textContent=m||''}
+function auBusy(btn,on,label){if(!btn)return;if(on){btn.dataset.l=btn.textContent;btn.disabled=true;btn.textContent=label||'Please wait…'}else{btn.disabled=false;if(btn.dataset.l)btn.textContent=btn.dataset.l}}
+function auLeft(){return Math.max(0,Math.ceil(((S.auUntil||0)-Date.now())/1000))}
+function auHold(secs){S.auUntil=Date.now()+secs*1000}
+function auClock(s){return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function auWaitSecs(err){const m=String(err&&err.message||'');const n=m.match(/after (\d+) second/i);if(n)return +n[1];if(err&&(err.status===429||/rate limit|too many/i.test(m)))return AUTH_GAP;return 0}
+function auNice(err,fallback){const m=String(err&&err.message||''),code=String(err&&err.code||'');
+ if(/email rate limit exceeded/i.test(m)||code==='over_email_send_rate_limit'&&!/after \d+ second/i.test(m))return 'We’ve sent a lot of emails in the last hour. Please try again a little later, or message us on WhatsApp.';
+ const w=auWaitSecs(err);if(w)return `For your safety, you can ask for another email in ${w} seconds.`;
+ if(/invalid login credentials/i.test(m)||code==='invalid_credentials')return 'That email and password don’t match. Try again, or reset your password.';
+ if(/email not confirmed/i.test(m)||code==='email_not_confirmed')return 'Please confirm your email first. Open the link we sent you, or tap “Resend it” below.';
+ if(/already registered|already exists/i.test(m)||code==='user_already_exists')return 'This email already has an account. Log in, or reset your password.';
+ if(/different from the old|same_password/i.test(m)||code==='same_password')return 'Choose a password you haven’t used before on WalletMV.';
+ if(/weak|password should/i.test(m)||code==='weak_password')return 'Choose a stronger password: at least 8 characters, with a number.';
+ if(/session|jwt|expired/i.test(m))return 'This reset link has expired. Ask for a new one from “Forgot password?”.';
+ if(/fetch|network|load failed/i.test(m))return 'We couldn’t reach WalletMV. Check your internet and try again.';
+ return m||fallback||'Something went wrong. Please try again.'}
+function authGo(v){S.auth=v;render();scrollTo(0,0);setTimeout(()=>{const f=document.querySelector('.au-card input:not([type=checkbox])');if(f&&matchMedia('(min-width:861px)').matches)f.focus()},0)}
+function auPeek(id,btn){const i=$('#'+id);if(!i)return;const show=i.type==='password';i.type=show?'text':'password';btn.setAttribute('aria-pressed',String(show));btn.textContent=show?'Hide':'Show';btn.setAttribute('aria-label',(show?'Hide':'Show')+' password')}
+function auStrength(v){if(!v)return 0;if(v.length<8)return 1;let s=0;if(v.length>=12)s++;if(/[a-z]/.test(v)&&/[A-Z]/.test(v))s++;if(/\d/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;return s>=3?4:s===2?3:2}
+function auMeter(inp){const m=$('#au-meter');if(!m)return;const s=auStrength(inp.value);const L=['At least 8 characters','Too short','Okay','Good','Strong'],C=['transparent','#B4434E','#C9913D','#1F7A5C','#1F7A5C'];const bar=m.querySelector('i');bar.style.width=(s*25)+'%';bar.style.background=C[s];m.querySelector('span').textContent=L[s]}
+function auInbox(em){const d=(String(em).split('@')[1]||'').toLowerCase();if(d==='gmail.com'||d==='googlemail.com')return['Open Gmail','https://mail.google.com/'];if(/^(outlook|hotmail|live|msn)\./.test(d))return['Open Outlook','https://outlook.live.com/mail/'];if(/^(yahoo|ymail)\./.test(d))return['Open Yahoo Mail','https://mail.yahoo.com/'];return null}
+function auTick(){clearInterval(_auTick);const upd=()=>{const b=$('#au-resend'),c=$('#au-count');if(!b){clearInterval(_auTick);return}const l=auLeft();b.disabled=l>0;if(c)c.textContent=l>0?'You can send it again in '+auClock(l):'Didn’t get it? You can send it again now.';if(!l)clearInterval(_auTick)};upd();_auTick=setInterval(upd,1000)}
+function auSignedIn(user,em,msg){S.email=user.email||em;S.name=user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;S.recovery=false;S.auth='login';S.page='money';S.mview='today';toast(msg);render()}
+
+async function attemptLogin(btn){const em=auVal('em'),pw=($('#pw')||{}).value||'';S.email=em;
+ if(!walletAuth)return auSay('Sign-in couldn’t load. Check your internet, then refresh the page.');
+ if(!auEmailOk(em))return auSay('Enter the email address you signed up with.');
+ if(!pw)return auSay('Enter your password.');
+ auSay('');auBusy(btn,true,'Logging in…');
+ const {data,error}=await walletAuth.auth.signInWithPassword({email:em,password:pw});auBusy(btn,false);
+ if(error)return auSay(auNice(error,'We couldn’t log you in.'));
+ auSignedIn(data.user,em,'Welcome back')}
+
+async function createAccount(btn){const nm=auVal('su-name'),ph=auVal('su-phone').replace(/\s+/g,''),em=auVal('em'),pw=($('#pw')||{}).value||'',ok=($('#su-terms')||{}).checked;
+ S.email=em;S.suName=nm;S.suPhone=ph;
+ if(!walletAuth)return auSay('Sign-up couldn’t load. Check your internet, then refresh the page.');
+ if(!nm)return auSay('Enter your name.');
+ if(!auEmailOk(em))return auSay('Enter a valid email address.');
+ if(ph&&!/^\+?\d{7,15}$/.test(ph))return auSay('Enter your phone number using digits only, like 7771234.');
+ if(pw.length<8)return auSay('Choose a password with at least 8 characters.');
+ if(!ok)return auSay('Please agree to the Terms and Privacy Policy.');
+ if(auLeft()>0)return auSay(`For your safety, you can ask for another email in ${auLeft()} seconds.`);
+ auSay('');auBusy(btn,true,'Creating your account…');
+ const phone=ph?(ph.startsWith('+')?ph:'+960'+ph):'';
+ const {data,error}=await walletAuth.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin,data:{full_name:nm,phone}}});auBusy(btn,false);
+ if(error){const w=auWaitSecs(error);if(w)auHold(w);return auSay(auNice(error,'We couldn’t create your account.'))}
+ if(data?.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0)return auSay('This email already has an account. Log in, or reset your password.');
+ if(data?.session&&data.user)return auSignedIn(data.user,em,'Account created. Welcome to WalletMV');
+ auHold(AUTH_GAP);S.auSent='confirm';authGo('sent')}
+
+async function auSendEmail(btn,kind){const again=S.auth==='sent';const em=again?S.email:auVal('em');S.email=em;
+ if(!walletAuth)return auSay('Email sending couldn’t load. Check your internet, then refresh the page.');
+ if(!auEmailOk(em))return auSay('Enter the email address you use for WalletMV.');
+ if(auLeft()>0)return auSay(`For your safety, you can ask for another email in ${auLeft()} seconds.`);
+ auSay('');auBusy(btn,true,'Sending…');
+ const {error}=kind==='reset'?await walletAuth.auth.resetPasswordForEmail(em,{redirectTo:location.origin}):await walletAuth.auth.resend({type:'signup',email:em,options:{emailRedirectTo:location.origin}});
+ auBusy(btn,false);
+ if(error){const w=auWaitSecs(error);if(w){auHold(w);if(again)auTick()}return auSay(auNice(error,'We couldn’t send the email. Please try again.'))}
+ auHold(AUTH_GAP);S.auSent=kind;S.auFlash=again?{m:'A new email is on its way. Use the newest one.',k:'ok'}:null;authGo('sent')}
+function sendPasswordReset(btn){return auSendEmail(btn,'reset')}
+function resendConfirmation(btn){return auSendEmail(btn,'confirm')}
+function auResend(btn){return auSendEmail(btn,S.auSent==='reset'?'reset':'confirm')}
+
+async function saveNewPassword(btn){const a=($('#npw')||{}).value||'',b=($('#npw2')||{}).value||'';
+ if(!walletAuth)return auSay('Sign-in couldn’t load. Check your internet, then refresh the page.');
+ if(a.length<8)return auSay('Use at least 8 characters.');if(a!==b)return auSay('The two passwords don’t match.');
+ auSay('');auBusy(btn,true,'Saving…');
+ const {data,error}=await walletAuth.auth.updateUser({password:a});auBusy(btn,false);
+ if(error)return auSay(auNice(error,'We couldn’t save your new password.'));
+ auSignedIn(data?.user||{email:S.email},S.email,'Password changed. You’re logged in.')}
+
+const AU_IC={
+ key:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M17 6l3 3M14 9l2 2"/></svg>',
+ mail:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
+ sent:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8"/><path d="m3 7 9 6 9-6"/><path d="m16 19 2 2 4-4"/></svg>',
+ lock:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+ save:'<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>',
+ track:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>',
+ control:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+ manage:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>'
+};
+const auMsgEl=f=>`<p id="au-msg" class="au-msg ${f?f.k:'err'}" aria-live="polite">${f?esc(f.m):''}</p>`;
+const auEmailField=(label)=>`<div class="au-field"><label for="em">${label||'Email'}</label><input id="em" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" value="${esc(S.email||'')}" placeholder="you@example.com"></div>`;
+const auPwField=(id,label,ac,meter,ph)=>`<div class="au-field"><label for="${id}">${label}</label><div class="au-pw"><input id="${id}" type="password" autocomplete="${ac}" placeholder="${ph||''}"${meter?' oninput="auMeter(this)" aria-describedby="au-meter"':''}><button type="button" class="au-peek" aria-pressed="false" aria-label="Show password" onclick="auPeek('${id}',this)">Show</button></div>${meter?'<div id="au-meter" class="au-meter"><b><i></i></b><span>At least 8 characters</span></div>':''}</div>`;
+const auForm=(fn,inner)=>`<form novalidate onsubmit="event.preventDefault();${fn}(this.querySelector('[type=submit]'))">${inner}</form>`;
+
+function AuthBody(v,f){
+ if(v==='reset')return `<div class="au-badge">${AU_IC.lock}</div><h1 class="au-h">Set a new password</h1>
+ <p class="au-sub">For <b>${esc(S.email||'your account')}</b>. Use at least 8 characters. Adding a number or symbol makes it stronger.</p>
+ ${auForm('saveNewPassword',`${auPwField('npw','New password','new-password',true,'At least 8 characters')}${auPwField('npw2','Type it again','new-password',false,'Same password again')}${auMsgEl(f)}<button type="submit" class="au-btn">Save new password</button>`)}`;
+ if(v==='signup')return `<h1 class="au-h">Create your account</h1><p class="au-sub">It takes about a minute. We’ll send you an email to confirm it’s you.</p>
+ ${auForm('createAccount',`<div class="au-field"><label for="su-name">Full name</label><input id="su-name" type="text" autocomplete="name" value="${esc(S.suName||'')}" placeholder="Your full name"></div>
+ <div class="au-field"><label for="su-phone">Phone number <span class="au-opt">(optional)</span></label><div class="au-tel"><span aria-hidden="true">+960</span><input id="su-phone" type="tel" inputmode="tel" autocomplete="tel-national" value="${esc(S.suPhone||'')}" placeholder="777 1234" aria-describedby="su-phone-hint"></div><small id="su-phone-hint" class="au-hint">For WhatsApp help with your account.</small></div>
+ ${auEmailField()}${auPwField('pw','Password','new-password',true,'At least 8 characters')}
+ <label class="au-check"><input type="checkbox" id="su-terms"><span>I agree to the <a href="#" onclick="event.preventDefault();go('terms')">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')">Privacy Policy</a>.</span></label>
+ ${auMsgEl(f)}<button type="submit" class="au-btn">Create account</button>`)}
+ <p class="au-small">Already have an account? <button type="button" class="au-link" onclick="authGo('login')">Log in</button></p>`;
+ if(v==='forgot')return `<button type="button" class="au-backlink" onclick="authGo('login')">← Back to log in</button><div class="au-badge">${AU_IC.key}</div>
+ <h1 class="au-h">Forgot your password?</h1><p class="au-sub">Enter the email you use for WalletMV. We’ll send you a link to set a new password.</p>
+ ${auForm('sendPasswordReset',`${auEmailField()}${auMsgEl(f)}<button type="submit" class="au-btn">Send reset link</button>`)}
+ <p class="au-small">Remembered it? <button type="button" class="au-link" onclick="authGo('login')">Log in</button></p>`;
+ if(v==='resend')return `<button type="button" class="au-backlink" onclick="authGo('login')">← Back to log in</button><div class="au-badge">${AU_IC.mail}</div>
+ <h1 class="au-h">Resend confirmation email</h1><p class="au-sub">Enter the email you signed up with. We’ll send you a new link to confirm your account.</p>
+ ${auForm('resendConfirmation',`${auEmailField()}${auMsgEl(f)}<button type="submit" class="au-btn">Send confirmation email</button>`)}
+ <p class="au-small">Already confirmed? <button type="button" class="au-link" onclick="authGo('login')">Log in</button></p>`;
+ if(v==='sent'){const reset=S.auSent==='reset',inbox=auInbox(S.email||'');setTimeout(auTick,0);
+  return `<div class="au-badge">${AU_IC.sent}</div><h1 class="au-h">Check your email</h1>
+ <p class="au-sub">We sent a ${reset?'password reset':'confirmation'} link to <b>${esc(S.email||'')}</b>. Open it on this phone or computer to ${reset?'set a new password':'confirm your account and log in'}.</p>
+ ${auMsgEl(f)}
+ <ul class="au-tips"><li>It can take a minute or two to arrive.</li><li>Look in Spam, Junk or Promotions too.</li><li>If you get more than one email, use the newest link.</li></ul>
+ <div class="au-stack">${inbox?`<a class="au-btn" href="${inbox[1]}" target="_blank" rel="noopener">${inbox[0]}</a>`:''}<button type="button" id="au-resend" class="au-btn ${inbox?'ghost':''}" onclick="auResend(this)"${auLeft()>0?' disabled':''}>Send the email again</button></div>
+ <p id="au-count" class="au-count" aria-live="polite"></p>
+ <p class="au-small"><button type="button" class="au-link" onclick="authGo('${reset?'forgot':'resend'}')">Use a different email</button> · <button type="button" class="au-link" onclick="authGo('login')">Back to log in</button></p>`}
+ return `<h1 class="au-h">Welcome back</h1><p class="au-sub">Log in to see your money for today.</p>
+ ${auForm('attemptLogin',`${auEmailField()}
+ <div class="au-field"><div class="au-lrow"><label for="pw">Password</label><button type="button" class="au-link" onclick="authGo('forgot')">Forgot password?</button></div><div class="au-pw"><input id="pw" type="password" autocomplete="current-password" placeholder="Your password"><button type="button" class="au-peek" aria-pressed="false" aria-label="Show password" onclick="auPeek('pw',this)">Show</button></div></div>
+ ${auMsgEl(f)}<button type="submit" class="au-btn">Log in</button>`)}
+ <div class="au-or"><span>New to WalletMV?</span></div>
+ <button type="button" class="au-btn ghost" onclick="authGo('signup')">Create an account</button>
+ <p class="au-small">Didn’t get your confirmation email? <button type="button" class="au-link" onclick="authGo('resend')">Resend it</button></p>`}
+
+function Login(){const v=S.recovery?'reset':(S.auth||'login');const f=S.auFlash||null;S.auFlash=null;
+ return `<div class="au${v==='login'||v==='signup'?'':' au-compact'}">${AUTH_CSS}
+ <aside class="au-side">
+  <div class="au-brandrow"><button type="button" class="au-brand" onclick="go('home')" aria-label="WalletMV home">${LOGO()}${BRAND()}</button></div>
+  <div class="au-pitch"><h2>Your money, calm and in control.</h2><p>See what’s safe to spend today, track every rufiyaa, and save for what matters, like your next holiday.</p></div>
+  <div class="au-mini" aria-hidden="true"><div><small>Safe to spend today</small><b>MVR 1,240</b></div><div><small>Holiday fund</small><b>68% saved</b><i></i></div></div>
+  <div class="au-art" aria-hidden="true">
+   <div class="au-phone"><div class="au-ph-top"><span>Today</span><span>WalletMV</span></div><div class="au-ph-label">Safe to spend today</div><div class="au-ph-big">MVR 1,240</div><div class="au-ph-bar"><i></i></div>
+    <div class="au-ph-rows"><div><span class="d" style="background:#D4B26A"></span>Groceries<b>MVR 186</b></div><div><span class="d" style="background:#8FC1B5"></span>Electricity bill<b>MVR 450</b></div><div><span class="d" style="background:#E6A27A"></span>Holiday fund<b>+500</b></div><div><span class="d" style="background:#A9B8E8"></span>Fuel<b>MVR 120</b></div></div></div>
+   <div class="au-chips"><div class="au-chip c1">${AU_IC.save}<b>Save</b><small>Holiday fund 68%</small></div>
+   <div class="au-chip c2">${AU_IC.track}<b>Track</b><small>Every expense</small></div>
+   <div class="au-chip c3">${AU_IC.control}<b>Control</b><small>Budgets on track</small></div>
+   <div class="au-chip c4">${AU_IC.manage}<b>Manage</b><small>Bills paid on time</small></div></div>
+  </div>
+  <ul class="au-points"><li>Made in the Maldives, with everything in MVR</li><li>Share one wallet with your family</li><li>A member discount card for local shops</li></ul>
+ </aside>
+ <main class="au-main"><div class="au-top"><button type="button" onclick="go('home')">← WalletMV website</button><button type="button" onclick="reportProblem('Account or login')">Need help?</button></div>
+ <div class="au-wrap"><div class="au-card">${AuthBody(v,f)}${v==='login'?`<p class="au-note">Secure sign-in by Supabase. By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')">Privacy Policy</a>.</p>`:''}</div></div></main></div>`}
+
+const AUTH_CSS=`<style>
+.au{min-height:100vh;display:flex;background:var(--bg);color:var(--ink);font-family:var(--body)}
+.au-side{position:relative;flex:0 0 44%;max-width:620px;display:flex;flex-direction:column;gap:28px;padding:32px 48px 40px;color:#fff;overflow:hidden;background:radial-gradient(120% 80% at 0% 0%,#1C3D5E 0%,#14304B 35%,#0B1A2C 75%)}
+[data-theme="noir"] .au-side{background:radial-gradient(120% 80% at 0% 0%,#14304B 0%,#0B1A2C 45%,#05080C 100%)}
+.au-side::after{content:"";position:absolute;right:-140px;bottom:-170px;width:440px;height:440px;border-radius:50%;border:1px solid rgba(212,178,106,.2);box-shadow:0 0 0 60px rgba(212,178,106,.03);pointer-events:none}
+.au-brandrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.au-brand{display:inline-flex;align-items:center;gap:10px;font-size:1.25rem;background:none;border:0;padding:0;color:#fff;cursor:pointer;min-height:44px}
+.au-brand svg{width:34px;height:34px}
+.au-pitch h2{font-family:var(--head);font-weight:600;font-size:2.6rem;line-height:1.08;color:#fff;margin:0 0 12px;max-width:440px}
+.au-pitch p{margin:0;font-size:16px;line-height:1.6;color:#C9D3DC;max-width:440px}
+.au-art{display:flex;align-items:center;justify-content:center;gap:18px;width:100%}
+.au-chips{display:flex;flex-direction:column;gap:12px}
+.au-phone{flex:none;width:218px;height:368px;border-radius:30px;background:#0E2238;border:1px solid rgba(212,178,106,.35);box-shadow:0 30px 60px -20px rgba(0,0,0,.6);padding:22px 16px;display:flex;flex-direction:column;gap:10px}
+.au-ph-top{display:flex;justify-content:space-between;font-size:11px;color:#9FB0C0}
+.au-ph-label{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#D4B26A;margin-top:6px}
+.au-ph-big{font-family:var(--head);font-size:2.1rem;font-weight:600;color:#fff;line-height:1}
+.au-ph-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}.au-ph-bar i{display:block;height:100%;width:62%;background:linear-gradient(90deg,#F6E7BC,#D4B26A);border-radius:inherit}
+.au-ph-rows{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.au-ph-rows div{display:flex;align-items:center;gap:8px;font-size:12px;color:#DCE3EA;background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px}
+.au-ph-rows b{margin-left:auto;font-weight:600;color:#fff}.au-ph-rows .d{width:8px;height:8px;border-radius:50%;flex:none}
+.au-chip{display:grid;grid-template-columns:auto 1fr;column-gap:9px;align-items:center;background:#FFFFFF;color:#0F1C2B;border-radius:14px;padding:10px 14px 10px 10px;box-shadow:0 16px 32px -12px rgba(0,0,0,.5);min-width:156px}
+.au-chip svg{grid-row:span 2;width:32px;height:32px;padding:6px;border-radius:10px;background:#FBF4E4;stroke:#8F6F2E;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.au-chip b{font-size:14px;font-weight:600;line-height:1.15}.au-chip small{font-size:11.5px;color:#5E6672;line-height:1.25}
+.au-chip.c2,.au-chip.c4{margin-left:22px}
+.au-points{list-style:none;margin:auto 0 0;padding:0;display:flex;flex-direction:column;gap:10px;font-size:14.5px;color:#DCE3EA}
+.au-points li{display:flex;gap:10px;align-items:flex-start}.au-points li::before{content:"";flex:none;width:7px;height:7px;margin-top:8px;border-radius:50%;background:#D4B26A}
+.au-mini{display:none}
+.au-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.au-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 28px 0}
+.au-top button{background:none;border:0;padding:8px 6px;font-size:14px;font-weight:500;color:var(--ink2);cursor:pointer;min-height:44px}
+.au-top button:hover{color:var(--ink)}
+.au-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:16px 24px 56px}
+.au-card{width:100%;max-width:430px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:34px 32px;box-shadow:var(--shadow)}
+.au-h{font-family:var(--head);font-size:2.3rem;font-weight:600;line-height:1.05;margin:0 0 8px;color:var(--ink)}
+.au-sub{margin:0 0 24px;font-size:15px;line-height:1.55;color:var(--ink2)}.au-sub b{color:var(--ink);font-weight:600;word-break:break-word}
+.au-field{margin:0 0 16px}
+.au label{display:block;margin:0 0 7px;font-size:14px;font-weight:500;letter-spacing:0;color:var(--ink)}
+.au-opt{font-weight:400;color:var(--ink2)}
+.au-hint{display:block;margin-top:6px;font-size:12.5px;color:var(--ink2)}
+.au-lrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:7px}.au-lrow label{margin:0}
+.au input[type=email],.au input[type=password],.au input[type=text],.au input[type=tel]{width:100%;height:50px;margin:0;padding:0 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);font-size:16px;color:var(--ink);transition:border-color .15s,background .15s,box-shadow .15s}
+.au input::placeholder{color:var(--ink2);opacity:.75}
+.au input:focus{outline:none;border-color:var(--gold);background:var(--card);box-shadow:0 0 0 3px rgba(201,169,97,.25)}
+.au-pw{position:relative}.au-pw input{padding-right:74px!important}
+.au-peek{position:absolute;right:5px;top:50%;transform:translateY(-50%);height:40px;min-width:58px;padding:0 10px;border:0;border-radius:9px;background:transparent;font-size:13.5px;font-weight:600;color:var(--gold-d);cursor:pointer}
+.au-peek:hover{background:rgba(201,169,97,.12)}
+.au-tel{display:flex}.au-tel span{display:flex;align-items:center;padding:0 12px;border:1.5px solid var(--line);border-right:0;border-radius:12px 0 0 12px;background:var(--card);font-size:15px;font-weight:500;color:var(--ink2)}.au-tel input{border-radius:0 12px 12px 0!important;min-width:0}
+.au-link{background:none;border:0;padding:2px 0;font-size:14px;font-weight:600;color:var(--gold-d);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(143,111,46,.4)}
+.au-link:hover{text-decoration-color:currentColor}
+.au-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;margin:0;padding:0 18px;border-radius:12px;font-size:16px;font-weight:600;letter-spacing:.02em;cursor:pointer;text-decoration:none;background:linear-gradient(180deg,#1C4266,#14304B);color:#fff!important;border:1px solid rgba(212,178,106,.45);box-shadow:0 12px 24px -12px rgba(11,26,44,.55);transition:filter .15s,transform .1s}
+.au-btn:hover{filter:brightness(1.08)}.au-btn:active{transform:translateY(1px)}
+.au-btn:disabled{cursor:not-allowed;filter:none;opacity:.5;box-shadow:none;transform:none}
+.au-btn.ghost{background:var(--card);color:var(--ink)!important;border:1.5px solid var(--line);box-shadow:none}
+.au-btn.ghost:hover{border-color:var(--gold)}
+.au-or{display:flex;align-items:center;gap:12px;margin:22px 0 12px;font-size:13px;color:var(--ink2)}.au-or::before,.au-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.au-small{margin:18px 0 0;text-align:center;font-size:14px;color:var(--ink2);line-height:1.7}
+.au-msg{margin:0 0 14px;padding:11px 14px;border-radius:12px;font-size:14px;line-height:1.5}
+.au-msg:empty{display:none}
+.au-msg.err{background:rgba(180,67,78,.08);color:#8E2F39;border:1px solid rgba(180,67,78,.28)}
+.au-msg.ok{background:rgba(31,122,92,.09);color:#17573F;border:1px solid rgba(31,122,92,.28)}
+[data-theme="noir"] .au-msg.err{color:#F2AEB4}[data-theme="noir"] .au-msg.ok{color:#93DABF}
+.au-badge{width:56px;height:56px;border-radius:16px;background:rgba(201,169,97,.15);display:flex;align-items:center;justify-content:center;margin:0 0 18px}
+.au-badge svg{width:28px;height:28px;fill:none;stroke:var(--gold-d);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.au-backlink{display:inline-flex;align-items:center;gap:6px;margin:-8px 0 14px;padding:6px 0;background:none;border:0;font-size:14px;font-weight:500;color:var(--ink2);cursor:pointer;min-height:40px}
+.au-backlink:hover{color:var(--ink)}
+.au-meter{display:flex;align-items:center;gap:10px;margin:9px 0 0}.au-meter b{flex:1;height:6px;border-radius:99px;background:var(--line);overflow:hidden}.au-meter i{display:block;height:100%;width:0;border-radius:inherit;transition:width .2s,background .2s}.au-meter span{font-size:12.5px;color:var(--ink2);min-width:126px;text-align:right}
+.au .au-check{display:flex;gap:10px;align-items:flex-start;margin:4px 0 18px;font-size:14px;font-weight:400;line-height:1.5;color:var(--ink2);cursor:pointer}
+.au-check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:#14304B}
+.au-check a{color:var(--ink);font-weight:600}
+.au-tips{margin:0 0 22px;padding:14px 16px 14px 34px;border-radius:14px;background:var(--bg);border:1px solid var(--line);font-size:14px;line-height:1.65;color:var(--ink2)}
+.au-stack{display:flex;flex-direction:column;gap:10px}
+.au-count{margin:10px 0 0;text-align:center;font-size:13.5px;color:var(--ink2);min-height:20px}
+.au-note{margin:20px 0 0;text-align:center;font-size:12.5px;line-height:1.55;color:var(--ink2)}.au-note a{color:var(--ink);font-weight:600}
+@media(max-width:1180px){.au-side{padding:28px 32px 34px}.au-pitch h2{font-size:2.2rem}.au-chips{display:none}}
+@media(max-width:860px){
+ .au{flex-direction:column}
+ .au-side{flex:none;max-width:none;gap:12px;padding:12px 18px 20px}
+ .au-side::after{width:260px;height:260px;right:-100px;bottom:-170px}
+ .au-art,.au-points{display:none}
+ .au-pitch h2{font-size:1.7rem;margin:2px 0 6px}
+ .au-pitch p{font-size:14px;line-height:1.5}
+ .au-mini{display:flex;gap:10px}
+ .au-mini div{flex:1;min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(212,178,106,.28);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+ .au-mini small{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#D4B26A}
+ .au-mini b{font-size:16px;font-weight:600;color:#fff}
+ .au-mini i{display:block;height:5px;border-radius:99px;background:rgba(255,255,255,.15);overflow:hidden}.au-mini i::after{content:"";display:block;height:100%;width:68%;background:linear-gradient(90deg,#F6E7BC,#D4B26A)}
+ .au-top{padding:4px 10px 0}
+ .au-wrap{align-items:flex-start;padding:4px 14px 40px}
+ .au-card{padding:26px 20px 24px;border-radius:18px}
+ .au-h{font-size:2rem}
+ .au-compact .au-pitch,.au-compact .au-mini{display:none}
+ .au-compact .au-side{padding-bottom:14px}
+}
+@media(max-width:360px){.au-card{padding:22px 16px}.au-meter span{min-width:0}}
+@media(min-width:861px) and (max-height:800px){.au-points{display:none}.au-side{gap:22px}}
+</style>`;
 function calc(month){const c=S.tx.filter(t=>mk(t.date)===month);const inc=c.filter(t=>t.type==='income').reduce((a,t)=>a+t.amt,0);const by={};c.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);const exp=Object.values(by).reduce((a,b)=>a+b,0);return{inc,exp,by}}
 function calcRange(from,to){const c=S.tx.filter(t=>t.date>=from&&t.date<=to);const inc=c.filter(t=>t.type==='income').reduce((a,t)=>a+t.amt,0);const by={};c.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);const exp=Object.values(by).reduce((a,b)=>a+b,0);return{inc,exp,by}}
 function setRepMode(mode){S.repMode=mode;if(mode==='range'&&!S.repFrom){const d=new Date();S.repFrom=isoD(new Date(d.getFullYear(),d.getMonth(),1));S.repTo=isoD(today)}render()}
@@ -2494,6 +2671,7 @@ function registerApp(){try{
 // opened from the home-screen icon → go straight to the app, not the website
 try{if(/[?&]app=1\b/.test(location.search)||isStandalone()){const h=(location.hash||'').slice(1);if(h==='shop')S.page='shop';else if(S.page==='home'){S.page='money';if(h==='addx'||h==='addi')S.mview=h}}}catch(e){}
 registerApp();
+try{const h=location.hash||'';if(/error_code=otp_expired|error=access_denied/.test(h)){S.auth='login';S.auFlash={m:'That email link has expired or was already used. Log in, or ask for a new link below.',k:'err'};if(S.page==='home')S.page='money';history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
 if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{const was=S.signed;
  if(event==='PASSWORD_RECOVERY'&&session?.user){S.email=session.user.email||'';S.recovery=true;S.signed=false;S.page='login';render();return}
  if(session?.user&&!S.recovery){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;if(event!=='TOKEN_REFRESHED')loadAccess();
