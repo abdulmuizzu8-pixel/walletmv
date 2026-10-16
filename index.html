@@ -376,7 +376,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
   {id:'whatsapp',name:'Order on WhatsApp',region:'MV',on:true,custom:false,details:'Send your order on WhatsApp. We reply with how to pay and switch your package on.',refHint:''},
   {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:true,custom:false,details:'SWIFT / international transfer to Bank of Maldives (SWIFT: MALBMVMV) · Account name: Sunshine Beach Maldives · Account number: 7770000264014',refHint:'e.g. Wise transfer #1234567890'}
  ],
- adminUser:'admin',adminPass:'7987770',adminAuthed:false,autoActivate:true,
+ autoActivate:true,
  quick:DEFAULT_QUICK.map(q=>({...q})),editQuick:null,
  inv:{cust:'',custId:null,status:'paid',tax:8,items:[{id:1,desc:'',qty:1,price:0}],charges:[],docType:'invoice',docNo:null,validDays:14},
  docCounters:{invoice:1001,quotation:2001,receipt:5001},receiptTxId:null,
@@ -473,7 +473,10 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
 /* ============ routing ============ */
 const MNAV=[['today','Today'],['dash','Dashboard'],['calendar','Calendar'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
-const go=p=>{if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
+/* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
+const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
+const STORE_HIDE=['home','packages','services','checkout'];
+const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
 const mv=k=>{S.mview=k;if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
 const arm=(key,fn)=>{if(S.armed===key){S.armed=null;fn()}else{S.armed=key;render();toast('Tap again to confirm')}};
 const toggleTheme=()=>{S.theme=S.theme==='light'?'noir':'light';document.documentElement.setAttribute('data-theme',S.theme);toast(S.theme==='noir'?'Noir theme on':'Light theme on');render()};
@@ -490,7 +493,7 @@ let SAMPLE=null;
  if(S.page==='shop'&&(S.shopView==='assistant'||S.shopView==='inventory'))render()})();
 const PTITLE={home:'WalletMV — Budget App & Shop Tools for the Maldives',services:'Services & Packages — WalletMV',packages:'Services & Packages — WalletMV',checkout:'Secure Payment — WalletMV',partners:'Loyalty Discount Cards for Businesses — WalletMV',terms:'Terms & Conditions — WalletMV',privacy:'Privacy Policy — WalletMV',refund:'Refund Policy — WalletMV',deletion:'Data Deletion — WalletMV',disclaimer:'Financial Disclaimer — WalletMV',shop:'MVSHOP — WalletMV'};
 function render(){
-  const a=$('#app');try{document.title=PTITLE[S.page]||'WalletMV'}catch(e){}
+  const a=$('#app');if(STORE_APP&&STORE_HIDE.includes(S.page))S.page='money';try{document.title=PTITLE[S.page]||'WalletMV'}catch(e){}
   if(S.page==='home')a.innerHTML=Home();
   else if(S.page==='services')a.innerHTML=Services();
   else if(S.page==='packages')a.innerHTML=Packages();
@@ -508,6 +511,7 @@ function render(){
   if(S.issueOpen)a.innerHTML+=IssueSheet();
   if(S.installHelp)a.innerHTML+=InstallHelp();
   if(S.bill)a.innerHTML+='<style>'+BILL_CSS+'</style>'+BillSheet();
+  storeTidy();queueSave();
 }
 const MGROUP={today:'Overview',accounts:'Money',cards:'Rewards',budget:'Plan',people:'Account'};
 const MICON={today:'clock',dash:'chart',calendar:'cal',accounts:'bank',tx:'receipt',addx:'down',addi:'up',groceries:'cart',cards:'card',budget:'target',goals:'shield',reports:'chart',package:'box',people:'users',settings:'gear'};
@@ -615,7 +619,7 @@ function RefundBody(){
  +LegalSection('5. Contact',"<p>For payment or refund questions, contact <a href='mailto:support@walletmv.com' style='color:var(--gold-d);font-weight:600'>support@walletmv.com</a>.</p>")
 }
 function DeletionBody(){
- return LegalSection('1. Requesting deletion',"<p>Request account deletion through Settings if that feature is available, or email privacy@walletmv.com. We may verify account ownership before processing the request.</p>")
+ return LegalSection('1. Deleting your account',"<p>Delete your account at any time in the app: <b>Settings → Delete my account</b>. This permanently deletes your WalletMV records and closes your login. If you can’t log in, email privacy@walletmv.com or message +960 798 7770 on WhatsApp from your registered number, and we’ll delete it for you. We may verify that the account is yours first.</p>")
  +LegalSection('2. What may be deleted',"<p>After a valid request is processed, WalletMV will delete or de-identify information no longer needed, subject to applicable retention requirements. This may include profile details, transactions, budgets, goals, dashboard records, notes, and preferences.</p>")
  +LegalSection('3. Records that may be retained',"<p>Payment-verification records, security logs, or information needed to resolve disputes or meet applicable obligations may be retained for an appropriate period. Where permitted, we will explain what is retained and why.</p>")
  +LegalSection('4. Reset App Data versus deleting an account',"<p><b>Reset App Data</b> is different from account deletion. A reset should clear only the current user's selected personal records and preserve their account and verified package entitlement. It must not affect other users' records. The app should explain what will be cleared and ask for confirmation.</p><p><b>Delete Account</b> closes the account and starts the deletion process. Export records you wish to keep before confirming deletion.</p>")
@@ -838,7 +842,7 @@ function gatewayPaid(){const plan=S.checkoutPlan,info=planInfo(plan),method=S.ch
  S.pendingSubs.unshift(sub);activateSub(plan,true,info.days);S.checkoutStep='done';S.lastSubId=sub.id;S.checkoutMethod=null;toast(info.name+' is active — thank you!');render();scrollTo(0,0)}
 const PayLogos=()=>`<span class="flex" style="gap:8px;flex-wrap:wrap"><span class="plogo" style="font-style:italic">VISA</span><span class="plogo"><svg width="26" height="16" viewBox="0 0 26 16" aria-hidden="true"><circle cx="9" cy="8" r="7" fill="#EB001B"/><circle cx="17" cy="8" r="7" fill="#F79E1B" fill-opacity=".9"/></svg><span style="color:#222;font-weight:700">mastercard</span></span><span class="plogo" style="color:#E2001A">m-Faisaa</span><span class="plogo" style="color:#003F87">BML</span></span>`;
 function Steps(n){const L=['Select package','Payment details','Confirmation'];return `<ol class="steps">${L.map((t,k)=>`<li class="${k<n?'done':k===n?'now':''}"><i>${k<n?'✓':k+1}</i>${t}</li>`).join('')}</ol>`}
-function PlanBox(p,change){return `<div class="flex" style="gap:14px;align-items:flex-start;flex-wrap:wrap">${ICB(p.icon,'rgba(11,26,44,.08)','var(--deep)',56)}<div style="flex:1;min-width:170px"><b style="font-size:16px">${esc(p.short)} Package</b><div style="font:600 1.6rem var(--head);color:var(--deep);margin:2px 0">MVR ${p.price} <small style="font:500 13px var(--body);color:var(--ink2)">/ ${S.period==='year'?'year':p.days+' days'}</small></div><small style="color:var(--ink2)">${esc(p.tag)}</small></div>${change?`<button class="btn ghost sm" onclick="go('packages')">Change</button>`:''}</div>`}
+function PlanBox(p,change){return `<div class="flex" style="gap:14px;align-items:flex-start;flex-wrap:wrap">${ICB(p.icon,'rgba(11,26,44,.08)','var(--deep)',56)}<div style="flex:1;min-width:170px"><b style="font-size:16px;display:block">${esc(p.short)} Package</b><div class="store-hide" style="font:600 1.6rem var(--head);color:var(--deep);margin:2px 0">MVR ${p.price} <small style="font:500 13px var(--body);color:var(--ink2)">/ ${S.period==='year'?'year':p.days+' days'}</small></div><small style="color:var(--ink2)">${esc(p.tag)}</small></div>${change?`<button class="btn ghost sm" onclick="go('packages')">Change</button>`:''}</div>`}
 function OrderSummary(p,btn){const tax=Math.round(p.price*(S.planTax||0))/100;return `<div class="card osum"><h3 style="font-size:1.2rem;margin-bottom:10px">Order summary</h3>
  <div class="row"><span>${esc(p.short)} Package · ${S.period==='year'?'12 months':p.days+' days'}</span><span>MVR ${p.price}</span></div>${S.period==='year'?`<div class="row" style="color:var(--ok)"><span>You save (2 months free)</span><span>MVR ${p.monthly*2}</span></div>`:''}<div class="row"><span>Tax (${S.planTax||0}%)</span><span>MVR ${tax}</span></div>
  <div class="row tot"><span>Total</span><span>MVR ${planTotal(p)}</span></div>${btn||''}
@@ -885,8 +889,8 @@ function PaySuccess(){const sub=S.pendingSubs.find(x=>x.id===S.lastSubId)||S.pen
 function MyPackage(){const i=subInfo();
  if(i.free&&i.comp&&i.p.id!=='all')return `${Head('My package','Your free package.')}<div class="card" style="border:2px solid var(--gold)"><span class="badge" style="background:rgba(31,122,92,.14);color:var(--ok)">Free · ${esc(i.p.short||i.p.name)} · no expiry</span><h3 style="margin-top:14px">${esc(i.p.short||i.p.name)} is yours, free</h3><p class="sub" style="margin:6px 0 14px">WalletMV has given this account the ${esc(i.p.short||i.p.name)} package with no payment and no end date.</p><ul style="margin:0;padding-left:20px;line-height:1.9">${(i.p.features||[]).map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
  if(i.free)return `${Head('My package','Your free all-access account.')}<div class="card" style="border:2px solid var(--gold)"><span class="badge" style="background:rgba(31,122,92,.14);color:var(--ok)">Free · all packages · no expiry</span><h3 style="margin-top:14px">Every package is unlocked</h3><p class="sub" style="margin:6px 0 14px">This account has everything in ${S.plans.filter(p=>p.on).map(p=>esc(p.name)).join(', ')} — no payment needed.</p><ul style="margin:0;padding-left:20px;line-height:1.9"><li>Scan receipts, bills and home inventory</li><li>Up to ${i.p.members} people on one wallet</li><li>MVSHOP: POS, invoices, stock, GST, bill inbox, AI assistant</li><li>Reports, Excel export, 25 currencies, loyalty discount cards</li></ul></div>`;
- const hist=S.pendingSubs.length?`<div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:8px"><h3>Payment history</h3><button class="lnk" onclick="reportProblem('Payment or package')">Problem with a payment?</button></div>${S.pendingSubs.map(x=>{const xp=planInfo(x.plan);return `<div class="lrow">${ICB(KIND_IC[methodKind(payMethod(x.method)||{id:x.method})]||'receipt','rgba(11,26,44,.06)','var(--deep)',38)}<span class="t"><b>${esc(xp?xp.short:x.plan)} Package · MVR ${x.total||x.price}</b><small>${ld(x.requestedAt)} · ${esc(payName(x.method))} · ref ${esc(x.ref)}</small></span><span class="badge" style="background:${x.status==='approved'?'rgba(31,122,92,.14)':x.status==='rejected'?'rgba(180,67,78,.12)':'rgba(212,178,106,.22)'};color:${x.status==='approved'?'var(--ok)':x.status==='rejected'?'var(--rose)':'var(--gold-d)'}">${x.status==='approved'?'Paid':x.status==='auto'?'Active · checking':x.status==='rejected'?'Declined':'Waiting'}</span>${x.status!=='rejected'?`<button class="btn ghost sm" style="margin-left:8px" onclick="openBill('sub',${x.id},'paid')">Receipt</button>`:''}</div>`}).join('')}</div>`:'';
- if(i.state==='none')return `${Head('My package','Choose a package to unlock WalletMV.')}<div class="card" style="text-align:center;padding:40px 24px">${ICB('box','rgba(212,178,106,.2)','var(--gold-d)',64)}<h3 style="margin-top:14px">You don't have a package yet</h3><p class="sub">Packages start at MVR ${Math.min(...S.plans.filter(p=>p.on).map(p=>p.price))} for ${S.plans[0].days} days.</p><button class="btn" style="margin-top:14px" onclick="go('packages')">See packages</button></div>${hist}`;
+ const hist=S.pendingSubs.length?`<div class="card store-hide" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:8px"><h3>Payment history</h3><button class="lnk" onclick="reportProblem('Payment or package')">Problem with a payment?</button></div>${S.pendingSubs.map(x=>{const xp=planInfo(x.plan);return `<div class="lrow">${ICB(KIND_IC[methodKind(payMethod(x.method)||{id:x.method})]||'receipt','rgba(11,26,44,.06)','var(--deep)',38)}<span class="t"><b>${esc(xp?xp.short:x.plan)} Package · MVR ${x.total||x.price}</b><small>${ld(x.requestedAt)} · ${esc(payName(x.method))} · ref ${esc(x.ref)}</small></span><span class="badge" style="background:${x.status==='approved'?'rgba(31,122,92,.14)':x.status==='rejected'?'rgba(180,67,78,.12)':'rgba(212,178,106,.22)'};color:${x.status==='approved'?'var(--ok)':x.status==='rejected'?'var(--rose)':'var(--gold-d)'}">${x.status==='approved'?'Paid':x.status==='auto'?'Active · checking':x.status==='rejected'?'Declined':'Waiting'}</span>${x.status!=='rejected'?`<button class="btn ghost sm" style="margin-left:8px" onclick="openBill('sub',${x.id},'paid')">Receipt</button>`:''}</div>`}).join('')}</div>`:'';
+ if(i.state==='none')return `${Head('My package',STORE_APP?'Your package details.':'Choose a package to unlock WalletMV.')}<div class="card" style="text-align:center;padding:40px 24px">${ICB('box','rgba(212,178,106,.2)','var(--gold-d)',64)}<h3 style="margin-top:14px">You don't have a package yet</h3><p class="sub store-hide">Packages start at MVR ${Math.min(...S.plans.filter(p=>p.on).map(p=>p.price))} for ${S.plans[0].days} days.</p><button class="btn" style="margin-top:14px" onclick="go('packages')">See packages</button></div>${hist}`;
  if(i.state==='pending')return `${Head('My package','Your plan, dates and what\'s included.')}<div class="card"><span class="badge" style="background:rgba(212,178,106,.22);color:var(--gold-d)">Waiting for payment confirmation</span><div style="margin-top:14px">${PlanBox(i.p,false)}</div><p class="sub" style="margin-top:14px">Requested ${ld(i.s.requestedAt)}. It switches on as soon as the payment is confirmed.</p></div>${hist}`;
  const ex=i.state==='expired';
  return `${Head('My package','Your plan, dates and what\'s included.')}
@@ -1199,24 +1203,15 @@ function AdminPlansHTML(){return `<div class="card" style="margin-top:22px"><h3>
   <label for="pf_${p.id}">Features (one per line)</label><textarea id="pf_${p.id}" rows="6">${esc(p.features.join('\n'))}</textarea>
   <div class="flex" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn sm" onclick="savePlan('${p.id}')">Save</button>${p.popular?'<span class="badge" style="background:rgba(212,178,106,.22);color:var(--gold-d)">Most popular</span>':`<button class="btn ghost sm" onclick="setPopular('${p.id}')">Mark Most popular</button>`}</div></div>`).join('')}</div></div>`}
 
-function attemptAdminLogin(){
- const u=$('#adu').value.trim(),p=$('#adp').value;
- if(u!==S.adminUser||p!==S.adminPass)return toast('Wrong admin username or password');
- S.adminAuthed=true;toast('Signed in to the admin panel');render()}
-function adminLogout(){S.adminAuthed=false;toast('Signed out of the admin panel');go('money')}
+function adminLogout(){toast('Closed the admin panel');go('money')}
 function AdminLogin(){return `${PageHeader('packages',false)}
- <div class="wrap" style="padding:24px 24px 90px;max-width:440px">
- <div class="eyebrow" style="color:var(--gold-d)">Staff only</div><h1 style="margin-top:10px;font-size:clamp(2rem,5vw,2.6rem)">Admin sign in</h1><p class="sub" style="margin-top:8px">Package and payment approvals are restricted — sign in with the admin account.</p>
- <div class="card" style="margin-top:24px">
- <label for="adu">Admin username</label><input id="adu" value="admin">
- <label for="adp">Admin password</label><input id="adp" type="password" placeholder="Enter admin password">
- <button class="btn" style="margin-top:18px;width:100%" onclick="attemptAdminLogin()">Sign in</button>
- <p class="sub" style="margin-top:12px;font-size:13px">Admin sign-in requires secure server-side authentication. Do not store an admin password in this page’s source code.</p>
- </div>
+ <div class="wrap" style="padding:24px 24px 90px;max-width:460px">
+ <div class="eyebrow" style="color:var(--gold-d)">Owner only</div><h1 style="margin-top:10px;font-size:clamp(2rem,5vw,2.6rem)">Admin panel</h1>
+ <div class="card" style="margin-top:24px">${S.signed?`<p style="margin:0">You’re logged in as <b>${esc(S.email)}</b>, which isn’t an owner account.</p><p class="sub" style="margin:8px 0 0">Log out, then log in with the owner email to open the admin panel.</p><button class="btn" style="margin-top:18px;width:100%" onclick="logoutUser()">Log out</button>`:`<p style="margin:0">Log in to WalletMV with your owner email to open the admin panel.</p><button class="btn" style="margin-top:18px;width:100%" onclick="S.auth='login';go('money')">Log in</button>`}</div>
  <button class="btn ghost sm" style="margin-top:22px" onclick="go('money')">← Back to the app</button>
  </div>`}
 function AdminPanel(){
- if(!S.adminAuthed)return AdminLogin();
+ if(!S.isOwner)return AdminLogin();
  const all=S.pendingSubs;
  const pending=all.filter(s=>s.status==='pending');
  const autoList=all.filter(s=>s.status==='auto');
@@ -1759,7 +1754,65 @@ function AdminFreeHTML(){const opts=[...S.plans.map(p=>[p.id,p.name]),['all','Al
  <div><label for="frnote" style="margin-top:0">Note (optional)</label><input id="frnote" placeholder="e.g. Friend, tester"></div></div>
  <button class="btn sm" style="margin-top:12px" onclick="addFree()">Give free package</button>
  <div style="margin-top:16px">${list.length?list.map(r=>`<div class="today-row"><span class="dot" style="background:var(--ok)"></span><span style="flex:1;min-width:0"><b style="word-break:break-all">${esc(r.email)}</b><br><small style="color:var(--ink2)">${esc(r.plan==='all'?'All packages':(planInfo(r.plan)||{}).short||r.plan)} · free forever${r.note?' · '+esc(r.note):''}</small></span><button class="btn ghost sm" style="color:var(--rose)" aria-label="Remove free access for ${esc(r.email)}" onclick="removeFree('${esc(r.email).replace(/'/g,"&#39;")}')">Remove</button></div>`).join(''):'<p class="sub">No free packages given yet.</p>'}</div></div>`}
-async function logoutUser(){if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.auth='login';S.recovery=false;S.page='home';go('home')}
+async function logoutUser(){let keep=false;if(_dataUid){clearTimeout(_saveT);await saveNow();if(S.syncErr){if(!window.confirm('Your latest changes haven’t reached your account yet. Log out anyway? They’ll stay saved on this device.'))return;keep=true}}clearMyData(keep);if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.auth='login';S.recovery=false;S.page=STORE_APP?'money':'home';go(S.page)}
+/* ---------- Saving each person's data to their own account ----------
+   Personal and shop records are saved to Supabase (table walletmv_app_state: one row per account, each person can only
+   read and write their own row) and kept on this device too, so the app opens fast and copes with a weak connection.
+   The sample data people see before logging in (the public MVSHOP demo) is never saved to anyone's account. */
+const SAVE_KEYS=['subscription','pendingSubs','tx','accounts','transfers','goals','bills','budget','calNotes','groc','quick','cats','homeStock','cur','theme','notif','walletCard','shared','discounts','shopProfile','products','saleLines','shopTx','customers','suppliers','workers','loyalty','docCounters','chargePresets','defaultGst','inv'];
+const DEMO_DATA=JSON.parse(JSON.stringify(Object.fromEntries(SAVE_KEYS.map(k=>[k,S[k]]))));
+var _dataUid=null,_saveT=null,_lastSaved='',_retryT=null;
+const LOCAL_KEY=uid=>'walletmv:data:'+uid;
+function myData(){const d={};SAVE_KEYS.forEach(k=>d[k]=S[k]);return d}
+function applyData(d){const base=JSON.parse(JSON.stringify(DEMO_DATA));SAVE_KEYS.forEach(k=>{S[k]=d&&Object.prototype.hasOwnProperty.call(d,k)?d[k]:base[k]});try{document.documentElement.setAttribute('data-theme',S.theme||'light')}catch(e){}}
+function newCardNo(){const r=()=>String(Math.floor(1000+Math.random()*9000));return 'WM-'+r()+'-'+r()}
+function blankData(){const d=JSON.parse(JSON.stringify(DEMO_DATA)),t=isoD(new Date());
+ Object.assign(d,{subscription:{plan:'',status:'none',requestedAt:null,approvedAt:null},pendingSubs:[],tx:[],transfers:[],goals:[],bills:[],calNotes:[],homeStock:[],discounts:[],products:[],saleLines:[],shopTx:[],customers:[],suppliers:[],workers:[],
+  shared:[{id:1,name:S.name||'You',contact:S.email||'',role:'owner',status:'joined',since:t}],walletCard:{number:newCardNo(),since:t},
+  accounts:(DEMO_DATA.accounts||[]).map(a=>({...a,start:0})),budget:{income:0,limit:0},theme:'light',
+  shopProfile:{...(DEMO_DATA.shopProfile||{}),name:'',tin:''},docCounters:{invoice:1001,quotation:2001,receipt:5001}});
+ if(d.groc&&typeof d.groc==='object')d.groc={...d.groc,list:[]};
+ return d}
+function readLocal(uid){try{return JSON.parse(localStorage.getItem(LOCAL_KEY(uid))||'null')}catch(e){return null}}
+async function loadMyData(user){if(!walletAuth||!user||_dataUid===user.id)return;_dataUid=user.id;S.dataReady=false;_lastSaved='';
+ const local=readLocal(user.id);if(local&&local.d){applyData(local.d);render()}
+ let res;try{res=await walletAuth.from('walletmv_app_state').select('state,updated_at').eq('user_id',user.id).maybeSingle()}catch(e){res={error:e}}
+ if(_dataUid!==user.id)return;
+ const row=res&&res.data,cloud=row&&row.state&&row.state.d;
+ if(res&&res.error){if(!local)applyData(blankData());S.syncErr=true}
+ else if(cloud&&(!local||!local.at||new Date(row.updated_at)>=new Date(local.at))){applyData(cloud);_lastSaved=JSON.stringify(myData());S.syncErr=false}
+ else if(!local&&!cloud){applyData(blankData())}
+ S.dataReady=true;render()}
+function queueSave(){if(!S.signed||!_dataUid||!S.dataReady||!walletAuth)return;const j=JSON.stringify(myData());if(j===_lastSaved)return;clearTimeout(_saveT);_saveT=setTimeout(()=>saveNow(j),1200)}
+async function saveNow(j){if(!_dataUid||!walletAuth||!S.dataReady)return;j=j||JSON.stringify(myData());if(j===_lastSaved)return;
+ const uid=_dataUid,at=new Date().toISOString(),d=JSON.parse(j);
+ try{localStorage.setItem(LOCAL_KEY(uid),JSON.stringify({at,d}))}catch(e){}
+ let error=null;try{({error}=await walletAuth.from('walletmv_app_state').upsert({user_id:uid,state:{v:1,d},updated_at:at},{onConflict:'user_id'}))}catch(e){error=e}
+ if(error){S.syncErr=true;clearTimeout(_retryT);_retryT=setTimeout(()=>saveNow(),15000)}else{if(uid===_dataUid)_lastSaved=j;S.syncErr=false}}
+function clearMyData(keepLocal){const uid=_dataUid;clearTimeout(_saveT);clearTimeout(_retryT);_dataUid=null;_lastSaved='';S.dataReady=false;S.syncErr=false;
+ if(uid&&!keepLocal){try{localStorage.removeItem(LOCAL_KEY(uid))}catch(e){}}applyData(DEMO_DATA)}
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(_saveT);saveNow()}});
+addEventListener('pagehide',()=>{clearTimeout(_saveT);saveNow()});
+function syncNote(){if(!S.signed)return'';return S.syncErr?`<p class="sub" style="margin:10px 0 0;font-size:13px;color:var(--rose)">Not saved to your account yet. Check your internet; we’ll keep trying.</p>`:(S.dataReady?`<p class="sub" style="margin:10px 0 0;font-size:13px;color:var(--ok)">✓ Saved to your account</p>`:'')}
+
+/* ---------- Inside the Google Play and App Store apps ----------
+   In the Maldives, store rules don't allow selling packages with outside payment methods inside an app, so the store
+   apps (opened with ?store=android or ?store=ios) hide prices and payment pages. Customers buy on walletmv.com. */
+function storeTidy(){if(!STORE_APP)return;try{document.querySelectorAll('#app [onclick*="requestUpgrade("],#app [onclick*="go(\'packages\')"],#app [onclick*="go(\'checkout\')"],#app [onclick*="go(\'services\')"],#app [onclick*="waOrder("]').forEach(e=>e.remove());document.querySelectorAll('#app .store-hide').forEach(e=>e.remove())}catch(e){}}
+
+/* ---------- Account: change password, delete account ---------- */
+async function changePassword(btn){const v=($('#pw2')||{}).value||'';if(v.length<8)return toast('Use at least 8 characters');if(!walletAuth)return toast('Sign-in couldn’t load. Refresh and try again.');
+ btn.disabled=true;const {error}=await walletAuth.auth.updateUser({password:v});btn.disabled=false;if(error)return toast(auNice(error,'We couldn’t change your password'));$('#pw2').value='';toast('Password changed')}
+async function deleteMyAccount(btn){if(!walletAuth||!S.signed)return toast('Log in first');
+ if(!window.confirm('Delete your WalletMV account?\n\nThis permanently deletes your transactions, accounts, budgets, goals, bills, grocery lists, shop records and settings, and closes your login. It can’t be undone.'))return;
+ btn.disabled=true;const label=btn.textContent;btn.textContent='Deleting…';
+ let res;try{res=await walletAuth.functions.invoke('walletmv-delete-account',{body:{confirm:true}})}catch(e){res={error:e}}
+ const data=res&&res.data;
+ if(res.error||!data||!data.ok){btn.disabled=false;btn.textContent=label;return toast('We couldn’t delete your account right now. Please try again, or message us on WhatsApp.')}
+ clearMyData();try{await walletAuth.auth.signOut()}catch(e){}
+ S.signed=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.auth='login';S.page=STORE_APP?'money':'home';render();scrollTo(0,0);
+ toast(data.loginKept?'Your WalletMV data is deleted. Your login was kept because you also use it for Laari.':'Your WalletMV account has been deleted.')}
+
 /* ---------- Log in, sign up and password help ----------
    Screens: S.auth = 'login' | 'signup' | 'forgot' | 'resend' | 'sent'; S.recovery shows "Set a new password".
    Supabase lets each email address get one auth email every 60 seconds, so "Resend" waits that long. */
@@ -1904,7 +1957,7 @@ function Login(){const v=S.recovery?'reset':(S.auth||'login');const f=S.auFlash|
   </div>
   <ul class="au-points"><li>Made in the Maldives, with everything in MVR</li><li>Share one wallet with your family</li><li>A member discount card for local shops</li></ul>
  </aside>
- <main class="au-main"><div class="au-top"><button type="button" onclick="go('home')">← WalletMV website</button><button type="button" onclick="reportProblem('Account or login')">Need help?</button></div>
+ <main class="au-main"><div class="au-top">${STORE_APP?'<span></span>':`<button type="button" onclick="go('home')">← WalletMV website</button>`}<button type="button" onclick="reportProblem('Account or login')">Need help?</button></div>
  <div class="au-wrap"><div class="au-card">${AuthBody(v,f)}${v==='login'?`<p class="au-note">Secure sign-in by Supabase. By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')">Privacy Policy</a>.</p>`:''}</div></div></main></div>`}
 
 const AUTH_CSS=`<style>
@@ -2521,7 +2574,7 @@ function Settings(){return `<div style="max-width:680px">${Head('Settings','Mana
  <label for="s2">Currency</label><select id="s2">${curOptions()}</select>
  <label for="s5">Appearance</label><select id="s5" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select>
  <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--ink)"><input id="s3" type="checkbox" ${S.notif?'checked':''}> Notify me at 90% of my budget</label>
- <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.cur=$('#s2').value;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button></div>
+ <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.cur=$('#s2').value;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>
   <div class="card" style="margin-top:18px;border:1px solid rgba(180,67,78,.35)"><h3>Reset App Data</h3><p class="sub" style="margin:6px 0 14px">Clear personal transactions, transfers, savings goals, bill reminders, personal calendar notes, grocery list, budget targets, and account opening balances. Your profile, package entitlement, shop records, products, customers, and saved grocery templates will remain.</p><button class="btn rose" onclick="resetAppData()">Reset App Data</button></div>
  <div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:10px"><div><h3>Help &amp; support</h3><p class="sub" style="margin:4px 0 0">Something not right? Send it to the WalletMV team on WhatsApp: <b style="user-select:all">${esc(S.supportWhatsapp)}</b></p></div><button class="btn sm" onclick="reportProblem()">${IC('chat',15)} Report a problem</button></div></div>
  <div class="card" style="margin-top:18px"><h3>Recurring bills</h3><p class="sub" style="margin:6px 0 14px">These appear on your Today board with due dates.</p>
@@ -2536,13 +2589,14 @@ function Settings(){return `<div style="max-width:680px">${Head('Settings','Mana
  <div class="card" style="margin-top:18px"><h3>Categories</h3><div class="flex" style="gap:8px;margin:14px 0">${S.cats.map((c,i)=>`<span class="chip">${esc(c.n)} <small style="color:var(--ink2)">(${c.t})</small><button aria-label="Delete ${esc(c.n)}" style="border:0;background:none;font-weight:700" onclick="S.cats.splice(${i},1);render()">×</button></span>`).join('')}</div>
  <div class="flex"><input id="cn" aria-label="New category" placeholder="Ferry pass" style="flex:1;min-width:140px"><select id="ct" aria-label="Type" style="width:130px"><option value="expense">Expense</option><option value="income">Income</option></select><button class="btn" onclick="const n=$('#cn').value.trim();if(!n)return toast('Name the category first');S.cats.push({n,t:$('#ct').value});toast('Category added');render()">Add</button></div></div>
  <div class="card" style="margin-top:18px"><h3>Billing &amp; package</h3>
- <p class="sub" style="margin:6px 0 14px">Current plan: <b>${planInfo(S.subscription.plan)?planInfo(S.subscription.plan).name:'No package yet'}</b> — <span class="badge" style="background:${S.subscription.status==='active'?'rgba(47,143,107,.18)':'rgba(227,168,87,.25)'}">${S.subscription.status==='active'?'Active':'Pending approval'}</span></p>
- <span class="flex" style="gap:8px;flex-wrap:wrap">${S.subscription.status==='pending_approval'?`<button class="btn ghost sm" onclick="go('checkout')">Review request</button>`:`<button class="btn ghost sm" onclick="go('packages')">Change package</button>`}<button class="btn ghost sm" onclick="go('admin')">Open admin panel</button></span>
- ${S.pendingSubs.length?`<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><p class="sub" style="font-size:13px;margin-bottom:8px">Request history</p>${S.pendingSubs.map(s=>`<div class="today-row"><span class="dot" style="background:var(--${s.status==='approved'?'ok':s.status==='rejected'?'rose':'gold'})"></span><span style="flex:1"><b>${esc(planInfo(s.plan).name)} — ${money(s.price)}/mo</b><br><small style="color:var(--ink2)">${sd(s.requestedAt)} · ${esc(s.method)} · ref ${esc(s.ref)} · ${s.status}</small></span></div>`).join('')}</div>`:''}
+ <p class="sub" style="margin:6px 0 14px">Current plan: ${(()=>{const i=subInfo();if(i.state==='none')return '<b>No package yet</b>';const st={active:['Active','rgba(47,143,107,.18)'],pending:['Waiting for payment confirmation','rgba(227,168,87,.25)'],expired:['Ended','rgba(180,67,78,.14)']}[i.state]||['','transparent'];return `<b>${esc(i.p.short||i.p.name)}</b> — <span class="badge" style="background:${st[1]}">${st[0]}</span>`})()}</p>
+ <span class="flex" style="gap:8px;flex-wrap:wrap">${S.subscription.status==='pending_approval'?`<button class="btn ghost sm" onclick="go('checkout')">Review request</button>`:`<button class="btn ghost sm" onclick="go('packages')">Change package</button>`}${S.isOwner?`<button class="btn ghost sm" onclick="go('admin')">Open admin panel</button>`:''}</span>
+ ${S.pendingSubs.length?`<div class="store-hide" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><p class="sub" style="font-size:13px;margin-bottom:8px">Request history</p>${S.pendingSubs.map(s=>`<div class="today-row"><span class="dot" style="background:var(--${s.status==='approved'?'ok':s.status==='rejected'?'rose':'gold'})"></span><span style="flex:1"><b>${esc(planInfo(s.plan).name)} — ${money(s.price)}/mo</b><br><small style="color:var(--ink2)">${sd(s.requestedAt)} · ${esc(s.method)} · ref ${esc(s.ref)} · ${s.status}</small></span></div>`).join('')}</div>`:''}
  </div>
 
  <div class="card" style="margin-top:18px"><h3>Legal &amp; policies</h3><p class="sub" style="margin:6px 0 14px">Review WalletMV's terms, privacy practices, payment rules, and data controls.</p><div class="flex" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="go('terms')">Terms &amp; Conditions</button><button class="btn ghost sm" onclick="go('privacy')">Privacy Policy</button><button class="btn ghost sm" onclick="go('refund')">Refund Policy</button><button class="btn ghost sm" onclick="go('deletion')">Data Deletion</button><button class="btn ghost sm" onclick="go('disclaimer')">Financial Disclaimer</button></div></div>
- <div class="card" style="margin-top:18px"><h3>Password</h3><label for="pw2">New password</label><input id="pw2" type="password" autocomplete="new-password"><button class="btn ghost" style="margin-top:14px" onclick="$('#pw2').value.length<8?toast('Use at least 8 characters'):(toast('Password changed'),$('#pw2').value='')">Change password</button></div>
+ <div class="card" style="margin-top:18px"><h3>Password</h3><label for="pw2">New password</label><input id="pw2" type="password" autocomplete="new-password"><button class="btn ghost" style="margin-top:14px" onclick="changePassword(this)">Change password</button></div>
+ <div class="card" style="margin-top:18px;border:1px solid rgba(180,67,78,.35)"><h3>Delete my account</h3><p class="sub" style="margin:6px 0 14px">Permanently delete your WalletMV account and everything saved in it. Export anything you want to keep first, from Reports.</p><button class="btn rose" onclick="deleteMyAccount(this)">Delete my account</button></div>
  <button class="btn rose" style="margin-top:18px" onclick="logoutUser()">Log out</button></div>`}
 
 
@@ -2669,14 +2723,15 @@ function registerApp(){try{
  addEventListener('appinstalled',()=>{_installEvt=null;toast('WalletMV is installed — find it on your home screen')});
  }catch(e){}}
 // opened from the home-screen icon → go straight to the app, not the website
+try{const pth=location.pathname.replace(/\/+$/,''),LP={'/privacy':'privacy','/terms':'terms','/refund':'refund','/delete-account':'deletion','/disclaimer':'disclaimer'},h=(location.hash||'').slice(1);if(LP[pth])S.page=LP[pth];else if(['privacy','terms','refund','deletion','disclaimer'].includes(h))S.page=h}catch(e){}
 try{if(/[?&]app=1\b/.test(location.search)||isStandalone()){const h=(location.hash||'').slice(1);if(h==='shop')S.page='shop';else if(S.page==='home'){S.page='money';if(h==='addx'||h==='addi')S.mview=h}}}catch(e){}
 registerApp();
 try{const h=location.hash||'';if(/error_code=otp_expired|error=access_denied/.test(h)){S.auth='login';S.auFlash={m:'That email link has expired or was already used. Log in, or ask for a new link below.',k:'err'};if(S.page==='home')S.page='money';history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
 if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{const was=S.signed;
  if(event==='PASSWORD_RECOVERY'&&session?.user){S.email=session.user.email||'';S.recovery=true;S.signed=false;S.page='login';render();return}
- if(session?.user&&!S.recovery){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;if(event!=='TOKEN_REFRESHED')loadAccess();
+ if(session?.user&&!S.recovery){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;if(event!=='TOKEN_REFRESHED')loadAccess();loadMyData(session.user);
   if(!was&&event==='SIGNED_IN'){if(S.page==='login'||S.page==='home'){S.page='money';S.mview='today'}if(/[#&](access_token|type=signup)/.test(location.hash)){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}toast('Email confirmed. You are signed in.')}render()}else if(event==='INITIAL_SESSION')render()}
- else if(event==='SIGNED_OUT'){S.signed=false;S.allAccess=false;S.recovery=false;S.comp=null;S.isOwner=false;S.freeList=null}},0)});}
+ else if(event==='SIGNED_OUT'){clearMyData();S.signed=false;S.allAccess=false;S.recovery=false;S.comp=null;S.isOwner=false;S.freeList=null}},0)});}
 
 /* ============ STUDIO ============ */
 render();
