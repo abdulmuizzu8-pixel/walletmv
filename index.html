@@ -754,7 +754,8 @@ const ld=s=>new Date(s+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month
 // Free all-access owner account (prototype). Move this check to the server before launch.
 const FREE_ACCOUNTS={muis:'12345'};
 function allAccessPlan(){const shop=planOf('mvshop')||{},fam=planOf('family')||{};return{...shop,id:'all',name:'WalletMV All packages',short:'All packages',meaning:'Free owner account',price:0,days:365,members:Math.max(fam.members||9,shop.members||4),scan:true,features:S.plans.filter(p=>p.on).map(p=>p.name+' — everything included')}}
-function subInfo(){if(S.allAccess){const start=isoD(today),end=addDays(start,365);return{state:'active',free:true,p:allAccessPlan(),s:{plan:'all',status:'active'},start,end,total:365,left:365,used:0}}
+function subInfo(){if(S.comp&&!S.allAccess){const cp=S.comp.plan==='all'?allAccessPlan():planInfo(S.comp.plan);if(cp){const start=isoD(today),end=addDays(start,365);return{state:'active',free:true,comp:true,p:cp,s:{plan:cp.id,status:'active'},start,end,total:365,left:365,used:0}}}
+ if(S.allAccess){const start=isoD(today),end=addDays(start,365);return{state:'active',free:true,p:allAccessPlan(),s:{plan:'all',status:'active'},start,end,total:365,left:365,used:0}}
  const s=S.subscription||{},p=planInfo(s.plan);if(!p)return{state:'none'};
  if(s.status!=='active')return{state:'pending',p,s};
  const start=s.startsAt||s.approvedAt||isoD(today),end=s.expiresAt||addDays(start,p.days);
@@ -882,6 +883,7 @@ function PaySuccess(){const sub=S.pendingSubs.find(x=>x.id===S.lastSubId)||S.pen
  ${live?`<div class="card" style="margin-top:16px"><div class="flex" style="gap:22px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:260px"><div class="dates"><div><small>Package</small><b>${esc(p.short)}</b></div><div><small>Activation date</small><b>${ld(live.start)}</b></div><div><small>Expiry date</small><b>${ld(live.end)}</b></div></div></div>${dayRing(live.left,live.total,104,'Days')}</div></div>`:''}
  <div class="pkhero" style="border-radius:22px;margin-top:16px;padding:26px;text-align:center;overflow:hidden"><b style="font:600 1.4rem var(--head)">Thank you for choosing WalletMV!</b><p style="margin:6px 0 0;color:rgba(255,255,255,.8);font-size:14px">We're here to make your money, shop and taxes simple.</p></div></div>`}
 function MyPackage(){const i=subInfo();
+ if(i.free&&i.comp&&i.p.id!=='all')return `${Head('My package','Your free package.')}<div class="card" style="border:2px solid var(--gold)"><span class="badge" style="background:rgba(31,122,92,.14);color:var(--ok)">Free · ${esc(i.p.short||i.p.name)} · no expiry</span><h3 style="margin-top:14px">${esc(i.p.short||i.p.name)} is yours, free</h3><p class="sub" style="margin:6px 0 14px">WalletMV has given this account the ${esc(i.p.short||i.p.name)} package with no payment and no end date.</p><ul style="margin:0;padding-left:20px;line-height:1.9">${(i.p.features||[]).map(f=>`<li>${esc(f)}</li>`).join('')}</ul></div>`;
  if(i.free)return `${Head('My package','Your free all-access account.')}<div class="card" style="border:2px solid var(--gold)"><span class="badge" style="background:rgba(31,122,92,.14);color:var(--ok)">Free · all packages · no expiry</span><h3 style="margin-top:14px">Every package is unlocked</h3><p class="sub" style="margin:6px 0 14px">This account has everything in ${S.plans.filter(p=>p.on).map(p=>esc(p.name)).join(', ')} — no payment needed.</p><ul style="margin:0;padding-left:20px;line-height:1.9"><li>Scan receipts, bills and home inventory</li><li>Up to ${i.p.members} people on one wallet</li><li>MVSHOP: POS, invoices, stock, GST, bill inbox, AI assistant</li><li>Reports, Excel export, 25 currencies, loyalty discount cards</li></ul></div>`;
  const hist=S.pendingSubs.length?`<div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:8px"><h3>Payment history</h3><button class="lnk" onclick="reportProblem('Payment or package')">Problem with a payment?</button></div>${S.pendingSubs.map(x=>{const xp=planInfo(x.plan);return `<div class="lrow">${ICB(KIND_IC[methodKind(payMethod(x.method)||{id:x.method})]||'receipt','rgba(11,26,44,.06)','var(--deep)',38)}<span class="t"><b>${esc(xp?xp.short:x.plan)} Package · MVR ${x.total||x.price}</b><small>${ld(x.requestedAt)} · ${esc(payName(x.method))} · ref ${esc(x.ref)}</small></span><span class="badge" style="background:${x.status==='approved'?'rgba(31,122,92,.14)':x.status==='rejected'?'rgba(180,67,78,.12)':'rgba(212,178,106,.22)'};color:${x.status==='approved'?'var(--ok)':x.status==='rejected'?'var(--rose)':'var(--gold-d)'}">${x.status==='approved'?'Paid':x.status==='auto'?'Active · checking':x.status==='rejected'?'Declined':'Waiting'}</span>${x.status!=='rejected'?`<button class="btn ghost sm" style="margin-left:8px" onclick="openBill('sub',${x.id},'paid')">Receipt</button>`:''}</div>`}).join('')}</div>`:'';
  if(i.state==='none')return `${Head('My package','Choose a package to unlock WalletMV.')}<div class="card" style="text-align:center;padding:40px 24px">${ICB('box','rgba(212,178,106,.2)','var(--gold-d)',64)}<h3 style="margin-top:14px">You don't have a package yet</h3><p class="sub">Packages start at MVR ${Math.min(...S.plans.filter(p=>p.on).map(p=>p.price))} for ${S.plans[0].days} days.</p><button class="btn" style="margin-top:14px" onclick="go('packages')">See packages</button></div>${hist}`;
@@ -1238,6 +1240,7 @@ function AdminPanel(){
  ${(approved.length||rejected.length)?`<div class="card" style="margin-top:22px"><h3>History</h3>${[...approved,...rejected].sort((a,b)=>b.id-a.id).map(row).join('')}</div>`:''}
  ${AdminRulesHTML()}
  ${AdminIssuesHTML()}
+ ${AdminFreeHTML()}
  ${AdminWaHTML()}
  ${AdminPlansHTML()}
  ${AdminPartnersHTML()}
@@ -1750,13 +1753,34 @@ async function resendConfirmation(){const em=$('#em').value.trim();if(!walletAut
   if(error)return toast(error.message||'Unable to create account');
   if(data.session&&data.user){S.email=data.user.email||em;S.name=data.user.user_metadata?.full_name||em.split('@')[0];S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Account created successfully');render()}
   else toast('Account created. Check your email to confirm it, then log in.')}
+async function loadAccess(){if(!walletAuth||!S.email)return;const em=S.email.toLowerCase();
+  try{const [c,a]=await Promise.all([walletAuth.from('walletmv_comp_access').select('plan').eq('email',em).maybeSingle(),walletAuth.from('walletmv_admins').select('email').eq('email',em).maybeSingle()]);
+   const before=JSON.stringify([S.comp,S.isOwner]);S.comp=c.data?{plan:c.data.plan}:null;S.isOwner=!!a.data;if(S.isOwner&&S.page==='admin')loadFreeList();
+   if(JSON.stringify([S.comp,S.isOwner])!==before)render()}catch(e){}}
+/* ---------- Admin: free forever access ---------- */
+async function loadFreeList(){if(!walletAuth||!S.isOwner)return;const {data,error}=await walletAuth.from('walletmv_comp_access').select('email,plan,note,created_at').order('created_at',{ascending:false});if(error)return toast(error.message);S.freeList=data||[];render()}
+async function addFree(){const em=$('#fremail').value.trim().toLowerCase(),plan=$('#frplan').value,note=$('#frnote').value.trim();
+  if(!em||!em.includes('@')||!em.split('@')[1]?.includes('.'))return toast('Enter the customer’s email address');
+  const {error}=await walletAuth.from('walletmv_comp_access').upsert({email:em,plan,note:note||null},{onConflict:'email'});if(error)return toast(error.message||'Could not save');
+  toast('Free '+(plan==='all'?'all packages':planInfo(plan).short)+' given to '+em);loadFreeList()}
+async function removeFree(em){const {error}=await walletAuth.from('walletmv_comp_access').delete().eq('email',em);if(error)return toast(error.message||'Could not remove');toast('Free access removed for '+em);loadFreeList()}
+function AdminFreeHTML(){const opts=[...S.plans.map(p=>[p.id,p.name]),['all','All packages']];
+ if(!S.isOwner)return `<div class="card" style="margin-top:22px"><h3>Free forever packages</h3><p class="sub" style="margin:6px 0 0">To give someone a free package, first log in to the app with your owner email, then come back here.</p></div>`;
+ if(!S.freeList){setTimeout(loadFreeList,0)}
+ const list=S.freeList||[];
+ return `<div class="card" style="margin-top:22px;border:2px solid var(--gold)"><h3>Free forever packages</h3><p class="sub" style="margin:6px 0 12px">Give a customer a package with no payment and no end date. They sign up with the same email, and it switches on when they log in.</p>
+ <div class="grid3" style="gap:10px"><div><label for="fremail" style="margin-top:0">Customer email</label><input id="fremail" type="email" inputmode="email" autocapitalize="none" placeholder="name@gmail.com"></div>
+ <div><label for="frplan" style="margin-top:0">Package</label><select id="frplan">${opts.map(([id,n])=>`<option value="${id}">${esc(n)}</option>`).join('')}</select></div>
+ <div><label for="frnote" style="margin-top:0">Note (optional)</label><input id="frnote" placeholder="e.g. Friend, tester"></div></div>
+ <button class="btn sm" style="margin-top:12px" onclick="addFree()">Give free package</button>
+ <div style="margin-top:16px">${list.length?list.map(r=>`<div class="today-row"><span class="dot" style="background:var(--ok)"></span><span style="flex:1;min-width:0"><b style="word-break:break-all">${esc(r.email)}</b><br><small style="color:var(--ink2)">${esc(r.plan==='all'?'All packages':(planInfo(r.plan)||{}).short||r.plan)} · free forever${r.note?' · '+esc(r.note):''}</small></span><button class="btn ghost sm" style="color:var(--rose)" aria-label="Remove free access for ${esc(r.email)}" onclick="removeFree('${esc(r.email).replace(/'/g,"&#39;")}')">Remove</button></div>`).join(''):'<p class="sub">No free packages given yet.</p>'}</div></div>`}
 async function saveNewPassword(){const a=$('#npw').value,b=$('#npw2').value;
   if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');
   if(a.length<8)return toast('Use at least 8 characters');if(a!==b)return toast('The two passwords do not match');
   const {error}=await walletAuth.auth.updateUser({password:a});if(error)return toast(error.message||'Unable to save the new password');
   S.recovery=false;S.signed=true;S.allAccess=false;S.page='money';S.mview='today';toast('Password changed. You are signed in.');render()}
 async function sendPasswordReset(){const em=$('#em').value.trim();if(!walletAuth)return toast('Authentication service failed to load. Refresh and try again.');if(!em||!em.includes('@'))return toast('Enter your email address first');const {error}=await walletAuth.auth.resetPasswordForEmail(em,{redirectTo:location.origin});if(error)return toast(error.message||'Unable to send reset email');toast('If an account exists for this email, a password reset link will be sent.')}
-async function logoutUser(){if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.name='';S.email='';S.page='home';go('home')}
+async function logoutUser(){if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.page='home';go('home')}
 function Login(){return `<div class="tmlogin">
 <style>
 .tmlogin{--tm-teal:#14304B;--tm-teal-d:#0B1A2C;--tm-teal-l:#1C4266;--tm-bg:#FFFFFF;--tm-ink:#0F1C2B;--tm-ink2:#6A6658;--tm-line:#ECE5D6;--tm-gold:#D4B26A;--tm-gold-d:#9A7330;
@@ -2472,9 +2496,9 @@ try{if(/[?&]app=1\b/.test(location.search)||isStandalone()){const h=(location.ha
 registerApp();
 if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{const was=S.signed;
  if(event==='PASSWORD_RECOVERY'&&session?.user){S.email=session.user.email||'';S.recovery=true;S.signed=false;S.page='login';render();return}
- if(session?.user&&!S.recovery){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;
+ if(session?.user&&!S.recovery){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;if(event!=='TOKEN_REFRESHED')loadAccess();
   if(!was&&event==='SIGNED_IN'){if(S.page==='login'||S.page==='home'){S.page='money';S.mview='today'}if(/[#&](access_token|type=signup)/.test(location.hash)){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}toast('Email confirmed. You are signed in.')}render()}else if(event==='INITIAL_SESSION')render()}
- else if(event==='SIGNED_OUT'){S.signed=false;S.allAccess=false;S.recovery=false}},0)});}
+ else if(event==='SIGNED_OUT'){S.signed=false;S.allAccess=false;S.recovery=false;S.comp=null;S.isOwner=false;S.freeList=null}},0)});}
 
 /* ============ STUDIO ============ */
 render();
