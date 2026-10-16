@@ -51,23 +51,23 @@
   "rewrites": [
     {
       "source": "/privacy",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/terms",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/refund",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/delete-account",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/disclaimer",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ]
 }
