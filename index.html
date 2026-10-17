@@ -309,15 +309,18 @@ const lastMonths=n=>Array.from({length:n},(_,i)=>isoD(new Date(today.getFullYear
 const pct=(a,b)=>b>0?Math.min(100,a/b*100):0;
 const daysInMonth=()=>new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
 const daysLeft=()=>Math.max(1,daysInMonth()-today.getDate()+1);
-function calGrid(eventsByDay,module){const first=new Date(today.getFullYear(),today.getMonth(),1);const startPad=first.getDay();const dim=daysInMonth();const td=today.getDate();
+function calGrid(eventsByDay,module,selDay){const first=new Date(today.getFullYear(),today.getMonth(),1);const startPad=first.getDay();const dim=daysInMonth();const td=today.getDate();
  let cells='';
  for(let i=0;i<startPad;i++)cells+='<div class="calcell empty"></div>';
- for(let d=1;d<=dim;d++){const evs=eventsByDay[d]||[];const isToday=d===td;const hasEvent=evs.length>0;const worst=evs.some(e=>e.tone==='rose')?'rose':evs.some(e=>e.tone==='gold')?'gold':evs.some(e=>e.tone==='ok')?'ok':'';
-  const click=module?` role="button" tabindex="0" style="cursor:pointer" onclick="selectCalDay('${module}',${d})"`:'';
-  cells+=`<div class="calcell${isToday?' today':''}"${click} title="${evs.map(e=>esc(e.label)).join(', ')||'Click to add a reminder on this date'}"><span>${d}</span>${hasEvent?`<span class="caldot" style="background:var(--${worst==='rose'?'rose':worst==='ok'?'ok':'gold'})"></span>`:''}</div>`;}
+ for(let d=1;d<=dim;d++){const all=eventsByDay[d]||[],evs=all.filter(e=>e.tone!=='task'),tks=all.filter(e=>e.tone==='task');const isToday=d===td;const hasEvent=evs.length>0;const worst=evs.some(e=>e.tone==='rose')?'rose':evs.some(e=>e.tone==='gold')?'gold':evs.some(e=>e.tone==='ok')?'ok':'';
+  const tp=tks.length?Math.min(...tks.map(e=>e.pri||2)):0,sel=selDay===d;
+  const click=module?` role="button" tabindex="0" style="cursor:pointer" onclick="selectCalDay('${module}',${d})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectCalDay('${module}',${d})}"${selDay?` aria-pressed="${sel}"`:''}`:'';
+  const dot=hasEvent?`<span class="caldot" style="background:var(--${worst==='rose'?'rose':worst==='ok'?'ok':'gold'})"></span>`:'';
+  cells+=`<div class="calcell${isToday?' today':''}${sel?' sel':''}"${click} title="${all.map(e=>esc(e.label)).join(', ')||'Click to add a reminder on this date'}"><span>${d}</span>${tp?`<span class="caldots">${dot}<span class="caldot tk tkp${tp}"></span></span>`:dot}</div>`;}
  const WD=['Su','Mo','Tu','We','Th','Fr','Sa'];
  return `<div class="calgrid">${WD.map(w=>`<div class="calwd">${w}</div>`).join('')}${cells}</div>`}
 function selectCalDay(module,day){const d=new Date(today.getFullYear(),today.getMonth(),day);const iso=isoD(d);const p=module==='money'?'cn':'scn';
+ if(module==='money'){S.calSel=iso;render();const c=document.querySelector('.calcell.sel');if(c)c.focus({preventScroll:true});return}
  const el=$('#'+p+'d');if(el)el.value=iso;
  const txt=$('#'+p+'t');if(txt&&typeof txt.focus==='function')txt.focus();
  toast('Selected '+sd(iso)+' — write your reminder below');}
@@ -334,7 +337,7 @@ function delCalNote(id){S.calNotes=S.calNotes.filter(n=>n.id!==id);toast('Remind
 function scheduleFromReport(module,person,text){S.schedulePrefill={module,person,text,date:isoD(today)};S.armed=null;if(module==='money'){S.mview='calendar';render();scrollTo(0,0)}else{S.shopView='calendar';render();scrollTo(0,0)}}
 function noteForm(module){const p=module==='money'?'cn':'scn';const pf=(S.schedulePrefill&&S.schedulePrefill.module===module)?S.schedulePrefill:null;if(pf)S.schedulePrefill=null;
  return `<div class="flex" style="gap:8px;margin-top:14px;flex-wrap:wrap;align-items:flex-end">
- <div><label for="${p}d" style="margin:0;font-size:12px">Starting date</label><input id="${p}d" type="date" aria-label="Starting date" style="width:150px" value="${pf?pf.date:isoD(today)}"></div>
+ <div><label for="${p}d" style="margin:0;font-size:12px">Starting date</label><input id="${p}d" type="date" aria-label="Starting date" style="width:150px" value="${pf?pf.date:module==='money'&&S.calSel?S.calSel:isoD(today)}"></div>
  <div><label for="${p}dl" style="margin:0;font-size:12px">Deadline (optional)</label><input id="${p}dl" type="date" aria-label="Deadline date (optional)" style="width:150px" value=""></div>
  <div><label for="${p}ti" style="margin:0;font-size:12px">Time</label><input id="${p}ti" type="time" aria-label="Time (optional)" style="width:120px" value=""></div>
  <div><label for="${p}p" style="margin:0;font-size:12px">For</label><input id="${p}p" aria-label="Person (optional)" placeholder="For (optional)" style="width:160px" value="${pf?esc(pf.person||''):''}"></div>
@@ -2173,6 +2176,17 @@ span.tl-txt{cursor:default}
 .tk-pri i{width:8px;height:8px;border-radius:3px;background:var(--pc)}
 .tl-row.mini{padding:6px 0}
 .tl-foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.caldots{position:absolute;bottom:5px;display:flex;gap:3px}.caldots .caldot{position:static}
+.caldot.tk{background:var(--pc)}
+.calcell.sel{background:var(--deep);color:#fff;font-weight:700}.calcell.sel .caldot.tk{box-shadow:0 0 0 1.5px #fff}
+[data-theme="noir"] .calcell.sel{background:var(--gold);color:#0B1A2C}
+.cl-day{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.cl-day .nl-ch{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
+.cl-day .tk-row{padding:9px 0}.cl-day .tl-add{margin-top:4px}
+.cl-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.cl-l,.cl-r{display:grid;gap:16px;min-width:0}
+@media(max-width:1020px){.cl-grid{grid-template-columns:minmax(0,1fr)}.cl-l,.cl-r{display:contents}.cl-bills{order:1}.cl-cal{order:2}.cl-todo{order:3}.cl-guide{order:4}}
+@media(max-width:640px){.cl-grid{gap:12px;margin-top:12px}}
 @media(max-width:980px){.tl-grid{grid-template-columns:1fr}}
 @media(max-width:640px){.tl-when{grid-template-columns:1fr 1fr}.tl-when .tl-fd{grid-column:1/-1}.tl-top .btn{flex:1;justify-content:center}.tl-menu{right:0}}
 </style>`;
@@ -2206,7 +2220,7 @@ function tkDraft(){const e=S.tkEd;if(!e)return;const v=id=>($(id)||{}).value||''
 function tkQuick(n){const d=$('#tl-d');if(!d)return;if(n===null){d.value='';const tm=$('#tl-time'),r=$('#tl-r');if(tm)tm.value='';if(r)r.value='none'}else d.value=addDays(isoD(today),n);tkDraft()}
 function tkEdPri(i){const e=S.tkEd;if(!e)return;e.pri=i;document.querySelectorAll('.tl-prisel button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.p===i)));const ed=document.querySelector('.tl-ed');if(ed)ed.className='tl-ed tkp'+i}
 function tkFocus(){setTimeout(()=>{const i=$('#tl-t');if(i){i.focus();try{i.scrollIntoView({block:'nearest'})}catch(e){}}},30)}
-function tkAddOpen(seg){S.tkMenu=null;S.tkEd={seg,pri:seg||2,id:null};if(S.tkFolded)S.tkFolded[seg]=false;render();tkFocus()}
+function tkAddOpen(seg,date){S.tkMenu=null;S.tkEd={seg,pri:seg||2,id:null};if(date)S.tkEd.draft={title:'',notes:'',date,time:'',repeat:'none'};if(S.tkFolded)S.tkFolded[seg]=false;render();tkFocus()}
 function tkEdit(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;S.tkMenu=null;S.tkEd={seg:tPri(t),pri:tPri(t),id};render();tkFocus()}
 function tkCancel(){S.tkEd=null;render()}
 function tkSave(keep){const e=S.tkEd;if(!e)return;tkDraft();const d=e.draft||{},title=String(d.title||'').trim(),notes=String(d.notes||'').trim().slice(0,300);
@@ -2235,14 +2249,14 @@ function tkClearDone(){const n=(S.tasks||[]).filter(tkIsDone).length;S.tasks=(S.
 function tkTab(v){S.tkTab=v;S.tkMenu=null;S.tkEd=null;if(v==='list')S.taskDay=null;render()}
 document.addEventListener('click',e=>{if(S.tkMenu&&!(e.target.closest&&e.target.closest('.tl-menu,.tl-more'))){S.tkMenu=null;render()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.tkMenu){const id=S.tkMenu;S.tkMenu=null;render();const b=[...document.querySelectorAll('.tl-more')].find(x=>x.getAttribute('onclick').includes('('+id+')'));if(b)b.focus()}});
-function TodoList(){const all=S.tasks||[],ed=S.tkEd,open=all.filter(t=>!tkIsDone(t)),done=all.filter(tkIsDone).sort((a,b)=>String(b.done||b.date||'').localeCompare(String(a.done||a.date||''))||b.id-a.id);
+function TodoList(title){const all=S.tasks||[],ed=S.tkEd,open=all.filter(t=>!tkIsDone(t)),done=all.filter(tkIsDone).sort((a,b)=>String(b.done||b.date||'').localeCompare(String(a.done||a.date||''))||b.id-a.id);
  const tdy=isoD(today),must=open.filter(t=>tPri(t)===1).length,dueT=open.filter(t=>{const o=tkOcc(t);return o&&o<=tdy}).length,fold=S.tkFolded||{};
  const segs=[1,2,3,4].map(p=>{const items=open.filter(t=>tPri(t)===p).sort(tkSort),f=!!fold[p];
   const rows=items.map(t=>ed&&ed.id===t.id?tkEditor():tkListRow(t)).join('');
   const adder=ed&&!ed.id&&ed.seg===p?tkEditor():`<button class="tl-add tkp${p}" onclick="tkAddOpen(${p})">${IC('plus',18)}<span>Add a task<span class="tl-sr"> to ${TK_PRI[p].n}</span></span></button>`;
   return `<section class="tl-seg tkp${p}" aria-label="${TK_PRI[p].n}"><button class="tl-sh" aria-expanded="${!f}" onclick="tkFold(${p})"><i class="tl-flag"></i><span><b>${TK_PRI[p].n}</b><small>${TK_PRI[p].d}</small></span>${items.length?`<em>${items.length}<span class="tl-sr"> to do</span></em>`:''}${IC('chevd',18)}</button>${f?'':`<div class="tl-items">${rows}${adder}</div>`}</section>`}).join('');
  const comp=done.length?`<div class="tl-done"><button class="tl-sh2" aria-expanded="${!!S.tkShowDone}" onclick="S.tkShowDone=!S.tkShowDone;render()">${IC('chevd',18)}<b>Completed (${done.length})</b></button>${S.tkShowDone?done.map(t=>ed&&ed.id===t.id?tkEditor():tkListRow(t)).join('')+`<button class="btn ghost xs" onclick="arm('tkclear',tkClearDone)">${S.armed==='tkclear'?'Tap again to delete them':'Delete completed tasks'}</button>`:''}</div>`:'';
- return `<div class="tl-top"><div><h3>My list</h3><small>${open.length?`${open.length} to do${must?' · '+must+' must do':''}${dueT?' · '+dueT+' for today':''}`:all.length?'All done. Nice work!':'Nothing on your list yet'}</small></div><button class="btn sm" onclick="tkAddOpen(0)">${IC('plus',16)}Add a task</button></div>
+ return `<div class="tl-top"><div><h3>${title||'My list'}</h3><small>${open.length?`${open.length} to do${must?' · '+must+' must do':''}${dueT?' · '+dueT+' for today':''}`:all.length?'All done. Nice work!':'Nothing on your list yet'}</small></div><button class="btn sm" onclick="tkAddOpen(0)">${IC('plus',16)}Add a task</button></div>
  ${ed&&!ed.id&&ed.seg===0?tkEditor():''}
  ${!all.length?`<p class="sub tl-empty">Add your first task. Put the most important ones in <b>Must do</b>, and the rest further down.</p>`:''}
  ${segs}${comp}<div class="tl-foot">${ReminderNote()}</div>`}
@@ -3362,17 +3376,30 @@ const ordn=d=>d+(['th','st','nd','rd'][(d%10>3||[11,12,13].includes(d%100))?0:d%
 function MoneyCalendar(){const dim=daysInMonth(),td=today.getDate();let byDay={};
  S.bills.forEach(b=>{const day=Math.min(b.due,dim);const tone=b.paidThisMonth?'ok':(day<td?'rose':'gold');(byDay[day]=byDay[day]||[]).push({label:b.name+' · '+money(b.amt),tone})});
  byDay=mergeEvents(byDay,noteEvents('money'));
+ const yy=today.getFullYear(),mm=today.getMonth();for(let d=1;d<=dim;d++){const iso=isoD(new Date(yy,mm,d));tasksOn(iso).filter(t=>!taskDone(t,iso)).forEach(t=>(byDay[d]=byDay[d]||[]).push({label:'To do: '+t.title,tone:'task',pri:tPri(t)}))}
+ const tdIso=isoD(today),sel=S.calSel&&S.calSel.slice(0,7)===tdIso.slice(0,7)?S.calSel:tdIso,toDo=(S.tasks||[]).filter(t=>!tkIsDone(t)).length;
  const list=[...S.bills].sort((a,b)=>(a.paidThisMonth-b.paidThisMonth)||a.due-b.due),due=S.bills.filter(b=>!b.paidThisMonth).reduce((a,b)=>a+b.amt,0);
  const mon=today.toLocaleDateString('en-GB',{month:'short'}).toUpperCase(),open=S.billOpen||!S.bills.length;
  const status=b=>{const d=Math.min(b.due,dim)-td;if(b.paidThisMonth)return nlPill('Paid','good');if(d<0)return nlPill('Overdue','bad');if(d===0)return nlPill('Due today','warn');return nlPill(d===1?'Due tomorrow':'Due in '+d+' days',d<=3?'warn':'')};
- return `${nlHead('Bills and calendar',`${money(due)} still to pay this month`,`${canScan()?`<label class="nl-btn" for="billImg">${IC('camera',17)}Snap a bill</label><input id="billImg" type="file" accept="image/*" capture="environment" class="nl-file" onchange="S.billOpen=true;render();setTimeout(()=>scanBill(this.files[0]),0)">`:nlBtn('Snap a bill',"toast('Scanning comes with Muraka, Atholhu and Dhoni');go('packages')",'camera')}${nlBtn(open&&S.bills.length?'Close':'Add bill',`S.billOpen=${!(open&&S.bills.length)};render()`,open&&S.bills.length?'x':'plus','primary')}`)}
+ return `${TASK_CSS}${nlHead('Bills and calendar',`${money(due)} still to pay this month${toDo?` · ${toDo} task${toDo===1?'':'s'} to do`:''}`,`${nlBtn('Add task',"tkAddOpen(0)",'task')}${canScan()?`<label class="nl-btn" for="billImg">${IC('camera',17)}Snap a bill</label><input id="billImg" type="file" accept="image/*" capture="environment" class="nl-file" onchange="S.billOpen=true;render();setTimeout(()=>scanBill(this.files[0]),0)">`:nlBtn('Snap a bill',"toast('Scanning comes with Muraka, Atholhu and Dhoni');go('packages')",'camera')}${nlBtn(open&&S.bills.length?'Close':'Add bill',`S.billOpen=${!(open&&S.bills.length)};render()`,open&&S.bills.length?'x':'plus','primary')}`)}
  ${open?`<section class="nl-card nl-form"><h2>Add a monthly bill</h2><span id="scanStatus"></span><div class="nl-3"><div class="nl-field"><label for="bn">Bill name</label><input id="bn" placeholder="STELCO electricity"></div><div class="nl-field"><label for="ba">Amount (${esc(S.cur)})</label><input id="ba" type="number" min="0" inputmode="decimal" placeholder="640"></div><div class="nl-field"><label for="bd">Due day each month</label><input id="bd" type="number" min="1" max="31" inputmode="numeric" placeholder="19"></div></div><div>${nlBtn('Add bill','addBillNow()',null,'primary')}</div></section>`:''}
- <div class="nl-row3">
-  <section class="nl-card"><h2>Upcoming and recurring</h2><div>${list.length?list.map(b=>`<div class="nl-billrow"><span class="nl-date ${!b.paidThisMonth&&Math.min(b.due,dim)-td<=3?'soon':''}"><small>${mon}</small><b>${Math.min(b.due,dim)}</b></span><span class="m"><b>${esc(b.name)}</b><small>Every month · due on the ${ordn(b.due)}</small></span>${status(b)}<span class="nl-amt">${money(b.amt)}</span><span class="nl-row-btns">${b.paidThisMonth?`<button class="nl-link sm" onclick="unpayBill(${b.id})">Undo</button>`:`<button class="nl-link sm" onclick="markPaid(${b.id})">Mark paid</button>`}<button class="nl-link sm bad" onclick="arm('bl${b.id}',()=>{S.bills=S.bills.filter(x=>x.id!==${b.id});toast('Bill removed');render()})">${S.armed==='bl'+b.id?'Tap again':'Remove'}</button></span></div>`).join(''):`<p class="nl-empty">No bills yet. Add your electricity, water, internet or rent so WalletMV can remind you.</p>`}</div></section>
-  <section class="nl-card"><div class="nl-ch"><h2>${today.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</h2><span class="nl-note" style="margin:0">Tap a day to add a reminder</span></div>${calGrid(byDay,'money')}
-   <div class="nl-legend2"><span><i style="background:var(--gold)"></i>Due</span><span><i style="background:var(--rose)"></i>Overdue</span><span><i style="background:var(--ok)"></i>Paid</span></div>
+ <div class="cl-grid"><div class="cl-l">
+  <section class="nl-card cl-bills"><h2>Upcoming and recurring</h2><div>${list.length?list.map(b=>`<div class="nl-billrow"><span class="nl-date ${!b.paidThisMonth&&Math.min(b.due,dim)-td<=3?'soon':''}"><small>${mon}</small><b>${Math.min(b.due,dim)}</b></span><span class="m"><b>${esc(b.name)}</b><small>Every month · due on the ${ordn(b.due)}</small></span>${status(b)}<span class="nl-amt">${money(b.amt)}</span><span class="nl-row-btns">${b.paidThisMonth?`<button class="nl-link sm" onclick="unpayBill(${b.id})">Undo</button>`:`<button class="nl-link sm" onclick="markPaid(${b.id})">Mark paid</button>`}<button class="nl-link sm bad" onclick="arm('bl${b.id}',()=>{S.bills=S.bills.filter(x=>x.id!==${b.id});toast('Bill removed');render()})">${S.armed==='bl'+b.id?'Tap again':'Remove'}</button></span></div>`).join(''):`<p class="nl-empty">No bills yet. Add your electricity, water, internet or rent so WalletMV can remind you.</p>`}</div></section>
+  <section class="nl-card cl-todo" id="cal-todo">${TodoList('To-do list')}</section></div>
+  <div class="cl-r"><section class="nl-card cl-cal"><div class="nl-ch"><h2>${today.toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</h2><span class="nl-note" style="margin:0">Tap a day to see it</span></div>${calGrid(byDay,'money',+sel.slice(8))}
+   <div class="nl-legend2"><span><i style="background:var(--gold)"></i>Due</span><span><i style="background:var(--rose)"></i>Overdue</span><span><i style="background:var(--ok)"></i>Paid</span><span><i class="tkp3" style="background:var(--pc)"></i>To do</span></div>
+   ${CalDayPanel(sel)}
    <h3 class="nl-h3">Write a reminder</h3>${noteForm('money')}${noteList('money')}</section>
+  <div class="cl-guide">${TkGuide()}</div></div>
  </div>`}
+function CalDayPanel(iso){const tdy=isoD(today),bills=billsOn(iso),tasks=tasksOn(iso),notes=notesOn(iso);
+ const name=iso===tdy?'Today':iso===addDays(tdy,1)?'Tomorrow':new Date(iso+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+ return `<div class="cl-day" aria-live="polite"><div class="nl-ch"><h3 class="nl-h3" style="margin:0">${esc(name)}</h3>${iso!==tdy?`<button class="nl-link sm" onclick="S.calSel=null;render()">Back to today</button>`:''}</div>
+ ${bills.map(b=>`<div class="tk-row${b.paidThisMonth?' done':''}"><span class="dot" style="background:var(--${b.paidThisMonth?'ok':'rose'});margin:0 11px"></span><span class="tk-txt"><b>Pay ${esc(b.name)}</b><small>Bill · ${money(b.amt)}${b.paidThisMonth?' · paid':''}</small></span>${b.paidThisMonth?'':`<button class="btn ghost xs" onclick="markPaid(${b.id})">Mark paid</button>`}</div>`).join('')}
+ ${notes.map(n=>`<div class="tk-row"><span class="dot" style="background:var(--gold);margin:0 11px"></span><span class="tk-txt"><b>${n.person?esc(n.person)+' — ':''}${esc(n.text)}</b><small>Reminder${n.time?' · '+esc(n.time):''}${n.deadline===iso?' · deadline':''}</small></span></div>`).join('')}
+ ${tasks.map(t=>taskRow(t,iso,true)).join('')}
+ ${!bills.length&&!tasks.length&&!notes.length?`<p class="nl-empty" style="margin:6px 0 0">Nothing on this day yet.</p>`:''}
+ <button class="tl-add tkp2" onclick="tkAddOpen(0,'${iso}')">${IC('plus',18)}<span>Add a task on this day</span></button></div>`}
 
 /* ---- Reports ---- */
 function setRepPeriod(p){const ms=lastMonths(2);if(p==='this'){S.repMode='month';S.repMonth=ms[0]}else if(p==='last'){S.repMode='month';S.repMonth=ms[1]}else if(p==='3m'){S.repMode='range';S.repFrom=isoD(new Date(today.getFullYear(),today.getMonth()-2,1));S.repTo=isoD(today)}else{S.repMode='range';if(!S.repFrom){S.repFrom=isoD(new Date(today.getFullYear(),today.getMonth(),1));S.repTo=isoD(today)}S.repCustom=true}if(p!=='custom')S.repCustom=false;render()}
