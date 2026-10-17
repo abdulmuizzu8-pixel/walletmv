@@ -7,8 +7,9 @@ import { WebView } from 'react-native-webview';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 
-// The store apps open walletmv.com in "store" mode, which hides prices and payment pages
-// (Google Play and App Store rules in the Maldives). Website updates appear here without a new store upload.
+// The store apps use a store-specific presentation that hides package and checkout pages.
+// Verify current Google Play and Apple billing/external-purchase rules for each storefront before submission.
+// Website updates appear here without a new native build; native changes still require a new build.
 const STORE = Platform.OS === 'ios' ? 'ios' : 'android';
 const START_URL = `https://walletmv.com/?app=1&store=${STORE}`;
 const BRAND = '#0B1A2C';
