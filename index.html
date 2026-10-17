@@ -1630,10 +1630,18 @@ function ShopCalendarTab(){const dim=daysInMonth();const td=today.getDate();var 
   ${!lowStock.length&&!pend.length?'<p class="sub">Nothing else needs your attention this month.</p>':''}
  </div></div>`}
 function ShopShell(){
- const nav=SHOPNAV.map(i=>`<button ${S.shopView===i[0]?'aria-current="true"':''} onclick="sv('${i[0]}')"><span style="margin-right:8px">${i[1]}</span>${i[2]}</button>`).join('');
- return `<div class="shell"><aside class="side"><button class="logo sm" style="color:#FFFFFF" onclick="go('home')" aria-label="WalletMV home">${LOGO()}${BRAND()}</button><div class="eyebrow" style="color:var(--gold);margin-top:-14px">MVSHOP</div><nav aria-label="MVSHOP" style="margin-top:8px">${nav}</nav><div class="foot"><button onclick="go('home')">← Back to WalletMV</button><span class="flex" style="gap:6px"><button class="theme" onclick="toggleTheme()" aria-label="Toggle theme">${S.theme==='noir'?'☀':'☾'}</button></span></div></aside>
- <header class="top"><button class="logo sm" style="color:#FFFFFF" onclick="go('home')" aria-label="WalletMV home">${LOGO()}${BRAND()}</button><span style="color:rgba(255,255,255,.65);font-size:13px;font-weight:600">MVSHOP</span><button aria-label="Toggle theme" style="background:none;border:1px solid rgba(255,255,255,.25);color:#FFFFFF;border-radius:999px;width:34px;height:34px" onclick="toggleTheme()">${S.theme==='noir'?'☀':'☾'}</button></header>
- <main class="main">${pkgNotice()}${ShopView()}</main>${MobileBar('shop')}</div>`}
+ const dark=S.theme==='noir',nm=(S.shopProfile&&S.shopProfile.name)||'Your shop';
+ const snav=SHOPNAV.map(i=>`${SGROUP[i[0]]?`<div class="g">${SGROUP[i[0]]}</div>`:''}<button ${S.shopView===i[0]?'aria-current="page"':''} onclick="sv('${i[0]}')">${IC(SICON[i[0]]||'box',19)}${i[2]}</button>`).join('');
+ return `<div class="nl-shell shop"><aside class="nl-side" aria-label="MVSHOP menu">
+  <button class="nl-brand" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>WalletMV</span></button>
+  <div class="nl-shopname"><span class="eb">MVSHOP</span><b>${esc(nm)}</b></div>
+  <button class="nl-primary" onclick="sv('invoice')">${IC('plus',18)}New bill</button>
+  <nav class="nl-nav" aria-label="MVSHOP">${snav}</nav>
+  <button class="nl-shop" onclick="go('money')">${IC('wallet',19)}My money app</button>
+  <div class="nl-me"><div class="nl-tools"><button onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}" title="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button><button onclick="reportProblem()" aria-label="Report a problem" title="Report a problem">${IC('chat',18)}</button></div></div>
+ </aside>
+ <header class="nl-top"><button class="nl-brand sm" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>MVSHOP</span></button><button class="nl-topbtn" onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button></header>
+ <main class="main nl-main">${pkgNotice()}${ShopView()}</main>${MobileBar('shop')}</div>`}
 function ShopDashTab(){const c=shopCalc();
  const invoiceCount=S.shopTx.filter(t=>t.type==='income').length;
  const lowStock=S.products.filter(p=>p.stock<=5).length;
@@ -3084,6 +3092,9 @@ const NL_CSS3=`
 .nl-main .card.danger{border-color:rgba(180,67,78,.35)}
 .nl-set{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start;max-width:1100px}
 .nl-logout{align-self:flex-start}
+.nl-shopname{display:flex;flex-direction:column;gap:2px;margin:-8px 8px 16px;padding:10px 12px;border-radius:12px;background:rgba(212,178,106,.1);border:1px solid rgba(212,178,106,.25)}
+.nl-shopname .eb{font-size:10.5px;letter-spacing:.22em;color:var(--gold);font-weight:700}.nl-shopname b{color:#FFFFFF;font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nl-main .card h2{font:600 1.45rem var(--head)}
 .nl-main [style*="text-align:center"] .sub{margin-left:auto;margin-right:auto}
 @media(max-width:1020px){.nl-set{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:860px){.nl-main .card{padding:18px}.nl-main .card h3{font-size:1.25rem}}
