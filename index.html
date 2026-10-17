@@ -365,7 +365,7 @@ const DEFAULT_QUICK=[{n:'Ferry',cat:'Transport',amt:10,ic:'⛴'},{n:'Coffee',cat
 const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:true,name:'',email:'',
  filter:'All',tab:'all',q:'',addType:'expense',edit:null,saved:null,armed:null,repMonth:curMk(),
  repMode:'month',repFrom:'',repTo:'',shopRepMode:'month',shopRepFrom:'',shopRepTo:'',
- subscription:{plan:'plus',status:'active',requestedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),approvedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),verified:true,startsAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),expiresAt:isoD(new Date(new Date().setDate(new Date().getDate()+22)))},
+ subscription:{plan:'',status:'none',requestedAt:null,approvedAt:null,verified:false,startsAt:null,expiresAt:null},
  plans:[
   {id:'veli',name:'Veli',meaning:'Sand — where every island starts',icon:'sun',tag:'For one person. Your first 3 months are free, then it’s the lowest price.',best:'3 months free',price:88,days:30,trial:90,members:1,scan:false,on:true,popular:false,entry:true,features:['Safe-to-spend number every morning','Income & expense tracking','3 accounts','1 monthly budget','1 savings goal','Up to 5 bills','To-do list & reminders','Groceries lists','Image to PDF converter','Document box (3 documents)','Member discount card','Reports for this month and last month']},
   {id:'starter',name:'Boli',meaning:'Cowrie shell — the Maldives’ first money',icon:'wallet',tag:'For one person or a couple who want no limits.',best:'',price:99,days:30,members:2,scan:false,on:true,popular:false,features:['Everything in Veli, with no limits','Unlimited accounts, bills & goals','A budget for each category','Full reports & Excel export','25 currencies','Document box (30 documents)','Share with 1 more person']},
@@ -374,17 +374,17 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
   {id:'mvshop',name:'Dhoni',meaning:'The trading boat — built for business',icon:'store',tag:'For shops and small businesses — sell, stock and GST in one place.',best:'Best for shops',price:499,days:30,members:4,scan:true,on:true,popular:false,features:['Everything in Muraka for the owner','MVSHOP sales, POS & invoices','Bill inbox — bills sort themselves','Stock & smart reordering','GST return tools','AI shop assistant','Loyalty & discount cards for your customers']}],
  shared:[{id:1,name:'WalletMV User',contact:'',role:'owner',status:'joined',since:isoD(new Date(new Date().setDate(new Date().getDate()-40)))},{id:2,name:'Ibrahim Rasheed',contact:'+960 777 2211',role:'edit',status:'joined',since:isoD(new Date(new Date().setDate(new Date().getDate()-12)))}],sharedOpen:null,scanReview:null,homeStock:[{id:1,name:'Rice',qty:3,unit:'kg'},{id:2,name:'Cooking oil',qty:1,unit:'bottle'},{id:3,name:'Milk',qty:0,unit:'L'}],
  planTax:0,period:'month',checkoutStep:'pay',lastSubId:null,
- pendingSubs:[{id:1,plan:'plus',price:199,total:199,method:'bank',ref:'BML-2409251187',requestedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),status:'approved',slipName:'bml-slip.jpg'}],checkoutPlan:'plus',
+ pendingSubs:[],checkoutPlan:'plus',
  ownerWhatsapp:'+960 798 7770',supportWhatsapp:'+960 798 7770',issues:[],issueOpen:null,errLog:[],ruleOff:{},inbox:[],waGroupLink:'',inboxBusy:0,ownerViber:'',checkoutSlip:null,checkoutSlipName:'',checkoutMethod:null,checkoutRef:'',
  payMethods:[
-  {id:'bank',name:'Bank transfer (BML)',region:'MV',on:true,custom:false,details:'The bank account details load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. BML transfer reference'},
-  {id:'wallet',name:'Mobile wallet (Ooredoo m-Faisaa / Dhiraagu Pay)',region:'MV',on:true,custom:false,details:'Send to 7771234 (WalletMV)',refHint:'e.g. MF-88231904'},
-  {id:'card',name:'Local card (BML Connect)',region:'MV',on:true,custom:false,details:'Pay by card via the BML Connect link we send you, then paste the approval code here',refHint:'e.g. approval code 482913'},
-  {id:'intlcard',name:'International card (Visa / Mastercard / Amex)',region:'world',on:true,custom:false,details:'Pay through the secure card link we email you, then paste the transaction ID here',refHint:'e.g. ch_3PqA91xZ'},
-  {id:'paypal',name:'PayPal',region:'world',on:true,custom:false,details:'Send to payments@walletmv.com',refHint:'e.g. PayPal transaction ID 9XK12345AB678901C'},
-  {id:'skrill',name:'Skrill (wallet or card)',region:'world',on:true,custom:false,details:'Pay from your Skrill wallet to payments@walletmv.com — or pay by Visa / Mastercard through the Skrill card link we send you',refHint:'e.g. Skrill transaction ID 5012345678'},
+  {id:'bank',name:'Bank transfer (BML)',region:'MV',on:false,custom:false,details:'The bank account details load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. BML transfer reference'},
+  {id:'wallet',name:'Mobile wallet (Ooredoo m-Faisaa / Dhiraagu Pay)',region:'MV',on:false,custom:false,details:'Send to 7771234 (WalletMV)',refHint:'e.g. MF-88231904'},
+  {id:'card',name:'Local card (BML Connect)',region:'MV',on:false,custom:false,details:'Pay by card via the BML Connect link we send you, then paste the approval code here',refHint:'e.g. approval code 482913'},
+  {id:'intlcard',name:'International card (Visa / Mastercard / Amex)',region:'world',on:false,custom:false,details:'Pay through the secure card link we email you, then paste the transaction ID here',refHint:'e.g. ch_3PqA91xZ'},
+  {id:'paypal',name:'PayPal',region:'world',on:false,custom:false,details:'Send to payments@walletmv.com',refHint:'e.g. PayPal transaction ID 9XK12345AB678901C'},
+  {id:'skrill',name:'Skrill (wallet or card)',region:'world',on:false,custom:false,details:'Pay from your Skrill wallet to payments@walletmv.com — or pay by Visa / Mastercard through the Skrill card link we send you',refHint:'e.g. Skrill transaction ID 5012345678'},
   {id:'whatsapp',name:'Order on WhatsApp',region:'MV',on:true,custom:false,details:'Send your order on WhatsApp. We reply with how to pay and switch your package on.',refHint:''},
-  {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:true,custom:false,details:'The account details for international transfers load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. Wise transfer #1234567890'}
+  {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:false,custom:false,details:'The account details for international transfers load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. Wise transfer #1234567890'}
  ],
  autoActivate:false,
  quick:DEFAULT_QUICK.map(q=>({...q})),editQuick:null,
@@ -614,7 +614,7 @@ function TermsBody(){
  return LegalSection('1. Agreement to these terms',"<p>These Terms of Service govern access to and use of WalletMV, including its website, application, budgeting tools, and small-business features. By creating an account or using the Service, you agree to these terms. If you do not agree, do not use WalletMV.</p>")
  +LegalSection('2. Accounts and eligibility',"<p>You must be at least 18 years old or the age of legal majority where you live. Provide accurate account information, protect your sign-in details, and report suspected unauthorised access. You are responsible for activity carried out through your account.</p>")
  +LegalSection('3. Service and user information',"<p>WalletMV helps users organise information they enter, including income, expenses, budgets, savings goals, inventory, invoices, and related records. You are responsible for the accuracy of your entries. Do not access another user's account, interfere with the Service, submit false payment evidence, upload malicious code, or misuse the Service. Each user's private records must remain separate from other users and demo accounts.</p>")
- +LegalSection('4. Packages and payment',"<p>Where offered and displayed at checkout, the WalletMV full-access package costs MVR 499 as a one-time payment and is not a recurring subscription. Other packages and budget amounts remain as displayed in the Service. The applicable price, features, payment method, and conditions will be shown before purchase. Manual bank-transfer payments must be verified before paid access is activated. Submit only requested payment references or proof; never send a bank password, PIN, or one-time security code.</p>")
+ +LegalSection('4. Packages and payment',"<p>Package names, prices, features, trial periods, and access durations are shown on the Services &amp; packages page and again before checkout; that checkout summary is the price offered for that purchase. Paid access is not activated until the payment provider or WalletMV admin verifies the payment. A payment request alone is not proof of payment or an entitlement. Unless checkout explicitly says otherwise, access ends on the displayed expiry date and does not automatically renew. Never send a bank password, PIN, or one-time security code.</p>")
  +LegalSection('5. Refunds and cancellations',"<p>Refund requests are reviewed case by case. Email support@walletmv.com with your account email, payment reference, purchase date, amount, and reason. We may consider duplicate payments, failed activation, unauthorised payments, significant service problems, and other circumstances. Approval is not guaranteed. This policy does not exclude rights that cannot lawfully be excluded. If approved, the refund method and expected timeframe will be communicated to you.</p>")
  +LegalSection('6. Your content and privacy',"<p>You retain rights to the information you enter. You permit WalletMV to host and process it as reasonably needed to provide, secure, and support the Service. See the Privacy Policy for more information.</p>")
  +LegalSection('7. Availability and third-party services',"<p>The Service may be interrupted by maintenance, connectivity problems, or service-provider outages. We take reasonable steps to keep it available but do not guarantee uninterrupted access. External payment, banking, hosting, or messaging providers may apply their own terms and privacy practices. Keep independent copies of important financial records.</p>")
@@ -638,10 +638,10 @@ function PrivacyBody(){
  +LegalSection('11. Changes and contact',"<p>We may update this policy when our data practices change. The latest version and effective date will be published here. For privacy questions or requests, contact <a href='mailto:privacy@walletmv.com' style='color:var(--gold-d);font-weight:600'>privacy@walletmv.com</a>.</p>")
 }
 function RefundBody(){
- return LegalSection('1. Price and payment',"<p>The full-access package costs MVR 499 as a one-time payment where offered. Other package and budget prices remain as displayed in WalletMV. Manual bank-transfer payments must be verified before access is activated. Follow checkout instructions and submit only the requested payment reference or receipt evidence.</p>")
+ return LegalSection('1. Price and payment',"<p>The price, billing period, and included features are those shown for the selected package at checkout. Submit only the requested payment reference or receipt evidence. A submitted request is not confirmation of payment; access is activated only after the payment is verified. Unless checkout explicitly states otherwise, access expires on the date shown and does not automatically renew.</p>")
  +LegalSection('2. Refund requests',"<p>Refund requests are reviewed case by case. Email support@walletmv.com with your account email, payment reference, purchase date, amount, and reason. We may consider duplicate transfers, incorrect payments, failed activation, unauthorised payments, significant service problems, and other relevant circumstances.</p>")
  +LegalSection('3. Approved refunds',"<p>If approved, we will communicate the amount, payment route, and expected processing timeframe. Refunds will normally use the original payment route where practical. Bank processing times may vary. This policy does not remove rights that cannot lawfully be excluded.</p>")
- +LegalSection('4. Account closure',"<p>Closing or deleting an account does not automatically guarantee a refund. Refund requests are assessed separately. The one-time MVR 499 package does not renew automatically.</p>")
+ +LegalSection('4. Account closure',"<p>Closing or deleting an account does not automatically guarantee a refund. Refund requests are assessed separately. Any remaining access and renewal conditions are those disclosed for the selected package at checkout.</p>")
  +LegalSection('5. Contact',"<p>For payment or refund questions, contact <a href='mailto:support@walletmv.com' style='color:var(--gold-d);font-weight:600'>support@walletmv.com</a>.</p>")
 }
 function DeletionBody(){
@@ -1018,23 +1018,33 @@ const payName=id=>{const m=payMethod(id);return m?m.name:(id||'Unknown method')}
 const activeMethods=()=>S.payMethods.filter(m=>m.on);
 function checkoutMethodId(){const act=activeMethods().filter(m=>m.id!=='whatsapp');
  if(S.checkoutMethod&&act.some(m=>m.id===S.checkoutMethod))return S.checkoutMethod;
- const pref=act.find(m=>m.region===(isMV()?'MV':'world'))||act[0];return pref?pref.id:null}
+ const pref=act.find(m=>m.region===(isMV()?'MV':'world'))||act[0];if(pref)return pref.id;
+ const wa=activeMethods().find(m=>m.id==='whatsapp'&&waReady());return wa?wa.id:null}
 function PayMethodSelect(sel){const act=activeMethods();
  const grp=(label,list)=>list.length?`<optgroup label="${label}">${list.map(m=>`<option value="${m.id}" ${sel===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}</optgroup>`:'';
  return grp('In the Maldives',act.filter(m=>m.region==='MV'))+grp('Worldwide',act.filter(m=>m.region!=='MV'))}
-function togglePayMethod(id){const m=payMethod(id);if(!m)return;
- if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
- m.on=!m.on;toast(m.name+(m.on?' switched on':' switched off'));render()}
+async function togglePayMethod(id){const m=payMethod(id);if(!m)return;
+  if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
+  const enabling=!m.on;
+  if(enabling&&/load in a moment|send to 7771234|payments@walletmv\.com|pay by card via|pay through the secure card link|pay from your Skrill/i.test(m.details||''))return toast('Enter and save verified payment instructions before enabling this method');
+  const previous=m.on;m.on=enabling;
+  const saved=await savePayCfg(id,m.details);
+  if(!saved){m.on=previous;return toast('Could not save payment settings. Check the owner account and database policies.');}
+  toast(m.name+(m.on?' enabled':' disabled'));render()}
 async function savePayDetails(id){const m=payMethod(id);if(!m)return;const d=$('#pmd'+id).value.trim().slice(0,400);if(!d)return toast('Add the details customers need to pay you');m.details=d;const ok=await savePayCfg(id,d);toast(ok?'Details saved for '+m.name+'. Customers see them at checkout.':'Saved here, but it couldn’t reach the database. Try again.');render()}
-function addPayMethod(){const name=$('#npmName').value.trim(),details=$('#npmDetails').value.trim(),region=$('#npmRegion').value;
- if(!name)return toast('Give the payment method a name');
- if(!details)return toast('Add the details customers need to pay you');
- if(S.payMethods.some(m=>m.name.toLowerCase()===name.toLowerCase()))return toast('A payment method with that name already exists');
- S.payMethods.push({id:'c'+Date.now(),name,region,on:true,custom:true,details,refHint:'Transaction or receipt number'});
- toast(name+' added — customers can pick it at checkout');render()}
-function delPayMethod(id){const m=payMethod(id);if(!m||!m.custom)return;
- if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
- S.payMethods=S.payMethods.filter(x=>x.id!==id);toast(m.name+' removed');render()}
+async function addPayMethod(){const name=$('#npmName').value.trim(),details=$('#npmDetails').value.trim(),region=$('#npmRegion').value;
+  if(!name)return toast('Give the payment method a name');if(!details)return toast('Add the details customers need to pay you');
+  if(S.payMethods.some(m=>m.name.toLowerCase()===name.toLowerCase()))return toast('A payment method with that name already exists');
+  const m={id:'c'+Date.now(),name,region,on:true,custom:true,details,refHint:'Transaction or receipt number'};S.payMethods.push(m);
+  const ok=await savePayCfg(m.id,m.details);if(!ok){S.payMethods=S.payMethods.filter(x=>x.id!==m.id);return toast('Could not save this payment method. Check the owner account and database policies.');}
+  toast(name+' added');render()}
+async function delPayMethod(id){const m=payMethod(id);if(!m||!m.custom)return;
+  if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
+  if(!walletAuth||!S.isOwner)return toast('Only the owner can remove payment methods');
+  const value={...(S.payCfg||{})};delete value[id];let error=null;
+  try{({error}=await walletAuth.from('walletmv_public_config').upsert({key:PAY_CFG_KEY,value,updated_at:new Date().toISOString(),updated_by:_dataUid||null}))}catch(e){error=e}
+  if(error)return toast('Could not remove the saved payment method. Try again.');
+  S.payCfg=value;S.payMethods=S.payMethods.filter(x=>x.id!==id);toast(m.name+' removed');render()}
 /* ---------- PAYMENTS THROUGH THE DATABASE ----------
    Bank details shown at checkout live in the database (walletmv_public_config), never in this file.
    A customer's payment request is saved to walletmv_payment_requests (they can only add their own, always "pending";
@@ -1042,9 +1052,12 @@ function delPayMethod(id){const m=payMethod(id);if(!m||!m.custom)return;
    The customer's app reads its own requests and switches the package on once one is approved. */
 const PAY_CFG_KEY='pay_details';
 async function loadPublicConfig(){if(!walletAuth)return;try{const {data,error}=await walletAuth.from('walletmv_public_config').select('key,value').eq('key',PAY_CFG_KEY).maybeSingle();
- if(error||!data||!data.value||typeof data.value!=='object')return;S.payCfg=data.value;Object.entries(data.value).forEach(([id,det])=>{const m=payMethod(id);if(m&&typeof det==='string'&&det.trim())m.details=det.trim().slice(0,400)});
+ if(error||!data||!data.value||typeof data.value!=='object')return;S.payCfg=data.value;Object.entries(data.value).forEach(([id,entry])=>{let m=payMethod(id);
+  if(!m&&id.startsWith('c')&&entry&&typeof entry==='object'&&entry.custom===true){const name=String(entry.name||'').trim().slice(0,120);if(name){m={id,name,region:entry.region==='world'?'world':'MV',on:false,custom:true,details:'',refHint:String(entry.refHint||'Transaction or receipt number').slice(0,120)};S.payMethods.push(m)}}
+  if(!m)return;if(typeof entry==='string'&&entry.trim()){m.details=entry.trim().slice(0,400);m.on=!/load in a moment|send to 7771234|payments@walletmv\.com|pay by card via|pay through the secure card link|pay from your Skrill/i.test(m.details)}
+  else if(entry&&typeof entry==='object'){if(typeof entry.details==='string'&&entry.details.trim())m.details=entry.details.trim().slice(0,400);if(typeof entry.on==='boolean')m.on=entry.on}});
  if(['checkout','admin','packages'].includes(S.page))render()}catch(e){}}
-async function savePayCfg(id,details){if(!walletAuth||!S.isOwner)return false;const value={...(S.payCfg||{}),[id]:details};
+async function savePayCfg(id,details){if(!walletAuth||!S.isOwner)return false;const m=payMethod(id);const entry={details:String(details||'').trim().slice(0,400),on:!!(m&&m.on)};if(m&&m.custom)Object.assign(entry,{name:m.name,region:m.region==='world'?'world':'MV',custom:true,refHint:m.refHint||'Transaction or receipt number'});const value={...(S.payCfg||{}),[id]:entry};
  try{const {error}=await walletAuth.from('walletmv_public_config').upsert({key:PAY_CFG_KEY,value,updated_at:new Date().toISOString(),updated_by:_dataUid||null});if(error)return false;S.payCfg=value;return true}catch(e){return false}}
 async function sendPayRequest(sub){if(!walletAuth||!S.signed||!_dataUid||!sub||sub.serverId)return !!(sub&&sub.serverId);
  let slip_path=null;
@@ -2707,10 +2720,10 @@ const DEMO_DATA=JSON.parse(JSON.stringify(Object.fromEntries(SAVE_KEYS.map(k=>[k
 var _dataUid=null,_saveT=null,_lastSaved='',_retryT=null;
 const LOCAL_KEY=uid=>'walletmv:data:'+uid;
 function myData(){const d={};SAVE_KEYS.forEach(k=>d[k]=S[k]);return d}
-function applyData(d){const base=JSON.parse(JSON.stringify(DEMO_DATA));SAVE_KEYS.forEach(k=>{S[k]=d&&Object.prototype.hasOwnProperty.call(d,k)?d[k]:base[k]});try{document.documentElement.setAttribute('data-theme',S.theme||'light')}catch(e){}}
+function applyData(d){const base=blankData();SAVE_KEYS.forEach(k=>{S[k]=d&&Object.prototype.hasOwnProperty.call(d,k)?d[k]:base[k]});try{document.documentElement.setAttribute('data-theme',S.theme||'light')}catch(e){}}
 function newCardNo(){const r=()=>String(Math.floor(1000+Math.random()*9000));return 'WM-'+r()+'-'+r()}
 function blankData(){const d=JSON.parse(JSON.stringify(DEMO_DATA)),t=isoD(new Date());
- Object.assign(d,{subscription:{plan:'',status:'none',requestedAt:null,approvedAt:null},pendingSubs:[],tasks:[],tx:[],transfers:[],goals:[],bills:[],calNotes:[],homeStock:[],discounts:[],products:[],saleLines:[],shopTx:[],customers:[],suppliers:[],workers:[],
+ Object.assign(d,{subscription:{plan:'',status:'none',requestedAt:null,approvedAt:null},pendingSubs:[],tasks:[],docs:[],catBudgets:{},tx:[],transfers:[],goals:[],bills:[],calNotes:[],homeStock:[],discounts:[],products:[],saleLines:[],shopTx:[],customers:[],suppliers:[],workers:[],chargePresets:[],
   shared:[{id:1,name:S.name||'You',contact:S.email||'',role:'owner',status:'joined',since:t}],walletCard:{number:newCardNo(),since:t},
   accounts:(DEMO_DATA.accounts||[]).map(a=>({...a,start:0})),budget:{income:0,limit:0},theme:'light',
   shopProfile:{...(DEMO_DATA.shopProfile||{}),name:'',tin:''},docCounters:{invoice:1001,quotation:2001,receipt:5001}});
