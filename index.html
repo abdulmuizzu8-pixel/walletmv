@@ -489,7 +489,7 @@ const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
 const TEST_PAY=(()=>{try{const h=location.hostname;return h==='localhost'||h==='127.0.0.1'||/\.vercel\.app$/.test(h)}catch(e){return false}})();
 const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
-const mv=k=>{S.mview=k;S.upsell=null;if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
+const mv=k=>{S.mview=k;S.upsell=null;if(k==='addx'||k==='addi')S.xScan=null;if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
 const arm=(key,fn)=>{if(S.armed===key){S.armed=null;fn()}else{S.armed=key;render();toast('Tap again to confirm')}};
 const toggleTheme=()=>{S.theme=S.theme==='light'?'noir':'light';document.documentElement.setAttribute('data-theme',S.theme);toast(S.theme==='noir'?'Noir theme on':'Light theme on');render()};
 
@@ -1182,27 +1182,72 @@ function parseReceipt(text){const out=[];
   name=name.replace(/[^\w\s&'\-().\/]/g,'').trim().slice(0,48);if(name.length<2)return;
   out.push({name,qty:qty||1,price:Math.round(total/(qty||1)*100)/100,on:true})});
  return out}
+/* What a scanned bill says besides its items: the total, who it's from and the date. */
+function receiptMeta(text){const t=String(text||''),lines=t.split('\n').map(l=>l.replace(/\s+/g,' ').trim()).filter(Boolean);
+ const tm=t.match(/(?:grand\s*)?total[^\d\n]*(\d[\d,]*(?:\.\d{1,2})?)/i),total=tm?parseFloat(tm[1].replace(/,/g,'')):0;
+ const who=(lines.find(l=>/[a-z]{3}/i.test(l)&&!SKIP_RE.test(l))||'').replace(/[^\w\s&'\-().\/]/g,'').trim().slice(0,48);
+ let date='';const dm=t.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/)||t.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/);
+ if(dm){let y,m,d;if(dm[1].length===4){y=+dm[1];m=+dm[2];d=+dm[3]}else{d=+dm[1];m=+dm[2];y=+dm[3];if(y<100)y+=2000}
+  const iso=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'),ok=m>=1&&m<=12&&d>=1&&d<=31&&!isNaN(new Date(iso+'T00:00'));if(ok&&iso<=isoD(today)&&iso>=addDays(isoD(today),-400))date=iso}
+ return {total:total>0&&total<10000000?Math.round(total*100)/100:0,who,date:date||isoD(today),gst:/\b(gst|tgst|tax invoice|tin\b|vat)\b/i.test(t)}}
+const scanSum=r=>Math.round(r.items.filter(i=>i.on&&i.qty>0).reduce((a,i)=>a+i.qty*(i.price||0),0)*100)/100;
 function scanItems(file,target){if(!file)return;if(!canScan())return toast('Scanning comes with Muraka, Atholhu and Dhoni');
- S.scanReview={target,status:'reading',items:[]};render();
- if(typeof Tesseract==='undefined'){S.scanReview={target,status:'failed',items:[]};render();return}
- Tesseract.recognize(file,'eng').then(({data:{text}})=>{const items=parseReceipt(text);S.scanReview={target,status:items.length?'ready':'empty',items};render()})
-  .catch(()=>{S.scanReview={target,status:'failed',items:[]};render()})}
-function scanEdit(k,f,v){const it=S.scanReview&&S.scanReview.items[k];if(!it)return;it[f]=f==='name'?v:f==='on'?v:Math.max(0,+v||0)}
-function scanAddRow(){if(!S.scanReview)S.scanReview={target:'home',status:'ready',items:[]};S.scanReview.items.push({name:'',qty:1,price:0,on:true});S.scanReview.status='ready';render()}
+ const base={target,items:[],rec:target==='inv'?'bought':'expense',cat:'Groceries',acc:S.addAcc||(S.accounts[0]||{}).id||null,who:'',total:0,date:isoD(today),gst:false};
+ S.scanDone=null;S.scanReview={...base,status:'reading'};render();
+ if(typeof Tesseract==='undefined'){S.scanReview={...base,status:'failed'};render();return}
+ Tesseract.recognize(file,'eng').then(({data:{text}})=>{const items=parseReceipt(text),m=receiptMeta(text);S.scanReview={...base,...m,status:items.length?'ready':'empty',items};if(!S.scanReview.total)S.scanReview.total=scanSum(S.scanReview);render()})
+  .catch(()=>{S.scanReview={...base,status:'failed'};render()})}
+function scanEdit(k,f,v){const r=S.scanReview,it=r&&r.items[k];if(!it)return;const before=scanSum(r);it[f]=f==='name'?v:f==='on'?v:Math.max(0,+v||0);
+ if(f!=='name'){if(!r.totalSet&&Math.abs((r.total||0)-before)<0.01){r.total=scanSum(r);const t=$('#scTot');if(t)t.value=r.total}const btn=$('#scGo');if(btn)btn.textContent=scanGoLabel(r);const sm=$('#scSum');if(sm)sm.textContent=scanSumText(r)}}
+function scanSet(f,v){const r=S.scanReview;if(!r)return;if(f==='total'){r.total=Math.max(0,+v||0);r.totalSet=true}else if(f==='acc')r.acc=+v;else r[f]=v;
+ if(f==='rec'){render();return}const btn=$('#scGo');if(btn)btn.textContent=scanGoLabel(r)}
+const scanSumText=r=>`The ticked items add up to ${money(scanSum(r))}.`;
+function scanGoLabel(r){const n=r.items.filter(i=>i.on&&i.name.trim()&&i.qty>0).length,it=n+' item'+(n===1?'':'s'),tot=r.total>0?money(r.total):'';
+ if(r.target==='inv')return r.rec==='sold'?`Take ${it} off stock${tot?' + save '+tot+' sale':''}`:r.rec==='bought'?`Add ${it} to stock${tot?' + save '+tot+' expense':''}`:`Add ${it} to stock`;
+ return r.rec==='expense'?`Add ${it}${tot?' + save '+tot+' expense':''}`:`Add ${it} to home inventory`}
+function scanAddRow(){if(!S.scanReview)S.scanReview={target:'home',status:'ready',items:[],rec:'expense',cat:'Groceries',acc:S.addAcc||(S.accounts[0]||{}).id||null,who:'',total:0,date:isoD(today)};S.scanReview.items.push({name:'',qty:1,price:0,on:true});S.scanReview.status='ready';render()}
 const sameItem=(a,b)=>{a=a.trim().toLowerCase();b=b.trim().toLowerCase();if(a===b)return true;const s1=a.length<b.length?a:b,l=a.length<b.length?b:a;return s1.length>=3&&new RegExp('(^|\\s)'+s1.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(\\s|$)').test(l)};
 function applyScan(){const r=S.scanReview;if(!r)return;const items=r.items.filter(i=>i.on&&i.name.trim()&&i.qty>0);if(!items.length)return toast('Tick at least one item with a name');
- let added=0,updated=0;
- if(r.target==='inv'){items.forEach(i=>{const p=S.products.find(x=>sameItem(x.name,i.name));
-   if(p){p.stock+=Math.round(i.qty);if(i.price)p.cost=i.price;updated++}else{const id=Math.max(0,...S.products.map(x=>x.id))+1;S.products.push({id,name:i.name.trim(),sku:'SC'+String(id).padStart(3,'0'),price:Math.round((i.price||0)*1.25),cost:i.price||0,stock:Math.round(i.qty),supplierId:null});added++}})}
- else{items.forEach(i=>{const h=S.homeStock.find(x=>sameItem(x.name,i.name));if(h){h.qty+=i.qty;updated++}else{S.homeStock.push({id:Date.now()+added,name:i.name.trim(),qty:i.qty,unit:''});added++}})}
- S.scanReview=null;toast(`${added} added, ${updated} updated`+(r.target==='inv'?' in your stock list':' in your home inventory'));render()}
-function ScanReview(target){const r=S.scanReview;if(!r||r.target!==target)return'';
+ const rec=r.rec||(r.target==='inv'?'stock':'none'),money_=rec==='expense'||rec==='bought'||rec==='sold',total=Math.round((+r.total||0)*100)/100;
+ if(money_&&!(total>0))return toast('Enter the bill total, or choose not to save it as money');
+ const date=/^\d{4}-\d{2}-\d{2}$/.test(r.date||'')&&r.date<=isoD(today)?r.date:isoD(today),who=String(r.who||'').trim().slice(0,60);
+ const ops={target:r.target,stock:[],home:[],tx:null,shopTx:null};let added=0,updated=0,missing=0;
+ if(r.target==='inv'){items.forEach(i=>{let p=S.products.find(x=>sameItem(x.name,i.name)),q=Math.round(i.qty);
+   if(rec==='sold'){if(!p){missing++;return}const take=Math.min(p.stock,q);p.stock-=take;ops.stock.push({pid:p.id,qty:-take,created:false});updated++;return}
+   if(p){p.stock+=q;ops.stock.push({pid:p.id,qty:q,created:false,cost:p.cost});if(i.price)p.cost=i.price;updated++}
+   else{const id=Math.max(0,...S.products.map(x=>x.id))+1;p={id,name:i.name.trim(),sku:'SC'+String(id).padStart(3,'0'),price:Math.round((i.price||0)*1.25),cost:i.price||0,stock:q,supplierId:null};S.products.push(p);ops.stock.push({pid:id,qty:q,created:true});added++}});
+  if(rec==='bought'||rec==='sold'){const tx={id:Date.now(),date,desc:(rec==='sold'?'Sale':'Stock')+(who?' — '+who:'')+' (scanned bill)',cat:rec==='sold'?'Sales':'Stock/Inventory',type:rec==='sold'?'income':'expense',amt:total,gst:!!r.gst};if(rec==='sold')tx.status='paid';S.shopTx.unshift(tx);ops.shopTx=tx.id}}
+ else{items.forEach(i=>{const h=S.homeStock.find(x=>sameItem(x.name,i.name));if(h){h.qty+=i.qty;ops.home.push({id:h.id,qty:i.qty,created:false});updated++}else{const id=Date.now()+added;S.homeStock.push({id,name:i.name.trim(),qty:i.qty,unit:''});ops.home.push({id,qty:i.qty,created:true});added++}});
+  if(rec==='expense'){const cat=S.cats.some(c=>c.n===r.cat&&c.t==='expense')?r.cat:'Groceries',acc=S.accounts.some(a=>a.id===r.acc)?r.acc:(S.accounts[0]||{}).id;const tx={id:Date.now(),date,desc:who||'Shopping',cat,amt:total,type:'expense',accId:acc,scanned:true};S.tx.unshift(tx);ops.tx=tx.id}}
+ const where=r.target==='inv'?'stock':'home inventory',moved=rec==='sold'?`${updated} item${updated===1?'':'s'} taken off stock`:`${added} added, ${updated} updated in your ${where}`;
+ const msg=moved+(ops.tx||ops.shopTx?` · ${money(total)} saved as ${rec==='sold'?'a sale':'an expense'}`:'')+(missing?` · ${missing} not in your products`:'');
+ S.scanReview=null;S.scanDone={target:r.target,msg,ops};toast(msg);render()}
+function undoScan(){const d=S.scanDone;if(!d)return;const o=d.ops;
+ (o.stock||[]).forEach(x=>{const p=S.products.find(y=>y.id===x.pid);if(!p)return;p.stock=Math.max(0,p.stock-x.qty);if(x.cost!==undefined)p.cost=x.cost;if(x.created&&p.stock===0)S.products=S.products.filter(y=>y.id!==x.pid)});
+ (o.home||[]).forEach(x=>{const h=S.homeStock.find(y=>y.id===x.id);if(!h)return;if(x.created)S.homeStock=S.homeStock.filter(y=>y.id!==x.id);else h.qty=Math.max(0,Math.round((h.qty-x.qty)*100)/100)});
+ if(o.tx)S.tx=S.tx.filter(t=>t.id!==o.tx);if(o.shopTx)S.shopTx=S.shopTx.filter(t=>t.id!==o.shopTx);
+ S.scanDone=null;toast('Scan undone');render()}
+function ScanReview(target){const r=S.scanReview;if(!r||r.target!==target){const d=S.scanDone;return d&&d.target===target?`<div class="card" role="status" style="margin-bottom:18px;border:2px solid var(--ok)"><div class="flex between" style="flex-wrap:wrap;gap:8px;align-items:center"><span><b>${IC('check',17)} Scanned bill saved</b><br><small style="color:var(--ink2)">${esc(d.msg)}</small></span><span class="flex" style="gap:8px"><button class="btn ghost sm" onclick="undoScan()">Undo</button><button class="btn ghost sm" onclick="S.scanDone=null;render()">Close</button></span></div></div>`:''}
  const head=`<div class="flex between" style="flex-wrap:wrap;gap:8px"><h3>Check the scanned items</h3><button class="btn ghost sm" onclick="S.scanReview=null;render()">Cancel</button></div>`;
  if(r.status==='reading')return `<div class="card" style="margin-bottom:18px;border:2px solid var(--gold)">${head}<p class="sub">Reading the receipt… this takes a few seconds.</p></div>`;
  if(r.status==='failed'||r.status==='empty')return `<div class="card" style="margin-bottom:18px;border:2px solid var(--gold)">${head}<p class="sub">${r.status==='failed'?'Couldn\'t read that photo.':'No items found on that photo.'} Try a sharper, well-lit photo of the receipt, or add the items by hand.</p><button class="btn ghost sm" onclick="scanAddRow()">+ Add an item by hand</button></div>`;
- return `<div class="card" style="margin-bottom:18px;border:2px solid var(--gold)">${head}<p class="sub" style="margin:4px 0 12px">Untick anything that isn't an item, fix names and quantities, then add them.${target==='inv'?' Items that match a product name add to its stock; new ones are created with the scanned cost.':''}</p>
- <div class="scroll"><table><thead><tr><th></th><th>Item</th><th>Qty</th><th>${target==='inv'?'Unit cost':'Price'}</th></tr></thead><tbody>${r.items.map((i,k)=>`<tr><td><input type="checkbox" aria-label="Include ${esc(i.name)}" ${i.on?'checked':''} style="width:20px;height:20px" onchange="scanEdit(${k},'on',this.checked)"></td><td><input id="sci${k}" aria-label="Item name" value="${esc(i.name)}" oninput="scanEdit(${k},'name',this.value)" style="min-width:160px"></td><td><input id="scq${k}" aria-label="Quantity" type="number" min="0" value="${i.qty}" oninput="scanEdit(${k},'qty',this.value)" style="width:80px"></td><td><input id="scp${k}" aria-label="Price" type="number" min="0" step="0.01" value="${i.price}" oninput="scanEdit(${k},'price',this.value)" style="width:100px"></td></tr>`).join('')}</tbody></table></div>
- <div class="flex" style="gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" onclick="applyScan()">Add to ${target==='inv'?'stock list':'home inventory'}</button><button class="btn ghost sm" onclick="scanAddRow()">+ Add a row</button></div></div>`}
+ return `<div class="card" style="margin-bottom:18px;border:2px solid var(--gold)">${head}<p class="sub" style="margin:4px 0 12px">Untick anything that isn't an item, fix names and quantities, then save.${target==='inv'?' Items that match a product name change its stock; new ones are created with the scanned cost.':''}</p>
+ <div class="scroll"><table><thead><tr><th></th><th>Item</th><th>Qty</th><th>${target==='inv'&&r.rec!=='sold'?'Unit cost':'Price'}</th></tr></thead><tbody>${r.items.map((i,k)=>`<tr><td><input type="checkbox" aria-label="Include ${esc(i.name)}" ${i.on?'checked':''} style="width:20px;height:20px" onchange="scanEdit(${k},'on',this.checked)"></td><td><input id="sci${k}" aria-label="Item name" value="${esc(i.name)}" oninput="scanEdit(${k},'name',this.value)" style="min-width:110px"></td><td><input id="scq${k}" aria-label="Quantity" type="number" min="0" value="${i.qty}" oninput="scanEdit(${k},'qty',this.value)" style="width:64px"></td><td><input id="scp${k}" aria-label="Price" type="number" min="0" step="0.01" value="${i.price}" oninput="scanEdit(${k},'price',this.value)" style="width:84px"></td></tr>`).join('')}</tbody></table></div>
+ <div class="flex" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost sm" onclick="scanAddRow()">+ Add a row</button></div>
+ ${ScanMoney(r)}
+ <div class="flex" style="gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn" id="scGo" onclick="applyScan()">${scanGoLabel(r)}</button></div></div>`}
+function ScanMoney(r){const inv=r.target==='inv',opts=inv?[['bought','I bought this','Adds to stock and saves an expense'],['sold','I sold this','Takes from stock and saves a sale'],['stock','Stock only','No money saved']]:[['expense','Save as an expense','Adds to home inventory and your spending'],['none','Inventory only','No money saved']];
+ const seg=`<div class="sc-seg" role="radiogroup" aria-label="What is this bill?">${opts.map(([k,l,d])=>`<button type="button" role="radio" aria-checked="${r.rec===k}" onclick="scanSet('rec','${k}')"><b>${l}</b><small>${d}</small></button>`).join('')}</div>`;
+ const showMoney=r.rec==='expense'||r.rec==='bought'||r.rec==='sold';
+ const cats=S.cats.filter(c=>c.t==='expense').map(c=>c.n);
+ return `<style>.sc-money{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}.sc-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0 4px}.sc-seg button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer;margin:0}.sc-seg button b{font-weight:600;font-size:14px}.sc-seg button small{color:var(--ink2);font-size:12px}.sc-seg button[aria-checked="true"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent)}.sc-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px}.sc-f label{margin:6px 0 4px;font-size:12px}.sc-f input,.sc-f select{width:100%}</style>
+ <div class="sc-money"><h4 style="margin:0;font-size:15px">What is this bill?</h4>${seg}
+ ${showMoney?`<div class="sc-f"><div><label for="scWho">${r.rec==='sold'?'Sold to':'From'}</label><input id="scWho" maxlength="60" placeholder="${inv?(r.rec==='sold'?'Customer':'Supplier'):'Shop'}" value="${esc(r.who||'')}" oninput="scanSet('who',this.value)"></div>
+  <div><label for="scTot">Bill total (${esc(S.cur)})</label><input id="scTot" type="number" min="0" step="0.01" inputmode="decimal" value="${r.total||''}" oninput="scanSet('total',this.value)"></div>
+  <div><label for="scDt">Date</label><input id="scDt" type="date" max="${isoD(today)}" value="${esc(r.date||isoD(today))}" onchange="scanSet('date',this.value)"></div>
+  ${inv?'':`<div><label for="scCat">Category</label><select id="scCat" onchange="scanSet('cat',this.value)">${cats.map(c=>`<option ${c===r.cat?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+  <div><label for="scAcc">Paid from</label><select id="scAcc" onchange="scanSet('acc',this.value)">${S.accounts.map(a=>`<option value="${a.id}" ${a.id===r.acc?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>`}</div>
+  <p class="sub" id="scSum" style="margin:8px 0 0;font-size:12.5px">${scanSumText(r)}</p>`:''}</div>`}
 function homeQty(id,d){const h=S.homeStock.find(x=>x.id===id);if(!h)return;h.qty=Math.max(0,Math.round((h.qty+d)*100)/100);render()}
 function homeToList(id){const h=S.homeStock.find(x=>x.id===id);if(!h)return;if(S.groc.list.some(i=>!i.done&&i.name.toLowerCase()===h.name.toLowerCase()))return toast(h.name+' is already on your list');S.groc.list.push({id:Date.now(),name:h.name,qty:'',price:0,done:false,stapleId:null});toast(h.name+' added to your shopping list');render()}
 function homeDel(id){S.homeStock=S.homeStock.filter(x=>x.id!==id);render()}
@@ -1210,11 +1255,12 @@ function HomeStockCard(){const out=S.homeStock.filter(h=>h.qty<=0);
  return `<div class="card" style="margin-bottom:18px"><div class="flex between" style="flex-wrap:wrap;gap:10px"><div><h3>Home inventory</h3><p class="sub" style="margin:4px 0 0">What's in the kitchen. Scan a shopping receipt to top it up.</p></div><span class="flex" style="gap:8px;align-items:center">${scanBtn('homeScan','Scan receipt','scanItems',"'home'")}</span></div>
  ${S.homeStock.length?S.homeStock.map(h=>`<div class="today-row"><span class="dot" style="background:${h.qty<=0?'var(--rose)':'var(--ok)'}"></span><span style="flex:1"><b>${esc(h.name)}</b><br><small style="color:var(--ink2)">${h.qty<=0?'Run out':h.qty+(h.unit?' '+esc(h.unit):'')+' left'}</small></span><span class="flex" style="gap:6px"><button class="btn ghost sm" aria-label="One less ${esc(h.name)}" onclick="homeQty(${h.id},-1)">−</button><button class="btn ghost sm" aria-label="One more ${esc(h.name)}" onclick="homeQty(${h.id},1)">+</button>${h.qty<=0?`<button class="btn ghost sm" onclick="homeToList(${h.id})">Add to list</button>`:''}<button class="btn ghost sm" style="color:var(--rose)" aria-label="Remove ${esc(h.name)}" onclick="homeDel(${h.id})">✕</button></span></div>`).join(''):'<p class="sub">Nothing here yet — scan a receipt to fill it.</p>'}
  ${out.length?`<p class="sub" style="font-size:13px;margin:10px 0 0">${out.length} item${out.length===1?'':'s'} run out — tap “Add to list” to buy more.</p>`:''}</div>`}
-function scanExpense(file){if(!file)return;if(!canScan())return;const st=$('#xScanStatus');if(st)st.innerHTML='<small style="color:var(--ink2)">Reading the receipt…</small>';
+function xScanNote(){const x=S.xScan;if(!x)return '';const n=x.items.length;return `<small style="color:var(--ok)">Read the receipt — check the amount, then save.</small>${n?`<label class="nl-scaninv" style="display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;letter-spacing:0"><input type="checkbox" id="xInv" ${x.inv?'checked':''} style="width:18px;height:18px;margin:0;flex:none" onchange="S.xScan.inv=this.checked"> Also add the ${n} item${n===1?'':'s'} to home inventory</label>`:''}`}
+function scanExpense(file){if(!file)return;if(!canScan())return;S.xScan=null;const st=$('#xScanStatus');if(st)st.innerHTML='<small style="color:var(--ink2)">Reading the receipt…</small>';
  if(typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter it by hand.</small>';return}
  Tesseract.recognize(file,'eng').then(({data:{text}})=>{const tm=text.match(/total[^\d]*(\d[\d,]*(?:\.\d{1,2})?)/i);const nums=[...text.matchAll(/\d[\d,]*\.\d{2}/g)].map(m=>parseFloat(m[0].replace(/,/g,''))).filter(n=>n>0&&n<1000000);
   const amt=tm?parseFloat(tm[1].replace(/,/g,'')):(nums.length?Math.max(...nums):null);const shop=(text.split('\n').map(l=>l.trim()).find(l=>l.length>2&&/[a-z]{3}/i.test(l))||'').slice(0,40);
-  if($('#a1')&&amt)$('#a1').value=amt;if($('#a3')&&shop)$('#a3').value=shop;const s2=$('#xScanStatus');if(s2)s2.innerHTML='<small style="color:var(--ok)">Read the receipt — check the amount, then save.</small>'})
+  if($('#a1')&&amt)$('#a1').value=amt;if($('#a3')&&shop)$('#a3').value=shop;const items=parseReceipt(text);S.xScan={items,inv:items.length>0};const s2=$('#xScanStatus');if(s2)s2.innerHTML=xScanNote();try{addHint()}catch(e){}})
  .catch(()=>{const s2=$('#xScanStatus');if(s2)s2.innerHTML='<small class="err" style="margin:0">Couldn\'t read that photo — enter it by hand.</small>'})}
 let _dlNS;
 async function saveFile(name,data,type){
@@ -3231,7 +3277,7 @@ function Add(){const t=S.addType,e=S.edit,inc=t==='income';
  return `<div class="nl-add">
   <div class="nl-addhead"><button class="nl-ibtn" onclick="S.edit=null;mv('today')" aria-label="Close">${IC('x',20)}</button><h1>${e?'Edit transaction':inc?'Add income':'Add expense'}</h1>${!e&&!inc?(canScan()?`<label class="nl-ibtn" for="xScan" title="Scan a receipt" aria-label="Scan a receipt">${IC('camera',20)}</label><input id="xScan" type="file" accept="image/*" capture="environment" class="nl-file" onchange="scanExpense(this.files[0])">`:`<button class="nl-ibtn" onclick="toast('Scanning comes with Muraka, Atholhu and Dhoni');go('packages')" title="Scan a receipt" aria-label="Scan a receipt (needs a bigger package)">${IC('camera',20)}</button>`):'<span class="nl-sp"></span>'}</div>
   <div class="nl-card nl-addcard">
-   <span id="xScanStatus" class="nl-scan"></span>
+   <span id="xScanStatus" class="nl-scan">${!e&&!inc?xScanNote():''}</span>
    <div class="nl-amtbox"><label for="a1">Amount (${esc(S.cur)})</label><input id="a1" class="nl-amtin" ${phone?'inputmode="none"':'inputmode="decimal"'} autocomplete="off" placeholder="0" value="${e?e.amt:''}" oninput="addHint()">${(h=>`<small id="hint" class="${h.c}" aria-live="polite">${esc(h.t)}</small>`)(hintFor(e?e.amt:0,sel))}</div>
    <input type="hidden" id="a2" value="${esc(sel)}">
    <div class="nl-cats" role="group" aria-label="${inc?'Source':'Category'}">${opts.map(o=>`<button type="button" class="nl-cat" data-cat="${esc(o)}" aria-pressed="${o===sel}" onclick="pickCat(this)">${esc(o)}</button>`).join('')}</div>
@@ -3553,7 +3599,9 @@ function Reports(){const range=S.repMode==='range'&&S.repFrom&&S.repTo;const m=r
 
 function saveTx(){const amt=+$('#a1').value,cat=$('#a2').value,desc=$('#a3').value.trim(),date=$('#a4').value,accId=+$('#a5').value,er=m=>{$('#aerr').innerHTML=`<p class="err" role="alert">${m}</p>`};
  if(!(amt>0))return er('Enter an amount above zero.');if(amt>99999999)return er('Amount is too large.');if(!date)return er('Pick a valid date.');if(desc.length>120)return er('Keep the description under 120 characters.');
- if(S.edit){Object.assign(S.edit,{amt,cat,desc,date,accId});S.saved=S.edit}else{const t={id:Date.now(),date,desc,cat,amt,type:S.addType,accId};S.tx.unshift(t);S.saved=t}S.addAcc=accId;S.edit=null;render()}
+ if(S.edit){Object.assign(S.edit,{amt,cat,desc,date,accId});S.saved=S.edit}else{const t={id:Date.now(),date,desc,cat,amt,type:S.addType,accId};S.tx.unshift(t);S.saved=t;
+  const x=S.xScan;if(x&&x.inv&&x.items.length&&S.addType==='expense'){let a=0,u=0;x.items.forEach(i=>{const h=S.homeStock.find(y=>sameItem(y.name,i.name));if(h){h.qty+=i.qty;u++}else{S.homeStock.push({id:Date.now()+a,name:i.name.trim(),qty:i.qty,unit:''});a++}});toast(`Saved. ${a+u} item${a+u===1?'':'s'} added to home inventory`)}}
+ S.xScan=null;S.addAcc=accId;S.edit=null;render()}
 function saveBudget(){const i=+$('#b1').value,l=+$('#b2').value;if(i<0||l<0||isNaN(i)||isNaN(l)){$('#berr').innerHTML='<p class="err" role="alert">Amounts cannot be negative.</p>';return}S.budget={income:i,limit:l};toast('Budget updated');render()}
 const GC=['linear-gradient(135deg,#0B1A2C,#3E8E8B)','linear-gradient(135deg,#20343A,#D4B26A)','linear-gradient(135deg,#14304B,#7FB8AE)','linear-gradient(135deg,#5B4A2A,#F1DFAE)'];
 function addSaved(id){const g=S.goals.find(x=>x.id===id),n=+$('#sv'+id).value;if(!(n>0))return toast('Enter an amount above zero');g.saved=Math.min(g.target,g.saved+n);toast('Savings added');render()}
