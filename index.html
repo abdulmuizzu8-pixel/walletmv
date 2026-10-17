@@ -2209,7 +2209,9 @@ async function deleteMyAccount(btn){if(!walletAuth||!S.signed)return toast('Log 
 var _googleOn=null;
 /* Google sign-in stays hidden until its client secret is fixed in Supabase and walletmv.com is an allowed redirect. Then set GOOGLE_READY to true. */
 const GOOGLE_READY=false;
-async function checkGoogle(){if(_googleOn!==null||!walletAuth)return;_googleOn=false;if(!GOOGLE_READY)return;try{const r=await fetch(SB_URL+'/auth/v1/settings',{headers:{apikey:SB_KEY}});const j=await r.json();_googleOn=!!(j&&j.external&&j.external.google);if(_googleOn&&!S.signed)render()}catch(e){}}
+/* Test it first: open walletmv.com/?google=1 to see the button before everyone does. */
+const googleTest=()=>{try{if(/[?&]google=1\b/.test(location.search))sessionStorage.setItem('walletmv:gtest','1');return sessionStorage.getItem('walletmv:gtest')==='1'}catch(e){return false}};
+async function checkGoogle(){if(_googleOn!==null||!walletAuth)return;_googleOn=false;if(!GOOGLE_READY&&!googleTest())return;try{const r=await fetch(SB_URL+'/auth/v1/settings',{headers:{apikey:SB_KEY}});const j=await r.json();_googleOn=!!(j&&j.external&&j.external.google);if(_googleOn&&!S.signed)render()}catch(e){}}
 async function googleSignIn(btn){if(!walletAuth)return auSay('Sign-in couldn’t load. Check your internet, then refresh the page.');auSay('');auBusy(btn,true,'Opening Google…');
  const {error}=await walletAuth.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/'}});
  if(error){auBusy(btn,false);auSay(auNice(error,'Google sign-in didn’t work. Please use your email instead.'))}}
@@ -3429,6 +3431,7 @@ try{if(/^\/join\/[A-Za-z0-9-]{3,40}$/.test(location.pathname)){S.page='money';S.
 try{const pth=location.pathname.replace(/\/+$/,''),LP={'/privacy':'privacy','/terms':'terms','/refund':'refund','/delete-account':'deletion','/disclaimer':'disclaimer'},h=(location.hash||'').slice(1);if(LP[pth])S.page=LP[pth];else if(['privacy','terms','refund','deletion','disclaimer'].includes(h))S.page=h}catch(e){}
 try{if(/[?&]app=1\b/.test(location.search)||isStandalone()){const h=(location.hash||'').slice(1);if(h==='shop')S.page='shop';else if(S.page==='home'){S.page='money';if(h==='addx'||h==='addi')S.mview=h}}}catch(e){}
 registerApp();
+try{const q=location.search||'';if(/[?&]error=/.test(q)&&/error_description=/.test(q)&&!/error_code=otp_expired/.test(q)){S.auth='login';S.page='money';S.auFlash={m:/access_denied/.test(q)?'Google sign-in was cancelled. Try again, or log in with your email.':'Google sign-in didn\u2019t work this time. Please log in with your email for now.',k:'err'};history.replaceState(null,'',location.pathname)}}catch(e){}
 try{const h=location.hash||'';if(/error_code=otp_expired|error=access_denied/.test(h)){S.auth='login';S.auFlash={m:'That email link has expired or was already used. Log in, or ask for a new link below.',k:'err'};if(S.page==='home')S.page='money';history.replaceState(null,'',location.pathname+location.search)}}catch(e){}
 if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{const was=S.signed;
  if(event==='PASSWORD_RECOVERY'&&session?.user){S.email=session.user.email||'';S.recovery=true;S.signed=false;S.page='login';render();return}
