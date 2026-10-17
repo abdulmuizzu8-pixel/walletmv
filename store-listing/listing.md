@@ -78,7 +78,7 @@ Paste this into "App Review Information → Notes" (Apple) and "App access" (Goo
 > Demo account email: [REVIEW EMAIL, for example review@walletmv.com]
 > Demo account password: [REVIEW PASSWORD]
 
-Create this account yourself on walletmv.com. Then in Admin → Free forever packages, give it "All packages" so the reviewer can see everything. Don't use your own login.
+Create this account yourself on walletmv.com. Then in Admin → Free packages, give it "All packages" with "No end date" so the reviewer can see everything. Don't use your own login.
 
 ## Google Play: Data safety answers
 
