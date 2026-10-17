@@ -1,8 +1,8 @@
 # Putting WalletMV on Google Play, the App Store and computers
 
-Everything in this folder is ready to upload. The phone apps open walletmv.com inside the app, so **website updates reach the apps straight away**. You only upload a new app version when the app itself changes (icon, Face ID lock, and so on).
+These are **draft publishing instructions**, not confirmation that WalletMV is ready for store submission. The phone apps open `walletmv.com` inside a WebView, so website changes can appear without a new native build; native-code or icon changes require a new build.
 
-**Store rule to know:** in the Maldives, Google Play and the App Store don't allow an app to sell packages through your own payment methods (BML, m-Faisaa, Dhiraagu Pay and so on). So inside the store apps, prices, payment pages and "buy" buttons are hidden. People buy or renew packages on walletmv.com, then use them in the app.
+The app currently uses a store-specific mode that hides package, service, and checkout pages. **Do not treat this as a verified statement of Google Play or Apple policy for the Maldives.** Billing and external-purchase rules vary by store, storefront, app type, and program. Check the current official Google Play and Apple guidelines for the actual distribution countries and monetisation model before submission. Do not rely on website payments being allowed or on hidden prices alone to satisfy review.
 
 ---
 
@@ -15,26 +15,34 @@ Everything in this folder is ready to upload. The phone apps open walletmv.com i
 | Apple Developer Program | USD 99 a year | developer.apple.com/programs |
 | Microsoft Partner Center (Windows store, optional) | Free for individuals | partner.microsoft.com |
 
-**Google Play testing rule:** personal Play accounts must run a **closed test with at least 12 testers for 14 days in a row** before the app can go public. Start this early. Organisation accounts (these need a D-U-N-S number for the business) don't have this rule.
+**Testing requirement:** Play Console may impose closed-testing and production-access requirements based on developer account type and status. Confirm the exact requirement shown in your Play Console; do not assume the requirement is identical for every account.
 
-## 2. Connect GitHub to Expo (one time, about 5 minutes)
+## 2. Build setup
 
-1. On **expo.dev**, log in → your profile picture → **Account settings → Access tokens → Create token**. Name it `GitHub builds` and copy it.
-2. On **github.com/abdulmuizzu8-pixel/walletmv** → **Settings → Secrets and variables → Actions → New repository secret**.
-   Name: `EXPO_TOKEN`. Value: paste the token. Save.
+The repository currently does **not** contain the `Build the phone apps` GitHub Actions workflow described in older instructions. Do not expect that Actions menu item to appear until a workflow is added and the Expo project is linked.
 
-Never paste the token anywhere else, including into the code.
+For a manual build, install Node.js LTS, open a terminal in `mobile-expo`, then run:
+
+```bash
+npm install
+npx expo install --fix
+npx expo-doctor@latest
+npx eas-cli login
+npx eas-cli project:init --account muisssss-team
+```
+
+Confirm the CLI links the existing `@muisssss-team/walletmv` project; do not create a duplicate. Verify that `mobile-expo/app.json` contains the correct `expo.extra.eas.projectId` before building. Keep Expo tokens and signing credentials out of source control.
 
 ## 3. Android (Google Play)
 
-1. On GitHub → **Actions → Build the phone apps → Run workflow**. Choose **android** and leave "Send to the store" unticked. The build takes about 15–30 minutes, depending on the Expo queue.
-2. When it's done, go to **expo.dev → walletmv → Builds** and download the `.aab` file.
+1. For an installable test APK, run `npx eas-cli build --platform android --profile preview` from `mobile-expo`. Install it on a real Android device and test the app before a production build.
+2. For Google Play, run `npx eas-cli build --platform android --profile production`. When the cloud build completes, download the `.aab` from the EAS build page. The project must be correctly linked and Android signing must be configured.
 3. In **Play Console → Create app**, enter WalletMV: Budget & Shop, English, App, Free. Tick the declarations.
 4. Fill in the store listing from **listing.md** (text, the Data safety answers and the other forms), with the images from this folder.
 5. Go to **Testing → Closed testing → Create track**. Upload the `.aab`, add at least 12 testers (their Gmail addresses or a Google Group), then **Send for review**. Testers must accept the invite and keep the app for 14 days.
 6. After 14 days, go to **Dashboard → Apply for production**, answer the questions, then release to **Production**.
 
-**Later updates:** in Google Cloud, create a service account key for Play Console API access. Upload it at **expo.dev → walletmv → Credentials → Android → Google Service Account Key**. After that, run the workflow with **"Send to the store"** ticked, and new versions go to the internal testing track by themselves. Google only accepts this after your first manual upload in step 5.
+**Later updates:** automated Play submission is not configured by this repository at present. First verify the app in Play Console. Only set up EAS Submit and a Google Play service account after the initial manual upload and after you explicitly want automated submissions.
 
 ## 4. iPhone (App Store)
 
@@ -49,7 +57,7 @@ Never paste the token anywhere else, including into the code.
    ```
    npx eas-cli submit --platform ios --latest
    ```
-   After this first time, the GitHub workflow can build the iPhone app too.
+   Automated GitHub builds are not configured in this repository at present.
 3. Install it from **TestFlight** on your iPhone and try it.
 4. Fill in the App Store page from **listing.md**: text, the 6.9" screenshots, App Privacy and the review notes with the demo account. Then **Submit for review**.
 
@@ -69,7 +77,7 @@ Never paste the token anywhere else, including into the code.
 
 ## 6. Before inviting real customers
 
-- **Packages and payments** still happen in the browser only. The next step is a server table, so payment requests reach your admin panel and approvals switch packages on for the customer.
+- **Authentication, data isolation, and payment activation** need a full end-to-end test against the live Supabase project before launch. The website uses a Supabase state table; verify that its RLS policies isolate rows by the authenticated user ID and that payment approval is admin-only on the server. A browser-only status flag is not proof of payment.
 - **Email sender:** add your own sender in Supabase (Authentication → Emails → SMTP) so reset and confirmation emails reach everyone.
 - **Redirect URLs:** in Supabase (Authentication → URL Configuration), make sure walletmv.com and www.walletmv.com are listed.
 
