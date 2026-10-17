@@ -286,7 +286,8 @@ canvas.poster{width:100%;max-width:440px;border-radius:18px;display:block;margin
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const walletAuth = window.supabase?.createClient('https://stouchncgnyagrhcwaqr.supabase.co','sb_publishable_3DI3J2m63_fdKirIbUPoOQ_0MsAzYsS');
+const SB_URL='https://stouchncgnyagrhcwaqr.supabase.co',SB_KEY='sb_publishable_3DI3J2m63_fdKirIbUPoOQ_0MsAzYsS';
+const walletAuth = window.supabase?.createClient(SB_URL,SB_KEY);
 /* ============ helpers ============ */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -471,7 +472,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
 };
 
 /* ============ routing ============ */
-const MNAV=[['today','Today'],['dash','Dashboard'],['calendar','Calendar'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
+const MNAV=[['today','Today'],['dash','Dashboard'],['calendar','Calendar'],['tasks','Daily tasks'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
@@ -514,7 +515,7 @@ function render(){
   storeTidy();queueSave();
 }
 const MGROUP={today:'Overview',accounts:'Money',cards:'Rewards',budget:'Plan',people:'Account'};
-const MICON={today:'clock',dash:'chart',calendar:'cal',accounts:'bank',tx:'receipt',addx:'down',addi:'up',groceries:'cart',cards:'card',budget:'target',goals:'shield',reports:'chart',package:'box',people:'users',settings:'gear'};
+const MICON={today:'clock',dash:'chart',calendar:'cal',tasks:'task',accounts:'bank',tx:'receipt',addx:'down',addi:'up',groceries:'cart',cards:'card',budget:'target',goals:'shield',reports:'chart',package:'box',people:'users',settings:'gear'};
 function Shell(items,cur,body){
   const nav=items.map(i=>`<button ${cur===i[0]?'aria-current="true"':''} onclick="mv('${i[0]}')">${i[1]}</button>`).join('');
   const snav=items.map(i=>`${MGROUP[i[0]]?`<div class="ngrp">${MGROUP[i[0]]}</div>`:''}<button ${cur===i[0]?'aria-current="true"':''} onclick="mv('${i[0]}')"><span class="nic">${IC(MICON[i[0]]||'box',18)}</span>${i[1]}</button>`).join('');
@@ -740,7 +741,7 @@ const ICONS={
  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
  heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
  chat:'<path d="M4 19l1.4-4A7.5 7.5 0 1 1 9 18.6z"/><path d="M9 10h6M9 13h4"/>',menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
- clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',plus:'<path d="M12 5v14M5 12h14"/>'
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',task:'<rect x="3.5" y="4" width="17" height="17" rx="3"/><path d="M8 11l2.5 2.5L16 8M8 17h8"/>',bell:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',plus:'<path d="M12 5v14M5 12h14"/>'
 };
 const IC=(n,sz=22)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
 const ICB=(n,bg='rgba(11,26,44,.08)',c='var(--deep)',sz=44)=>`<span class="icb" style="width:${sz}px;height:${sz}px;background:${bg};color:${c}">${IC(n,Math.round(sz*.5))}</span>`;
@@ -1022,7 +1023,7 @@ function MobileBar(kind){const money=kind==='money',cur=money?S.mview:S.shopView
  const inPrim=prim.some(p=>p[0]===cur);
  const bar=`<nav class="mnav" aria-label="Sections">${prim.map(([k,l,ic])=>k==='+'?`<button class="addb" aria-label="Add" onclick="S.sheet='add';render()"><span>${IC('plus',24)}</span>${l}</button>`:`<button ${(k===cur||(k==='more'&&!inPrim))?'aria-current="true"':''} onclick="${k==='more'?`S.sheet='${kind}';render()`:`S.sheet=null;${f}('${k}')`}">${IC(ic,21)}<span>${l}</span></button>`).join('')}</nav>`;
  let sheet='';
- if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['calendar','Add a bill','bill']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
+ if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['tasks','Add a task','task'],['calendar','Add a bill','bill']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
  else if(S.sheet===kind){const items=money?MNAV.map(i=>[i[0],i[1],MICON[i[0]]]):SHOPNAV.map(i=>[i[0],i[2],SICON[i[0]]]);const G=money?MGROUP:SGROUP;
   sheet=items.map(([k,l,ic])=>`${G[k]?`<div class="sgrp">${G[k]}</div>`:''}<button class="tile ${k===cur?'on':''}" onclick="S.sheet=null;${f}('${k}')">${ICB(ic||'box','rgba(11,26,44,.06)','var(--deep)',40)}${l}</button>`).join('')+(money?`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;go('shop')">${ICB('store','rgba(11,26,44,.06)','var(--deep)',40)}MVSHOP</button>`:`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;S.signed=true;go('money')">${ICB('wallet','rgba(11,26,44,.06)','var(--deep)',40)}Money app</button>`)+`<button class="tile" onclick="S.sheet=null;go('home')">${ICB('globe','rgba(11,26,44,.06)','var(--deep)',40)}Website</button>${isStandalone()?'':`<button class="tile" onclick="installApp()">${ICB('mobile','rgba(201,169,97,.16)','var(--gold-d)',40)}Install app</button>`}<button class="tile" onclick="reportProblem()">${ICB('chat','rgba(180,67,78,.1)','var(--rose)',40)}Report a problem</button>`}
  return bar+(sheet?`<div class="msheet" role="dialog" aria-label="${S.sheet==='add'?'Add':'All sections'}" onclick="if(event.target===this){S.sheet=null;render()}"><div class="pan"><div class="flex between" style="margin-bottom:6px"><b style="font:600 1.3rem var(--head)">${S.sheet==='add'?'Add something':'All sections'}</b><button class="btn ghost sm" onclick="S.sheet=null;render()">Close</button></div><div class="sgrid">${sheet}</div></div></div>`:'')}
@@ -1771,11 +1772,164 @@ function AdminFreeHTML(){const opts=[...S.plans.map(p=>[p.id,p.name]),['all','Al
  <button class="btn sm" style="margin-top:12px" onclick="addFree()">Give free package</button>
  <div style="margin-top:16px">${list.length?list.map(r=>`<div class="today-row"><span class="dot" style="background:var(--ok)"></span><span style="flex:1;min-width:0"><b style="word-break:break-all">${esc(r.email)}</b><br><small style="color:var(--ink2)">${esc(r.plan==='all'?'All packages':(planInfo(r.plan)||{}).short||r.plan)} · free forever${r.note?' · '+esc(r.note):''}</small></span><button class="btn ghost sm" style="color:var(--rose)" aria-label="Remove free access for ${esc(r.email)}" onclick="removeFree('${esc(r.email).replace(/'/g,"&#39;")}')">Remove</button></div>`).join(''):'<p class="sub">No free packages given yet.</p>'}</div></div>`}
 async function logoutUser(){let keep=false;if(_dataUid){clearTimeout(_saveT);await saveNow();if(S.syncErr){if(!window.confirm('Your latest changes haven’t reached your account yet. Log out anyway? They’ll stay saved on this device.'))return;keep=true}}clearMyData(keep);if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.auth='login';S.recovery=false;S.page=STORE_APP?'money':'home';go(S.page)}
+/* ============ DAILY TASKS, TO-DO AND REMINDERS ============
+   S.tasks = [{id,title,date,time,repeat:'none'|'daily'|'weekly'|'monthly',remind,doneDates:[iso],ai}]
+   A task shows on its date and, if it repeats, on every later matching day; ticking it off only ticks that day.
+   Reminders fire while WalletMV is open: a phone or computer notification when allowed, and a message on screen.
+   "Plan my day" asks ChatGPT through the walletmv-ai server function; without it, built-in suggestions are used. */
+const REPEAT_L={none:'Just this day',daily:'Every day',weekly:'Every week',monthly:'Every month'};
+const hmNow=()=>{const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')};
+const hmMins=s=>{const m=String(s||'').match(/^(\d{1,2}):(\d{2})/);return m?(+m[1])*60+(+m[2]):null};
+function taskOn(t,iso){if(!t||!t.date||iso<t.date)return false;
+ if(t.repeat==='daily')return true;
+ if(t.repeat==='weekly')return new Date(iso+'T00:00').getDay()===new Date(t.date+'T00:00').getDay();
+ if(t.repeat==='monthly'){const a=new Date(t.date+'T00:00').getDate(),d=new Date(iso+'T00:00'),dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();return d.getDate()===Math.min(a,dim)}
+ return iso===t.date}
+function tasksOn(iso){return (S.tasks||[]).filter(t=>taskOn(t,iso)).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99')||a.id-b.id)}
+const taskDone=(t,iso)=>(t.doneDates||[]).includes(iso);
+function billsOn(iso){const d=new Date(iso+'T00:00');if(d.getMonth()!==today.getMonth()||d.getFullYear()!==today.getFullYear())return [];const dim=daysInMonth();return S.bills.filter(b=>Math.min(b.due,dim)===d.getDate())}
+function notesOn(iso){return (S.calNotes||[]).filter(n=>n.module==='money'&&(n.date===iso||n.deadline===iso))}
+function toggleTask(id,iso){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.doneDates=t.doneDates||[];const i=t.doneDates.indexOf(iso);
+ if(i>=0)t.doneDates.splice(i,1);else{t.doneDates.push(iso);if(t.doneDates.length>400)t.doneDates=t.doneDates.slice(-400);toast('Done: '+t.title)}
+ S.dueNow=(S.dueNow||[]).filter(x=>x!==id);render()}
+function addTask(){const title=(($('#tk-t')||{}).value||'').trim(),time=($('#tk-time')||{}).value||'',repeat=($('#tk-r')||{}).value||'none',day=S.taskDay||isoD(today);
+ if(!title)return toast('Write what you need to do');if(title.length>120)return toast('Keep the task under 120 characters');
+ S.tasks=S.tasks||[];S.tasks.push({id:Date.now(),title,date:day,time,repeat,remind:!!time,doneDates:[]});
+ toast(time?'Task added. You’ll get a reminder at '+time+'.':'Task added');render()}
+function delTask(id){S.tasks=(S.tasks||[]).filter(t=>t.id!==id);toast('Task removed');render()}
+function pickTaskDay(iso){S.taskDay=iso;S.aiPlan=null;render()}
+function taskWeek(base){const d=new Date(base+'T00:00'),start=new Date(d);start.setDate(d.getDate()-d.getDay());return [...Array(7)].map((_,i)=>{const x=new Date(start);x.setDate(start.getDate()+i);return isoD(x)})}
+
+/* Suggestions: ChatGPT when it's switched on, built-in rules otherwise */
+async function aiCall(action,extra){if(!walletAuth||!S.signed)return {ok:false};try{const {data,error}=await walletAuth.functions.invoke('walletmv-ai',{body:{action,...(extra||{})}});if(error||!data)return {ok:false};return data}catch(e){return {ok:false}}}
+async function checkAi(){if(S.aiOn!==undefined)return;S.aiOn=null;const r=await aiCall('status');S.aiOn=!!(r&&r.ok&&r.on);if(S.page==='money'&&S.mview==='tasks')render()}
+function moneyFigures(iso){const s=safeToSpend(),m=calc(curMk()),dim=daysInMonth(),wd=new Date(iso+'T00:00').toLocaleDateString('en-GB',{weekday:'long'});
+ return [`Day to plan: ${wd} ${ld(iso)}. Today is ${ld(isoD(today))}.`,
+  `Monthly budget: ${s.limit?money(s.limit):'not set'}. Spent this month: ${money(m.exp)}. Income this month: ${money(m.inc)}. Safe to spend per day: ${s.limit?money(Math.floor(s.per)):'unknown'}.`,
+  `Bills this month: ${S.bills.length?S.bills.map(b=>`${b.name} ${money(b.amt)} due on day ${Math.min(b.due,dim)}${b.paidThisMonth?' (paid)':''}`).join('; '):'none'}.`,
+  `Savings goals: ${S.goals.length?S.goals.map(g=>`${g.name}: ${money(g.saved)} of ${money(g.target)}`).join('; '):'none'}.`,
+  `Top spending this month: ${Object.entries(m.by).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([c,v])=>c+' '+money(v)).join('; ')||'nothing yet'}.`,
+  `Grocery items still to buy: ${((S.groc&&S.groc.list)||[]).filter(i=>!i.done).length}.`,
+  `Tasks already planned that day: ${tasksOn(iso).map(t=>t.title).join('; ')||'none'}.`].join('\n').slice(0,6000)}
+function localPlan(iso){const out=[],have=tasksOn(iso).map(t=>t.title.toLowerCase()),s=safeToSpend(),d=new Date(iso+'T00:00'),dim=daysInMonth(),sameMonth=d.getMonth()===today.getMonth();
+ if(sameMonth)S.bills.filter(b=>!b.paidThisMonth).map(b=>({b,day:Math.min(b.due,dim)})).filter(x=>x.day-d.getDate()<=3).sort((a,b)=>a.day-b.day)
+  .forEach(({b,day})=>out.push({title:`Pay ${b.name} (${money(b.amt)})`,why:day<d.getDate()?'This bill is overdue.':day===d.getDate()?'It’s due this day.':`It’s due on the ${day}.`}));
+ if(s.limit>0)out.push({title:`Keep spending under ${money(Math.floor(s.per))}`,why:'That keeps you inside this month’s budget.'});
+ const g=S.goals.filter(x=>x.saved<x.target).sort((a,b)=>a.saved/a.target-b.saved/b.target)[0];
+ if(g){const amt=Math.max(50,Math.round(Math.min(g.target-g.saved,g.target*0.05)/50)*50);out.push({title:`Add ${money(amt)} to ${g.name}`,why:`You’ve saved ${Math.round(g.saved/g.target*100)}% so far.`})}
+ if(iso===isoD(today)&&!S.tx.some(t=>t.date===iso))out.push({title:'Log what you spend today',why:'A quick entry keeps your safe-to-spend number right.'});
+ const gl=((S.groc&&S.groc.list)||[]).filter(i=>!i.done).length;if(gl)out.push({title:`Buy groceries (${gl} item${gl===1?'':'s'} on your list)`,why:'Your list is ready in Groceries.'});
+ if(!s.limit)out.push({title:'Set a monthly budget',why:'Then WalletMV can show what’s safe to spend each day.'});
+ return out.filter(x=>!have.includes(x.title.toLowerCase())).slice(0,5)}
+async function planDay(btn){const iso=S.taskDay||isoD(today);if(btn){btn.disabled=true;btn.textContent='Planning…'}
+ const r=S.aiOn?await aiCall('plan_day',{figures:moneyFigures(iso)}):null;
+ if(r&&r.ok&&Array.isArray(r.tasks)&&r.tasks.length)S.aiPlan={iso,src:'ai',items:r.tasks.slice(0,5)};
+ else S.aiPlan={iso,src:'local',items:localPlan(iso),fellBack:!!S.aiOn};
+ render()}
+function addPlanItem(i){const p=S.aiPlan;if(!p||!p.items[i])return;const it=p.items[i];S.tasks=S.tasks||[];
+ S.tasks.push({id:Date.now()+i,title:String(it.title).slice(0,120),date:p.iso,time:'',repeat:'none',remind:false,doneDates:[],ai:p.src==='ai'});p.items.splice(i,1);toast('Added to your tasks');render()}
+function addAllPlan(){const p=S.aiPlan;if(!p||!p.items.length)return;S.tasks=S.tasks||[];const n=p.items.length;
+ p.items.forEach((it,i)=>S.tasks.push({id:Date.now()+i,title:String(it.title).slice(0,120),date:p.iso,time:'',repeat:'none',remind:false,doneDates:[],ai:p.src==='ai'}));S.aiPlan=null;toast(n+' task'+(n===1?'':'s')+' added');render()}
+async function askMoney(btn){const q=(($('#ask-q')||{}).value||'').trim();if(!q)return toast('Type a question first');if(q.length>300)return toast('Keep the question under 300 characters');
+ btn.disabled=true;btn.textContent='Thinking…';const r=await aiCall('ask',{question:q,figures:moneyFigures(isoD(today))});
+ S.aiAnswer={q,a:r&&r.ok&&r.answer?r.answer:'We couldn’t reach the AI just now. Please try again in a minute.',ok:!!(r&&r.ok)};render()}
+
+/* Reminders */
+function remindersTick(){if(!S.signed||!S.dataReady||!(S.tasks||[]).length)return;const now=new Date(),iso=isoD(now),nowM=now.getHours()*60+now.getMinutes();
+ let sent=[];try{sent=JSON.parse(localStorage.getItem('walletmv:reminded:'+iso)||'[]')}catch(e){}
+ const due=tasksOn(iso).filter(t=>{const m=hmMins(t.time);return m!==null&&t.remind!==false&&!taskDone(t,iso)&&m<=nowM&&nowM-m<=180&&!sent.includes(t.id)});
+ if(!due.length)return;
+ due.forEach(t=>{sent.push(t.id);try{if(!STORE_APP&&'Notification' in window&&Notification.permission==='granted'){const n=new Notification('WalletMV reminder',{body:t.title+' · '+t.time,icon:'/icons/icon-192.png',tag:'wmv-task-'+t.id});n.onclick=()=>{try{window.focus()}catch(e){}S.page='money';S.mview='tasks';S.taskDay=iso;render()}}}catch(e){}});
+ try{localStorage.setItem('walletmv:reminded:'+iso,JSON.stringify(sent))}catch(e){}
+ S.dueNow=[...new Set([...(S.dueNow||[]),...due.map(t=>t.id)])];toast('⏰ '+(due.length===1?due[0].title:due.length+' tasks are due now'));if(S.page==='money')render()}
+setInterval(remindersTick,30000);setTimeout(remindersTick,5000);
+const canNotify=()=>!STORE_APP&&'Notification' in window;
+async function enableReminders(){if(!canNotify())return toast('Reminders will show on screen while WalletMV is open');
+ let p='default';try{p=await Notification.requestPermission()}catch(e){}
+ toast(p==='granted'?'Reminders are on for this device':'Reminders will show on screen only. You can allow notifications in your browser settings.');render()}
+function ReminderNote(){if(!canNotify())return `<p class="sub" style="margin:0;font-size:13px">${IC('bell',15)} Reminders show on screen while WalletMV is open.</p>`;
+ const p=Notification.permission;if(p==='granted')return `<p class="sub" style="margin:0;font-size:13px;color:var(--ok)">${IC('bell',15)} Reminders are on for this device.</p>`;
+ if(p==='denied')return `<p class="sub" style="margin:0;font-size:13px">${IC('bell',15)} Notifications are blocked in your browser settings, so reminders show on screen while WalletMV is open.</p>`;
+ return `<div class="flex" style="gap:10px;align-items:center;flex-wrap:wrap"><p class="sub" style="margin:0;font-size:13px;flex:1;min-width:180px">${IC('bell',15)} Get a reminder at the time you set, even in another tab.</p><button class="btn ghost sm" onclick="enableReminders()">Turn on reminders</button></div>`}
+
+const TASK_CSS=`<style>
+.tk-week{display:flex;align-items:stretch;gap:6px;margin:4px 0 18px}
+.tk-days{flex:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.tk-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 0 6px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);cursor:pointer;min-height:66px;font:inherit;color:var(--ink)}
+.tk-day small{font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.tk-day b{font:600 1.3rem/1.1 var(--head)}
+.tk-day i{font-style:normal;font-size:11px;font-weight:600;color:var(--gold-d);min-height:14px}
+.tk-day.today{border-color:var(--gold)}
+.tk-day.on{background:var(--deep);border-color:var(--deep);color:#fff}.tk-day.on small,.tk-day.on i{color:var(--gold-l)}
+.tk-nav{flex:none;width:40px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;color:var(--ink);font-size:18px}
+.tk-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.tk-row:last-child{border-bottom:0}
+.tk-row.due{background:rgba(212,178,106,.12);margin:0 -10px;padding:12px 10px;border-radius:12px}
+.tk-check{flex:none;width:30px;height:30px;border-radius:9px;border:2px solid var(--gold);background:transparent;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0}
+.tk-row.done .tk-check{background:var(--ok);border-color:var(--ok)}
+.tk-row.done .tk-txt b{text-decoration:line-through;color:var(--ink2)}
+.tk-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.tk-txt b{font-weight:600;word-break:break-word}.tk-txt small{color:var(--ink2);font-size:12.5px}
+.tk-prog{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0 4px}.tk-prog i{display:block;height:100%;background:var(--ok);border-radius:inherit}
+.tk-add{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:8px;align-items:end;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.tk-add .tk-title{grid-column:1/-1}
+.tk-add label{margin:0 0 4px;font-size:12px}
+.tk-add input,.tk-add select{width:100%}
+.tk-tag{font-size:11px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;background:rgba(212,178,106,.18);color:var(--gold-d);white-space:nowrap}
+@media(max-width:640px){.tk-lbl{display:none}.tk-add{grid-template-columns:1fr 1fr}.tk-add button{grid-column:1/-1}.tk-days{gap:4px}.tk-day{min-height:60px;border-radius:12px}.tk-day b{font-size:1.15rem}.tk-nav{width:30px}}
+</style>`;
+
+function taskRow(t,day,compact){const dn=taskDone(t,day),tdy=isoD(today),late=day===tdy&&t.time&&!dn&&t.time<hmNow(),due=(S.dueNow||[]).includes(t.id)&&!dn;
+ const meta=[t.time?(late?'⏰ ':'')+t.time:'',t.repeat&&t.repeat!=='none'?REPEAT_L[t.repeat]:'',t.ai&&!compact?'Suggested':''].filter(Boolean).join(' · ');
+ return `<div class="tk-row${dn?' done':''}${due?' due':''}"><button class="tk-check" role="checkbox" aria-checked="${dn}" aria-label="${dn?'Mark as not done':'Mark as done'}: ${esc(t.title)}" onclick="toggleTask(${t.id},'${day}')">${dn?IC('check',16):''}</button><span class="tk-txt"><b>${esc(t.title)}</b>${meta?`<small>${meta}</small>`:''}</span>${compact?'':`<button class="btn ghost xs" aria-label="Delete ${esc(t.title)}" onclick="delTask(${t.id})">Delete</button>`}</div>`}
+
+function TodayTasksCard(){const iso=isoD(today),list=tasksOn(iso),done=list.filter(t=>taskDone(t,iso)).length,bills=billsOn(iso).filter(b=>!b.paidThisMonth);
+ if(!list.length&&!bills.length)return `<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><span><b>✅ Plan your day</b><br><small style="color:var(--ink2)">Add tasks and reminders, or let WalletMV suggest some.</small></span><button class="btn ghost sm" onclick="S.taskDay=null;mv('tasks')">Open daily tasks</button></div></div>`;
+ const open=list.filter(t=>!taskDone(t,iso));
+ return `${TASK_CSS}<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Today’s tasks</h3><span class="tk-tag">${done} of ${list.length} done</span></div>
+ ${list.length?`<div class="tk-prog"><i style="width:${list.length?Math.round(done/list.length*100):0}%"></i></div>`:''}
+ ${bills.map(b=>`<div class="tk-row"><span class="dot" style="background:var(--rose);margin:0 11px"></span><span class="tk-txt"><b>Pay ${esc(b.name)}</b><small>Bill due today · ${money(b.amt)}</small></span><button class="btn ghost xs" onclick="markPaid(${b.id})">Mark paid</button></div>`).join('')}
+ ${open.slice(0,3).map(t=>taskRow(t,iso,true)).join('')}${open.length>3?`<p class="sub" style="margin:8px 0 0;font-size:13px">and ${open.length-3} more</p>`:''}
+ <button class="btn ghost sm" style="margin-top:12px" onclick="S.taskDay=null;mv('tasks')">Open daily tasks</button></div>`}
+
+function Tasks(){if(S.aiOn===undefined)setTimeout(checkAi,0);
+ const tdy=isoD(today),day=S.taskDay||tdy,week=taskWeek(day),list=tasksOn(day),bills=billsOn(day),notes=notesOn(day),done=list.filter(t=>taskDone(t,day)).length;
+ const dayName=day===tdy?'Today':day===addDays(tdy,1)?'Tomorrow':new Date(day+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
+ const strip=week.map(iso=>{const d=new Date(iso+'T00:00'),n=tasksOn(iso).filter(t=>!taskDone(t,iso)).length+billsOn(iso).filter(b=>!b.paidThisMonth).length,on=iso===day;
+  return `<button class="tk-day${on?' on':''}${iso===tdy?' today':''}" aria-pressed="${on}" aria-label="${d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}${n?', '+n+' to do':''}" onclick="pickTaskDay('${iso}')"><small>${d.toLocaleDateString('en-GB',{weekday:'short'})}</small><b>${d.getDate()}</b><i>${n?n+'<span class="tk-lbl"> to do</span>':''}</i></button>`}).join('');
+ const p=S.aiPlan&&S.aiPlan.iso===day?S.aiPlan:null;
+ const plan=p?(p.fellBack?`<p class="sub" style="margin:14px 0 0;font-size:13px">The AI didn’t answer just now, so here are WalletMV’s own suggestions.</p>`:'')+(p.items.length?`<div style="margin-top:14px">${p.items.map((it,i)=>`<div class="tk-row"><span class="tk-txt"><b>${esc(it.title)}</b>${it.why?`<small>${esc(it.why)}</small>`:''}</span><button class="btn ghost xs" onclick="addPlanItem(${i})">+ Add</button></div>`).join('')}<button class="btn sm" style="margin-top:10px" onclick="addAllPlan()">Add all ${p.items.length}</button></div>`:`<p class="sub" style="margin:12px 0 0">You’re all set. Nothing more to suggest for this day.</p>`):'';
+ const a=S.aiAnswer;
+ return `${TASK_CSS}${Head('Daily tasks','Your to-do list and reminders for each day. Tick things off as you go.')}
+ <div class="tk-week"><button class="tk-nav" aria-label="Previous week" onclick="pickTaskDay('${addDays(week[0],-7)}')">‹</button><div class="tk-days">${strip}</div><button class="tk-nav" aria-label="Next week" onclick="pickTaskDay('${addDays(week[0],7)}')">›</button></div>
+ <div class="grid2" style="align-items:start">
+ <div class="card"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">${esc(dayName)}</h3>${list.length?`<span class="tk-tag">${done} of ${list.length} done</span>`:''}</div>
+  ${list.length?`<div class="tk-prog"><i style="width:${Math.round(done/list.length*100)}%"></i></div>`:''}
+  ${bills.map(b=>`<div class="tk-row${b.paidThisMonth?' done':''}"><span class="dot" style="background:var(--${b.paidThisMonth?'ok':'rose'});margin:0 11px"></span><span class="tk-txt"><b>Pay ${esc(b.name)}</b><small>Bill · ${money(b.amt)}${b.paidThisMonth?' · paid':''}</small></span>${b.paidThisMonth?'':`<button class="btn ghost xs" onclick="markPaid(${b.id})">Mark paid</button>`}</div>`).join('')}
+  ${notes.map(n=>`<div class="tk-row"><span class="dot" style="background:var(--gold);margin:0 11px"></span><span class="tk-txt"><b>${n.person?esc(n.person)+' — ':''}${esc(n.text)}</b><small>Reminder${n.time?' · '+esc(n.time):''}${n.deadline===day?' · deadline':''}</small></span></div>`).join('')}
+  ${list.map(t=>taskRow(t,day,false)).join('')}
+  ${!list.length&&!bills.length&&!notes.length?`<p class="sub" style="margin:12px 0 0">Nothing planned yet. Add a task below, or tap “Plan my day”.</p>`:''}
+  <div class="tk-add"><div class="tk-title"><label for="tk-t">New task</label><input id="tk-t" placeholder="e.g. Pay rent, call the bank" maxlength="120" onkeydown="if(event.key==='Enter')addTask()"></div>
+  <div><label for="tk-time">Remind me at</label><input id="tk-time" type="time"></div>
+  <div><label for="tk-r">Repeat</label><select id="tk-r">${Object.entries(REPEAT_L).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+  <button class="btn" onclick="addTask()">Add task</button></div>
+  <div style="margin-top:14px">${ReminderNote()}</div></div>
+ <div>
+  <div class="card"><h3 style="margin:0 0 4px">✨ Plan my day</h3><p class="sub" style="margin:0 0 14px">${S.aiOn?'WalletMV’s AI looks at your bills, budget and goals and suggests tasks for this day.':'WalletMV looks at your bills, budget and goals and suggests tasks for this day.'}</p>
+  <button class="btn" onclick="planDay(this)">${S.aiOn?'Plan my day with AI':'Suggest tasks'}</button>${plan}
+  ${S.aiOn?`<p class="sub" style="margin:12px 0 0;font-size:12px">To make the plan, your bill names, goals and totals for this month are sent to OpenAI, the makers of ChatGPT. Nothing else is sent.</p>`:''}
+  ${!S.aiOn&&S.isOwner&&S.aiOn!==null?`<p class="sub" style="margin:12px 0 0;font-size:12px">Owner: to switch on the AI (OpenAI, the makers of ChatGPT), add an <b>OPENAI_API_KEY</b> secret for Edge Functions in Supabase.</p>`:''}</div>
+  ${S.aiOn?`<div class="card" style="margin-top:18px"><h3 style="margin:0 0 4px">Ask AI about your money</h3><p class="sub" style="margin:0 0 12px">For example: “Can I afford a MVR 2,000 trip this month?”</p>
+  <div class="flex" style="gap:8px;flex-wrap:wrap"><label for="ask-q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Your question</label><input id="ask-q" maxlength="300" placeholder="Ask a question" value="${a?esc(a.q):''}" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')askMoney(this.nextElementSibling)"><button class="btn sm" onclick="askMoney(this)">Ask</button></div>
+  ${a?`<div class="${a.ok?'okbox':'warnbox'}" style="margin-top:12px" role="status">${esc(a.a)}</div>`:''}
+  <p class="sub" style="margin:10px 0 0;font-size:12px">Answers use only your WalletMV figures. They’re not financial advice.</p></div>`:''}
+ </div></div>`}
+
 /* ---------- Saving each person's data to their own account ----------
    Personal and shop records are saved to Supabase (table walletmv_app_state: one row per account, each person can only
    read and write their own row) and kept on this device too, so the app opens fast and copes with a weak connection.
    The sample data people see before logging in (the public MVSHOP demo) is never saved to anyone's account. */
-const SAVE_KEYS=['subscription','pendingSubs','tx','accounts','transfers','goals','bills','budget','calNotes','groc','quick','cats','homeStock','cur','theme','notif','walletCard','shared','discounts','shopProfile','products','saleLines','shopTx','customers','suppliers','workers','loyalty','docCounters','chargePresets','defaultGst','inv'];
+if(!Array.isArray(S.tasks))S.tasks=[];
+const SAVE_KEYS=['subscription','pendingSubs','tasks','tx','accounts','transfers','goals','bills','budget','calNotes','groc','quick','cats','homeStock','cur','theme','notif','walletCard','shared','discounts','shopProfile','products','saleLines','shopTx','customers','suppliers','workers','loyalty','docCounters','chargePresets','defaultGst','inv'];
 const DEMO_DATA=JSON.parse(JSON.stringify(Object.fromEntries(SAVE_KEYS.map(k=>[k,S[k]]))));
 var _dataUid=null,_saveT=null,_lastSaved='',_retryT=null;
 const LOCAL_KEY=uid=>'walletmv:data:'+uid;
@@ -1783,7 +1937,7 @@ function myData(){const d={};SAVE_KEYS.forEach(k=>d[k]=S[k]);return d}
 function applyData(d){const base=JSON.parse(JSON.stringify(DEMO_DATA));SAVE_KEYS.forEach(k=>{S[k]=d&&Object.prototype.hasOwnProperty.call(d,k)?d[k]:base[k]});try{document.documentElement.setAttribute('data-theme',S.theme||'light')}catch(e){}}
 function newCardNo(){const r=()=>String(Math.floor(1000+Math.random()*9000));return 'WM-'+r()+'-'+r()}
 function blankData(){const d=JSON.parse(JSON.stringify(DEMO_DATA)),t=isoD(new Date());
- Object.assign(d,{subscription:{plan:'',status:'none',requestedAt:null,approvedAt:null},pendingSubs:[],tx:[],transfers:[],goals:[],bills:[],calNotes:[],homeStock:[],discounts:[],products:[],saleLines:[],shopTx:[],customers:[],suppliers:[],workers:[],
+ Object.assign(d,{subscription:{plan:'',status:'none',requestedAt:null,approvedAt:null},pendingSubs:[],tasks:[],tx:[],transfers:[],goals:[],bills:[],calNotes:[],homeStock:[],discounts:[],products:[],saleLines:[],shopTx:[],customers:[],suppliers:[],workers:[],
   shared:[{id:1,name:S.name||'You',contact:S.email||'',role:'owner',status:'joined',since:t}],walletCard:{number:newCardNo(),since:t},
   accounts:(DEMO_DATA.accounts||[]).map(a=>({...a,start:0})),budget:{income:0,limit:0},theme:'light',
   shopProfile:{...(DEMO_DATA.shopProfile||{}),name:'',tin:''},docCounters:{invoice:1001,quotation:2001,receipt:5001}});
@@ -1834,6 +1988,17 @@ async function deleteMyAccount(btn){if(!walletAuth||!S.signed)return toast('Log 
  clearMyData();try{await walletAuth.auth.signOut()}catch(e){}
  S.signed=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.auth='login';S.page=STORE_APP?'money':'home';render();scrollTo(0,0);
  toast(data.loginKept?'Your WalletMV data is deleted. Your login was kept because you also use it for Laari.':'Your WalletMV account has been deleted.')}
+
+/* ---------- Continue with Google (brought over from Laari) ----------
+   Shows only when Google is switched on in Supabase (Authentication → Sign In / Providers → Google), and never inside the
+   phone apps, because Google blocks sign-in inside apps' built-in browsers. */
+var _googleOn=null;
+async function checkGoogle(){if(_googleOn!==null||!walletAuth)return;_googleOn=false;try{const r=await fetch(SB_URL+'/auth/v1/settings',{headers:{apikey:SB_KEY}});const j=await r.json();_googleOn=!!(j&&j.external&&j.external.google);if(_googleOn&&!S.signed)render()}catch(e){}}
+async function googleSignIn(btn){if(!walletAuth)return auSay('Sign-in couldn’t load. Check your internet, then refresh the page.');auSay('');auBusy(btn,true,'Opening Google…');
+ const {error}=await walletAuth.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/'}});
+ if(error){auBusy(btn,false);auSay(auNice(error,'Google sign-in didn’t work. Please use your email instead.'))}}
+const G_ICON='<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+const auGoogle=label=>(_googleOn&&!STORE_APP)?`<button type="button" class="au-btn ghost" onclick="googleSignIn(this)">${G_ICON}<span>${label}</span></button><div class="au-or"><span>or use your email</span></div>`:'';
 
 /* ---------- Log in, sign up and password help ----------
    Screens: S.auth = 'login' | 'signup' | 'forgot' | 'resend' | 'sent'; S.recovery shows "Set a new password".
@@ -1932,7 +2097,7 @@ function AuthBody(v,f){
  if(v==='reset')return `<div class="au-badge">${AU_IC.lock}</div><h1 class="au-h">Set a new password</h1>
  <p class="au-sub">For <b>${esc(S.email||'your account')}</b>. Use at least 8 characters. Adding a number or symbol makes it stronger.</p>
  ${auForm('saveNewPassword',`${auPwField('npw','New password','new-password',true,'At least 8 characters')}${auPwField('npw2','Type it again','new-password',false,'Same password again')}${auMsgEl(f)}<button type="submit" class="au-btn">Save new password</button>`)}`;
- if(v==='signup')return `<h1 class="au-h">Create your account</h1><p class="au-sub">It takes about a minute. We’ll send you an email to confirm it’s you.</p>
+ if(v==='signup')return `<h1 class="au-h">Create your account</h1><p class="au-sub">It takes about a minute. We’ll send you an email to confirm it’s you.</p>${auGoogle('Sign up with Google')}
  ${auForm('createAccount',`<div class="au-field"><label for="su-name">Full name</label><input id="su-name" type="text" autocomplete="name" value="${esc(S.suName||'')}" placeholder="Your full name"></div>
  <div class="au-field"><label for="su-phone">Phone number <span class="au-opt">(optional)</span></label><div class="au-tel"><span aria-hidden="true">+960</span><input id="su-phone" type="tel" inputmode="tel" autocomplete="tel-national" value="${esc(S.suPhone||'')}" placeholder="777 1234" aria-describedby="su-phone-hint"></div><small id="su-phone-hint" class="au-hint">For WhatsApp help with your account.</small></div>
  ${auEmailField()}${auPwField('pw','Password','new-password',true,'At least 8 characters')}
@@ -1955,7 +2120,7 @@ function AuthBody(v,f){
  <div class="au-stack">${inbox?`<a class="au-btn" href="${inbox[1]}" target="_blank" rel="noopener">${inbox[0]}</a>`:''}<button type="button" id="au-resend" class="au-btn ${inbox?'ghost':''}" onclick="auResend(this)"${auLeft()>0?' disabled':''}>Send the email again</button></div>
  <p id="au-count" class="au-count" aria-live="polite"></p>
  <p class="au-small"><button type="button" class="au-link" onclick="authGo('${reset?'forgot':'resend'}')">Use a different email</button> · <button type="button" class="au-link" onclick="authGo('login')">Back to log in</button></p>`}
- return `<h1 class="au-h">Welcome back</h1><p class="au-sub">Log in to see your money for today.</p>
+ return `<h1 class="au-h">Welcome back</h1><p class="au-sub">Log in to see your money for today.</p>${auGoogle('Continue with Google')}
  ${auForm('attemptLogin',`${auEmailField()}
  <div class="au-field"><div class="au-lrow"><label for="pw">Password</label><button type="button" class="au-link" onclick="authGo('forgot')">Forgot password?</button></div><div class="au-pw"><input id="pw" type="password" autocomplete="current-password" placeholder="Your password"><button type="button" class="au-peek" aria-pressed="false" aria-label="Show password" onclick="auPeek('pw',this)">Show</button></div></div>
  ${auMsgEl(f)}<button type="submit" class="au-btn">Log in</button>`)}
@@ -1964,7 +2129,7 @@ function AuthBody(v,f){
  <div class="au-or"><span>Can’t log in?</span></div>
  <div class="au-pair"><button type="button" class="au-btn ghost" onclick="authGo('forgot')">Reset password</button><button type="button" class="au-btn ghost" onclick="authGo('resend')">Confirm email</button></div>`}
 
-function Login(){const v=S.recovery?'reset':(S.auth||'login');const f=S.auFlash||null;S.auFlash=null;
+function Login(){if(_googleOn===null)setTimeout(checkGoogle,0);const v=S.recovery?'reset':(S.auth||'login');const f=S.auFlash||null;S.auFlash=null;
  return `<div class="au${v==='login'||v==='signup'?'':' au-compact'}">${AUTH_CSS}
  <aside class="au-side">
   <div class="au-brandrow"><button type="button" class="au-brand" onclick="go('home')" aria-label="WalletMV home">${LOGO()}${BRAND()}</button></div>
@@ -2373,7 +2538,7 @@ function invApplyMember(id){const inv=S.inv,o=S.partners.find(x=>x.id===id);if(!
  if(o.type==='custom')return toast('Give the member "'+o.custom+'" at the counter');
  const sub=inv.items.reduce((a,i)=>a+i.qty*i.price,0);if(sub<o.minSpend)return toast('Needs a bill over '+money(o.minSpend)+' (now '+money(sub)+')');
  inv.charges.push({id:Date.now(),name:'WalletMV member offer ('+offerText(o)+')',type:o.type==='percent'?'percent':'fixed',value:-o.value,memberOffer:o.id});toast(offerText(o)+' member offer applied');render()}
-function MoneyView(){return ({today:MoneyToday,dash:Dash,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,settings:Settings})[S.mview]()}
+function MoneyView(){return ({today:MoneyToday,dash:Dash,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,settings:Settings})[S.mview]()}
 function MoneyCalendar(){const dim=daysInMonth();const td=today.getDate();var byDay={};
  S.bills.forEach(b=>{const day=Math.min(b.due,dim);const tone=b.paidThisMonth?'ok':(day<td?'rose':'gold');(byDay[day]=byDay[day]||[]).push({label:b.name+' · '+money(b.amt),tone})});
  byDay=mergeEvents(byDay,noteEvents('money'));
@@ -2421,6 +2586,7 @@ function MoneyToday(){const s=safeToSpend(),bills=dueBills(),nextBill=bills[0];
   </div>
   ${spentToday>0?`<p style="color:rgba(255,255,255,.75);margin:18px 0 0;border-top:1px solid rgba(255,255,255,.12);padding-top:14px">You've spent <b style="color:#fff">${money(spentToday)}</b> today so far.</p>`:''}
  </div>
+ ${TodayTasksCard()}
  <div class="grid2" style="margin-top:18px">
   <div class="card"><div class="flex between"><h3 style="margin-bottom:4px">Quick add</h3><button class="btn ghost xs" onclick="mv('settings')">Edit</button></div><p class="sub" style="margin-bottom:14px">One tap logs a common expense.</p><div class="flex">${S.quick.map(q=>`<button class="qchip" onclick="quickAdd('${esc(q.n)}','${esc(q.cat)}',${q.amt})"><span style="font-size:20px">${q.ic}</span><b>${money(q.amt)}</b><span style="color:var(--ink2)">${esc(q.n)}</span></button>`).join('')}</div></div>
   <div class="card"><h3 style="margin-bottom:4px">Upcoming bills</h3><p class="sub" style="margin-bottom:6px">${bills.length?`${bills.length} unpaid this month.`:'Everything is paid for this month.'}</p>
@@ -2754,7 +2920,7 @@ try{const h=location.hash||'';if(/error_code=otp_expired|error=access_denied/.te
 if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()=>{const was=S.signed;
  if(event==='PASSWORD_RECOVERY'&&session?.user){S.email=session.user.email||'';S.recovery=true;S.signed=false;S.page='login';render();return}
  if(session?.user&&!S.recovery){S.email=session.user.email||'';S.name=session.user.user_metadata?.full_name||S.email.split('@')[0];S.signed=true;S.allAccess=false;if(event!=='TOKEN_REFRESHED')loadAccess();loadMyData(session.user);
-  if(!was&&event==='SIGNED_IN'){if(S.page==='login'||S.page==='home'){S.page='money';S.mview='today'}if(/[#&](access_token|type=signup)/.test(location.hash)){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}toast('Email confirmed. You are signed in.')}render()}else if(event==='INITIAL_SESSION')render()}
+  if(!was&&event==='SIGNED_IN'){if(S.page==='login'||S.page==='home'){S.page='money';S.mview='today'}if(/[#&](access_token|type=signup)/.test(location.hash)||/[?&]code=/.test(location.search)){const conf=/type=signup/.test(location.hash);try{history.replaceState(null,'',location.pathname+location.search.replace(/[?&]code=[^&]*/,'').replace(/^&/,'?'))}catch(e){}toast(conf?'Email confirmed. You are signed in.':'You are signed in.')}render()}else if(event==='INITIAL_SESSION')render()}
  else if(event==='SIGNED_OUT'){clearMyData();S.signed=false;S.allAccess=false;S.recovery=false;S.comp=null;S.isOwner=false;S.freeList=null}},0)});}
 
 /* ============ STUDIO ============ */
