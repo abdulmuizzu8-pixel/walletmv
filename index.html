@@ -2780,10 +2780,8 @@ async function deleteMyAccount(btn){if(!walletAuth||!S.signed)return toast('Log 
    phone apps, because Google blocks sign-in inside apps' built-in browsers. */
 var _googleOn=null;
 /* Google sign-in stays hidden until its client secret is fixed in Supabase and walletmv.com is an allowed redirect. Then set GOOGLE_READY to true. */
-const GOOGLE_READY=false;
-/* Test it first: open walletmv.com/?google=1 to see the button before everyone does. */
-const googleTest=()=>{try{if(/[?&]google=1\b/.test(location.search))sessionStorage.setItem('walletmv:gtest','1');return sessionStorage.getItem('walletmv:gtest')==='1'}catch(e){return false}};
-async function checkGoogle(){if(_googleOn!==null||!walletAuth)return;_googleOn=false;if(!GOOGLE_READY&&!googleTest())return;try{const r=await fetch(SB_URL+'/auth/v1/settings',{headers:{apikey:SB_KEY}});const j=await r.json();_googleOn=!!(j&&j.external&&j.external.google);if(_googleOn&&!S.signed)render()}catch(e){}}
+/* Google sign-in is shown only when the Supabase Google provider is enabled. */
+async function checkGoogle(){if(_googleOn!==null||!walletAuth)return;_googleOn=false;try{const r=await fetch(SB_URL+'/auth/v1/settings',{headers:{apikey:SB_KEY}});const j=await r.json();_googleOn=!!(j&&j.external&&j.external.google);if(_googleOn&&!S.signed)render()}catch(e){}}
 async function googleSignIn(btn){if(!walletAuth)return auSay('Sign-in couldn’t load. Check your internet, then refresh the page.');auSay('');auBusy(btn,true,'Opening Google…');
  const {error}=await walletAuth.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/'}});
  if(error){auBusy(btn,false);auSay(auNice(error,'Google sign-in didn’t work. Please use your email instead.'))}}
