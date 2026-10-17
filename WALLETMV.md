@@ -24,19 +24,26 @@ Everything is in rufiyaa (MVR) first. GST is **8%** (prices include GST unless t
 
 | Package | Meaning | Price / 30 days | Yearly (pay 10 months) | People | Scanning | Best for |
 |---|---|---|---|---|---|---|
-| **Veli** | Sand — where every island starts | **Free** | Free | 1 | — | Trying WalletMV (*Free forever*) |
-| **Boli** | Cowrie shell — the Maldives' first money | MVR 49 | MVR 490 | 2 | — | One person or a couple, no limits |
-| **Muraka** | Coral — strong, growing | MVR 99 | MVR 990 | 3 | ✓ | Couples, small homes (*Most popular*) |
-| **Atholhu** | Atoll — a family of islands | MVR 199 | MVR 1,990 | up to 9 | ✓ | Families (*Best value per person*) |
-| **Dhoni** | The trading boat | MVR 349 | MVR 3,490 | 4 staff | ✓ + Bill inbox | Shops (*Best for shops*) |
+| **Veli** | Sand — where every island starts | MVR 88 (**first 3 months free**) | MVR 880 | 1 | — | Starting out (*3 months free*) |
+| **Boli** | Cowrie shell — the Maldives' first money | MVR 99 | MVR 990 | 2 | — | One person or a couple, no limits |
+| **Muraka** | Coral — strong, growing | MVR 199 | MVR 1,990 | 3 | ✓ | Couples, small homes (*Most popular*) |
+| **Atholhu** | Atoll — a family of islands | MVR 299 | MVR 2,990 | up to 9 | ✓ | Families (*Best value per person*) |
+| **Dhoni** | The trading boat | MVR 499 | MVR 4,990 | 4 staff | ✓ + Bill inbox | Shops (*Best for shops*) |
 
-Prices include 8% GST. Set for the Maldives market in October 2026, aiming at 10,000 monthly users: free to start,
-paid packages below local POS apps (MVR 300–750 a month) and well under the price of a streaming subscription.
+Prices include 8% GST. Set for the Maldives market in October 2026 (owner's choice: paid packages from MVR 99 to
+MVR 499), aiming at 10,000 monthly users: 3 free months of Veli to start, and Dhoni in the middle of local POS apps
+(MVR 300–750 a month).
 
-**Veli (free) limits:** 3 accounts, 1 monthly budget (no category budgets), 1 savings goal, 5 bills, reports for this
+**Veli limits:** 3 accounts, 1 monthly budget (no category budgets), 1 savings goal, 5 bills, reports for this
 month and last month only, no Excel export, MVR only, no scanning, no AI planning, 1 person. Everything else
-(to-do list, groceries, member card, reminders) is included. Anyone without an active package is on Veli.
-The limits live in `FREE_LIM` and `onFree()` in `index.html`.
+(to-do list, groceries, member card, reminders, image to PDF, 3 documents) is included.
+
+**Veli's 3 free months:** every new account gets Veli free from the day it was made. After that Veli is MVR 88
+every 30 days. If nothing is paid when the free months (or any paid package) end, the app shows a
+"choose a package" screen; My package and Settings stay open and no records are deleted. A payment waiting for
+approval lets them carry on. Paying for Veli during the free months adds 30 days after them.
+The limits live in `FREE_LIM` and `onFree()`, the free months in `trialWindow()` and `needPkg()` in `index.html`;
+the number of free days is editable in Admin → Packages.
 
 Prices, names and features are editable in **Admin → Packages** (no code change needed).
 A free **all-access test account** exists for the owner — its login lives in the code and **must move to
