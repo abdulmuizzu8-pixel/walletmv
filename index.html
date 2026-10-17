@@ -1236,6 +1236,7 @@ function AdminPanel(){
  ${AdminRulesHTML()}
  ${AdminIssuesHTML()}
  ${AdminFreeHTML()}
+ ${AdminLoginsHTML()}
  ${AdminWaHTML()}
  ${AdminPlansHTML()}
  ${AdminPartnersHTML()}
@@ -1737,6 +1738,21 @@ async function loadAccess(){if(!walletAuth||!S.email)return;const em=S.email.toL
   try{const [c,a]=await Promise.all([walletAuth.from('walletmv_comp_access').select('plan').eq('email',em).maybeSingle(),walletAuth.from('walletmv_admins').select('email').eq('email',em).maybeSingle()]);
    const before=JSON.stringify([S.comp,S.isOwner]);S.comp=c.data?{plan:c.data.plan}:null;S.isOwner=!!a.data;if(S.isOwner&&S.page==='admin')loadFreeList();
    if(JSON.stringify([S.comp,S.isOwner])!==before)render()}catch(e){}}
+/* ---------- Admin: help customers who can't log in ---------- */
+async function adminUserCall(action,email){if(!walletAuth)return {ok:false,error:'Sign-in couldn’t load. Refresh and try again.'};
+ try{const {data,error}=await walletAuth.functions.invoke('walletmv-admin-users',{body:{action,email}});if(error||!data)return {ok:false,error:'Couldn’t reach WalletMV. Try again.'};return data}catch(e){return {ok:false,error:'Couldn’t reach WalletMV. Try again.'}}}
+async function adminLookup(btn){const em=(($('#acct-em')||{}).value||'').trim().toLowerCase();if(!auEmailOk(em))return toast('Enter the customer’s email address');
+ S.acctEmail=em;btn.disabled=true;const r=await adminUserCall('lookup',em);btn.disabled=false;if(!r.ok)return toast(r.error||'Couldn’t look up that email');S.acctInfo=r;render()}
+async function adminConfirmEmail(btn){const em=S.acctEmail;if(!em)return;btn.disabled=true;const r=await adminUserCall('confirm',em);btn.disabled=false;if(!r.ok)return toast(r.error||'Couldn’t confirm the email');S.acctInfo=r;toast(r.already?'This email was already confirmed':'Email confirmed. They can log in now.');render()}
+async function adminSendEmail(btn,kind){const em=S.acctEmail;if(!em||!walletAuth)return;if(auLeft()>0)return toast(`For safety, wait ${auLeft()} seconds before sending another email`);
+ btn.disabled=true;const {error}=kind==='reset'?await walletAuth.auth.resetPasswordForEmail(em,{redirectTo:location.origin}):await walletAuth.auth.resend({type:'signup',email:em,options:{emailRedirectTo:location.origin}});btn.disabled=false;
+ if(error){const w=auWaitSecs(error);if(w)auHold(w);return toast(auNice(error,'Couldn’t send the email'))}auHold(AUTH_GAP);toast((kind==='reset'?'Password reset email':'Confirmation email')+' sent to '+em)}
+function AdminLoginsHTML(){if(!S.isOwner)return'';const r=S.acctInfo,em=S.acctEmail||'',fmt=d=>d?ld(String(d).slice(0,10)):'never';
+ const res=!r?'':!r.exists?`<p class="sub" style="margin:14px 0 0">No WalletMV login uses <b>${esc(r.email||em)}</b>. Ask the customer to create an account first.</p>`
+ :`<div class="today-row" style="margin-top:14px"><span class="dot" style="background:var(--${r.confirmed?'ok':'gold'})"></span><span style="flex:1;min-width:0"><b style="word-break:break-all">${esc(r.name||r.email)}</b><br><small style="color:var(--ink2)">${esc(r.email)} · ${r.confirmed?'Email confirmed':'Email not confirmed yet'} · joined ${fmt(r.createdAt)} · last log in ${fmt(r.lastSignIn)}</small></span></div>
+ <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px">${r.confirmed?'':`<button class="btn sm" onclick="adminConfirmEmail(this)">Confirm email now</button><button class="btn ghost sm" onclick="adminSendEmail(this,'confirm')">Resend confirmation email</button>`}<button class="btn ${r.confirmed?'':'ghost'} sm" onclick="adminSendEmail(this,'reset')">Send password reset email</button></div>`;
+ return `<div class="card" style="margin-top:22px"><h3>Customer logins</h3><p class="sub" style="margin:6px 0 12px">Help someone who can’t log in. Look up their email, then confirm it for them or send a password reset email. You never see or set their password.</p>
+ <div class="flex" style="gap:8px;flex-wrap:wrap"><label for="acct-em" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Customer email</label><input id="acct-em" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="customer@gmail.com" value="${esc(em)}" style="flex:1;min-width:200px"><button class="btn sm" onclick="adminLookup(this)">Look up</button></div>${res}</div>`}
 /* ---------- Admin: free forever access ---------- */
 async function loadFreeList(){if(!walletAuth||!S.isOwner)return;const {data,error}=await walletAuth.from('walletmv_comp_access').select('email,plan,note,created_at').order('created_at',{ascending:false});if(error)return toast(error.message);S.freeList=data||[];render()}
 async function addFree(){const em=$('#fremail').value.trim().toLowerCase(),plan=$('#frplan').value,note=$('#frnote').value.trim();
@@ -1835,7 +1851,7 @@ function auNice(err,fallback){const m=String(err&&err.message||''),code=String(e
  if(/email rate limit exceeded/i.test(m)||code==='over_email_send_rate_limit'&&!/after \d+ second/i.test(m))return 'We’ve sent a lot of emails in the last hour. Please try again a little later, or message us on WhatsApp.';
  const w=auWaitSecs(err);if(w)return `For your safety, you can ask for another email in ${w} seconds.`;
  if(/invalid login credentials/i.test(m)||code==='invalid_credentials')return 'That email and password don’t match. Try again, or reset your password.';
- if(/email not confirmed/i.test(m)||code==='email_not_confirmed')return 'Please confirm your email first. Open the link we sent you, or tap “Resend it” below.';
+ if(/email not confirmed/i.test(m)||code==='email_not_confirmed')return 'Please confirm your email first. Open the link we sent you, or tap “Confirm email” below.';
  if(/already registered|already exists/i.test(m)||code==='user_already_exists')return 'This email already has an account. Log in, or reset your password.';
  if(/different from the old|same_password/i.test(m)||code==='same_password')return 'Choose a password you haven’t used before on WalletMV.';
  if(/weak|password should/i.test(m)||code==='weak_password')return 'Choose a stronger password: at least 8 characters, with a number.';
@@ -1928,7 +1944,7 @@ function AuthBody(v,f){
  ${auForm('sendPasswordReset',`${auEmailField()}${auMsgEl(f)}<button type="submit" class="au-btn">Send reset link</button>`)}
  <p class="au-small">Remembered it? <button type="button" class="au-link" onclick="authGo('login')">Log in</button></p>`;
  if(v==='resend')return `<button type="button" class="au-backlink" onclick="authGo('login')">← Back to log in</button><div class="au-badge">${AU_IC.mail}</div>
- <h1 class="au-h">Resend confirmation email</h1><p class="au-sub">Enter the email you signed up with. We’ll send you a new link to confirm your account.</p>
+ <h1 class="au-h">Confirm your email</h1><p class="au-sub">Enter the email you signed up with. We’ll send you a new link to confirm your account.</p>
  ${auForm('resendConfirmation',`${auEmailField()}${auMsgEl(f)}<button type="submit" class="au-btn">Send confirmation email</button>`)}
  <p class="au-small">Already confirmed? <button type="button" class="au-link" onclick="authGo('login')">Log in</button></p>`;
  if(v==='sent'){const reset=S.auSent==='reset',inbox=auInbox(S.email||'');setTimeout(auTick,0);
@@ -1945,7 +1961,8 @@ function AuthBody(v,f){
  ${auMsgEl(f)}<button type="submit" class="au-btn">Log in</button>`)}
  <div class="au-or"><span>New to WalletMV?</span></div>
  <button type="button" class="au-btn ghost" onclick="authGo('signup')">Create an account</button>
- <p class="au-small">Didn’t get your confirmation email? <button type="button" class="au-link" onclick="authGo('resend')">Resend it</button></p>`}
+ <div class="au-or"><span>Can’t log in?</span></div>
+ <div class="au-pair"><button type="button" class="au-btn ghost" onclick="authGo('forgot')">Reset password</button><button type="button" class="au-btn ghost" onclick="authGo('resend')">Confirm email</button></div>`}
 
 function Login(){const v=S.recovery?'reset':(S.auth||'login');const f=S.auFlash||null;S.auFlash=null;
  return `<div class="au${v==='login'||v==='signup'?'':' au-compact'}">${AUTH_CSS}
@@ -2037,6 +2054,7 @@ const AUTH_CSS=`<style>
 .au-check a{color:var(--ink);font-weight:600}
 .au-tips{margin:0 0 22px;padding:14px 16px 14px 34px;border-radius:14px;background:var(--bg);border:1px solid var(--line);font-size:14px;line-height:1.65;color:var(--ink2)}
 .au-stack{display:flex;flex-direction:column;gap:10px}
+.au-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.au-pair .au-btn{min-height:48px;font-size:15px;padding:0 10px}
 .au-count{margin:10px 0 0;text-align:center;font-size:13.5px;color:var(--ink2);min-height:20px}
 .au-note{margin:20px 0 0;text-align:center;font-size:12.5px;line-height:1.55;color:var(--ink2)}.au-note a{color:var(--ink);font-weight:600}
 @media(max-width:1180px){.au-side{padding:28px 32px 34px}.au-pitch h2{font-size:2.2rem}.au-chips{display:none}}
