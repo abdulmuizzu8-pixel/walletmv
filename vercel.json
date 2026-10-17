@@ -68,6 +68,10 @@
     {
       "source": "/disclaimer",
       "destination": "/"
+    },
+    {
+      "source": "/join/:code",
+      "destination": "/"
     }
   ]
 }

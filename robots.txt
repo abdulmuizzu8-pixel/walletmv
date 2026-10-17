@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://walletmv.com/sitemap.xml
+Sitemap: https://www.walletmv.com/sitemap.xml
