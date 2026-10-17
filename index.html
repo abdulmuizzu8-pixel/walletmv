@@ -476,7 +476,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
 };
 
 /* ============ routing ============ */
-const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','Daily tasks'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
+const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do list'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
@@ -1990,7 +1990,9 @@ function AdminFreeHTML(){const opts=[...S.plans.map(p=>[p.id,p.name]),['all','Al
  <div style="margin-top:16px">${list.length?list.map(r=>`<div class="today-row"><span class="dot" style="background:var(--ok)"></span><span style="flex:1;min-width:0"><b style="word-break:break-all">${esc(r.email)}</b><br><small style="color:var(--ink2)">${esc(r.plan==='all'?'All packages':(planInfo(r.plan)||{}).short||r.plan)} · ${r.expires_on?(r.expires_on<isoD(today)?'ended '+longD(r.expires_on):'until '+longD(r.expires_on)):'no end date'}${r.note?' · '+esc(r.note):''}</small></span><button class="btn ghost sm" style="color:var(--rose)" aria-label="Remove free access for ${esc(r.email)}" onclick="removeFree('${esc(r.email).replace(/'/g,"&#39;")}')">Remove</button></div>`).join(''):'<p class="sub">No free packages given yet.</p>'}</div></div>`}
 async function logoutUser(){let keep=false;if(_dataUid){clearTimeout(_saveT);await saveNow();if(S.syncErr){if(!window.confirm('Your latest changes haven’t reached your account yet. Log out anyway? They’ll stay saved on this device.'))return;keep=true}}clearMyData(keep);if(walletAuth)await walletAuth.auth.signOut();S.signed=false;S.allAccess=false;S.comp=null;S.isOwner=false;S.freeList=null;S.name='';S.email='';S.auth='login';S.recovery=false;S.page=STORE_APP?'money':'home';go(S.page)}
 /* ============ DAILY TASKS, TO-DO AND REMINDERS ============
-   S.tasks = [{id,title,date,time,repeat:'none'|'daily'|'weekly'|'monthly',remind,doneDates:[iso],ai}]
+   S.tasks = [{id,title,notes,date,time,repeat:'none'|'daily'|'weekly'|'monthly',remind,doneDates:[iso],done,ai,pri:1-4}]
+   pri sorts the to-do list into four parts, most important first (1 Must do … 4 Later). Old tasks without it count as 2.
+   A task with no date lives only on the to-do list; its "done" holds the day it was ticked.
    A task shows on its date and, if it repeats, on every later matching day; ticking it off only ticks that day.
    Reminders fire while WalletMV is open: a phone or computer notification when allowed, and a message on screen.
    "Plan my day" asks ChatGPT through the walletmv-ai server function; without it, built-in suggestions are used. */
@@ -2002,8 +2004,11 @@ function taskOn(t,iso){if(!t||!t.date||iso<t.date)return false;
  if(t.repeat==='weekly')return new Date(iso+'T00:00').getDay()===new Date(t.date+'T00:00').getDay();
  if(t.repeat==='monthly'){const a=new Date(t.date+'T00:00').getDate(),d=new Date(iso+'T00:00'),dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();return d.getDate()===Math.min(a,dim)}
  return iso===t.date}
-function tasksOn(iso){return (S.tasks||[]).filter(t=>taskOn(t,iso)).sort((a,b)=>(a.time||'99').localeCompare(b.time||'99')||a.id-b.id)}
+function tasksOn(iso){return (S.tasks||[]).filter(t=>taskOn(t,iso)).sort((a,b)=>tPri(a)-tPri(b)||(a.time||'99').localeCompare(b.time||'99')||a.id-b.id)}
 const taskDone=(t,iso)=>(t.doneDates||[]).includes(iso);
+const TK_PRI=[null,{n:'Must do',d:'Important and urgent'},{n:'Should do',d:'Important, not urgent'},{n:'Could do',d:'Nice to get done'},{n:'Later',d:'When you have time'}];
+const tPri=t=>[1,2,3,4].includes(+(t&&t.pri))?+t.pri:2;
+const tkRep=t=>!!(t.repeat&&t.repeat!=='none');
 function billsOn(iso){const d=new Date(iso+'T00:00');if(d.getMonth()!==today.getMonth()||d.getFullYear()!==today.getFullYear())return [];const dim=daysInMonth();return S.bills.filter(b=>Math.min(b.due,dim)===d.getDate())}
 function notesOn(iso){return (S.calNotes||[]).filter(n=>n.module==='money'&&(n.date===iso||n.deadline===iso))}
 function toggleTask(id,iso){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;t.doneDates=t.doneDates||[];const i=t.doneDates.indexOf(iso);
@@ -2011,10 +2016,10 @@ function toggleTask(id,iso){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)retur
  S.dueNow=(S.dueNow||[]).filter(x=>x!==id);render()}
 function addTask(){const title=(($('#tk-t')||{}).value||'').trim(),time=($('#tk-time')||{}).value||'',repeat=($('#tk-r')||{}).value||'none',day=S.taskDay||isoD(today);
  if(!title)return toast('Write what you need to do');if(title.length>120)return toast('Keep the task under 120 characters');
- S.tasks=S.tasks||[];S.tasks.push({id:Date.now(),title,date:day,time,repeat,remind:!!time,doneDates:[]});
+ const pri=+(($('#tk-p')||{}).value||2)||2;S.tasks=S.tasks||[];S.tasks.push({id:Date.now(),title,date:day,time,repeat,remind:!!time,doneDates:[],pri});
  toast(time?'Task added. You’ll get a reminder at '+time+'.':'Task added');render()}
 function delTask(id){S.tasks=(S.tasks||[]).filter(t=>t.id!==id);toast('Task removed');render()}
-function pickTaskDay(iso){S.taskDay=iso;S.aiPlan=null;render()}
+function pickTaskDay(iso){S.taskDay=iso;S.tkTab='day';S.aiPlan=null;render()}
 function taskWeek(base){const d=new Date(base+'T00:00'),start=new Date(d);start.setDate(d.getDate()-d.getDay());return [...Array(7)].map((_,i)=>{const x=new Date(start);x.setDate(start.getDate()+i);return isoD(x)})}
 
 /* Suggestions: ChatGPT when it's switched on, built-in rules otherwise */
@@ -2044,9 +2049,9 @@ async function planDay(btn){const iso=S.taskDay||isoD(today);if(btn){btn.disable
  else S.aiPlan={iso,src:'local',items:localPlan(iso),fellBack:!!S.aiOn};
  render()}
 function addPlanItem(i){const p=S.aiPlan;if(!p||!p.items[i])return;const it=p.items[i];S.tasks=S.tasks||[];
- S.tasks.push({id:Date.now()+i,title:String(it.title).slice(0,120),date:p.iso,time:'',repeat:'none',remind:false,doneDates:[],ai:p.src==='ai'});p.items.splice(i,1);toast('Added to your tasks');render()}
+ S.tasks.push({id:Date.now()+i,title:String(it.title).slice(0,120),date:p.iso,time:'',repeat:'none',remind:false,doneDates:[],ai:p.src==='ai',pri:/^pay /i.test(it.title)?1:2});p.items.splice(i,1);toast('Added to your tasks');render()}
 function addAllPlan(){const p=S.aiPlan;if(!p||!p.items.length)return;S.tasks=S.tasks||[];const n=p.items.length;
- p.items.forEach((it,i)=>S.tasks.push({id:Date.now()+i,title:String(it.title).slice(0,120),date:p.iso,time:'',repeat:'none',remind:false,doneDates:[],ai:p.src==='ai'}));S.aiPlan=null;toast(n+' task'+(n===1?'':'s')+' added');render()}
+ p.items.forEach((it,i)=>S.tasks.push({id:Date.now()+i,title:String(it.title).slice(0,120),date:p.iso,time:'',repeat:'none',remind:false,doneDates:[],ai:p.src==='ai',pri:/^pay /i.test(it.title)?1:2}));S.aiPlan=null;toast(n+' task'+(n===1?'':'s')+' added');render()}
 async function askMoney(btn){const q=(($('#ask-q')||{}).value||'').trim();if(!q)return toast('Type a question first');if(q.length>300)return toast('Keep the question under 300 characters');
  btn.disabled=true;btn.textContent='Thinking…';const r=await aiCall('ask',{question:q,figures:moneyFigures(isoD(today))});
  S.aiAnswer={q,a:r&&r.ok&&r.answer?r.answer:'We couldn’t reach the AI just now. Please try again in a minute.',ok:!!(r&&r.ok)};render()}
@@ -2056,7 +2061,7 @@ function remindersTick(){if(!S.signed||!S.dataReady||!(S.tasks||[]).length)retur
  let sent=[];try{sent=JSON.parse(localStorage.getItem('walletmv:reminded:'+iso)||'[]')}catch(e){}
  const due=tasksOn(iso).filter(t=>{const m=hmMins(t.time);return m!==null&&t.remind!==false&&!taskDone(t,iso)&&m<=nowM&&nowM-m<=180&&!sent.includes(t.id)});
  if(!due.length)return;
- due.forEach(t=>{sent.push(t.id);try{if(!STORE_APP&&'Notification' in window&&Notification.permission==='granted'){const n=new Notification('WalletMV reminder',{body:t.title+' · '+t.time,icon:'/icons/icon-192.png',tag:'wmv-task-'+t.id});n.onclick=()=>{try{window.focus()}catch(e){}S.page='money';S.mview='tasks';S.taskDay=iso;render()}}}catch(e){}});
+ due.forEach(t=>{sent.push(t.id);try{if(!STORE_APP&&'Notification' in window&&Notification.permission==='granted'){const n=new Notification('WalletMV reminder',{body:t.title+' · '+t.time,icon:'/icons/icon-192.png',tag:'wmv-task-'+t.id});n.onclick=()=>{try{window.focus()}catch(e){}S.page='money';S.mview='tasks';S.taskDay=iso;S.tkTab='day';render()}}}catch(e){}});
  try{localStorage.setItem('walletmv:reminded:'+iso,JSON.stringify(sent))}catch(e){}
  S.dueNow=[...new Set([...(S.dueNow||[]),...due.map(t=>t.id)])];toast('⏰ '+(due.length===1?due[0].title:due.length+' tasks are due now'));if(S.page==='money')render()}
 setInterval(remindersTick,30000);setTimeout(remindersTick,5000);
@@ -2087,36 +2092,200 @@ const TASK_CSS=`<style>
 .tk-row.done .tk-txt b{text-decoration:line-through;color:var(--ink2)}
 .tk-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.tk-txt b{font-weight:600;word-break:break-word}.tk-txt small{color:var(--ink2);font-size:12.5px}
 .tk-prog{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:10px 0 4px}.tk-prog i{display:block;height:100%;background:var(--ok);border-radius:inherit}
-.tk-add{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:8px;align-items:end;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.tk-add{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1fr);gap:8px;align-items:end;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.tk-add>button{grid-column:1/-1;justify-self:start}
 .tk-add .tk-title{grid-column:1/-1}
 .tk-add label{margin:0 0 4px;font-size:12px}
 .tk-add input,.tk-add select{width:100%}
 .tk-tag{font-size:11px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;background:rgba(212,178,106,.18);color:var(--gold-d);white-space:nowrap}
-@media(max-width:640px){.tk-lbl{display:none}.tk-add{grid-template-columns:1fr 1fr}.tk-add button{grid-column:1/-1}.tk-days{gap:4px}.tk-day{min-height:60px;border-radius:12px}.tk-day b{font-size:1.15rem}.tk-nav{width:30px}}
+@media(max-width:640px){.tk-lbl{display:none}.tk-add{grid-template-columns:1fr 1fr}.tk-add .tk-pf{grid-column:1/-1}.tk-add>button{justify-self:stretch}.tk-days{gap:4px}.tk-day{min-height:60px;border-radius:12px}.tk-day b{font-size:1.15rem}.tk-nav{width:30px}}
+/* To-do list: four parts, most important first */
+.tkp1{--pc:var(--rose)}.tkp2{--pc:var(--sun)}.tkp3{--pc:#3B73A6}.tkp4{--pc:#8A93A0}
+[data-theme="noir"] .tkp3{--pc:#7FA9D6}[data-theme="noir"] .tkp1{--pc:#E07A84}
+.tl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tl-tabs{margin:0 0 16px}
+.tl-grid{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);align-items:start}
+.tl-side{display:grid;gap:18px;align-content:start}
+.tl-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.tl-top h3{margin:0}.tl-top small{display:block;color:var(--ink2);font-size:13px;margin-top:2px}
+.tl-top .btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.tl-empty{margin:10px 0 0;font-size:14px}
+.tl-seg{margin-top:14px;border-top:1px solid var(--line);padding-top:4px}
+.tl-sh,.tl-sh2{display:flex;align-items:center;gap:12px;width:100%;padding:10px 4px;margin:0;background:none;border:0;cursor:pointer;text-align:left;font:inherit;color:var(--ink);border-radius:12px;min-height:48px}
+.tl-sh span{display:flex;flex-direction:column;min-width:0}.tl-sh b{font:600 15.5px var(--body)}.tl-sh small{color:var(--ink2);font-size:12.5px}
+.tl-sh em{font-style:normal;font-size:12.5px;font-weight:600;color:var(--pc);background:color-mix(in srgb,var(--pc) 13%,transparent);border-radius:99px;padding:2px 9px;margin-left:auto}
+.tl-sh svg,.tl-sh2 svg{flex:none;color:var(--ink2);transition:transform .15s}.tl-sh em+svg{margin-left:0}.tl-sh span+svg{margin-left:auto}
+.tl-sh[aria-expanded="false"] svg,.tl-sh2[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.tl-flag{flex:none;width:12px;height:12px;border-radius:4px;background:var(--pc);display:inline-block}
+.tl-row{position:relative;display:flex;align-items:flex-start;gap:10px;padding:8px 4px;border-radius:12px}
+.tl-row:hover{background:color-mix(in srgb,var(--gold) 8%,transparent)}
+.tl-row.due{background:rgba(212,178,106,.16)}
+.tl-check{flex:none;width:40px;height:40px;margin:-4px -4px -4px -6px;padding:0;display:grid;place-items:center;background:none;border:0;cursor:pointer;color:transparent}
+.tl-check span{width:22px;height:22px;border-radius:50%;border:2px solid var(--pc);display:grid;place-items:center;transition:background .15s}
+.tl-check:hover span{color:var(--pc)}
+.tl-row.done .tl-check span{background:var(--pc);color:#fff}
+.tl-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding:6px 0 4px;margin:0;background:none;border:0;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+span.tl-txt{cursor:default}
+.tl-txt b{font-weight:500;font-size:15px;line-height:1.35;word-break:break-word}
+.tl-txt small{color:var(--ink2);font-size:13px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tl-row.done .tl-txt b{text-decoration:line-through;color:var(--ink2)}
+.tl-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.tl-chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.tl-chip.now{color:var(--gold-d);border-color:color-mix(in srgb,var(--gold) 55%,transparent);background:color-mix(in srgb,var(--gold) 12%,transparent)}
+.tl-chip.late{color:var(--rose);border-color:color-mix(in srgb,var(--rose) 45%,transparent)}
+.tl-more{flex:none;width:40px;height:40px;display:grid;place-items:center;background:none;border:0;border-radius:10px;color:var(--ink2);cursor:pointer;padding:0}
+.tl-more:hover,.tl-more[aria-expanded="true"]{background:var(--bg);color:var(--ink)}
+.tl-menu{position:absolute;right:4px;top:46px;z-index:30;min-width:210px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px -18px rgba(11,26,44,.35);padding:6px;display:flex;flex-direction:column}
+.tl-menu small{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);padding:6px 12px 4px}
+.tl-menu button{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border:0;border-radius:9px;background:none;font:500 14px var(--body);color:var(--ink);cursor:pointer;text-align:left;margin:0}
+.tl-menu button:hover,.tl-menu button:focus-visible{background:var(--bg)}
+.tl-menu button i{width:10px;height:10px;border-radius:3px;background:var(--pc)}
+.tl-menu button svg{color:var(--ink2)}.tl-menu button[aria-checked] svg{margin-left:auto;color:var(--pc)}
+.tl-menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.tl-menu .del,.tl-menu .del svg{color:var(--rose)}
+.tl-add{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:6px 4px;margin:0;background:none;border:0;border-radius:12px;color:var(--gold-d);font:600 14.5px var(--body);cursor:pointer;text-align:left}
+.tl-add svg{margin:0 5px 0 4px;color:var(--pc)}
+.tl-add:hover{background:color-mix(in srgb,var(--gold) 8%,transparent)}
+.tl-ed{border:1.5px solid var(--pc);border-radius:16px;padding:12px 14px 14px;margin:6px 0 8px;background:var(--card)}
+.tl-ed input,.tl-ed select{width:100%}
+.tl-ed .tl-in{border:0;border-bottom:1px solid var(--line);border-radius:0;padding:8px 2px;font:500 16px var(--body);background:transparent;min-height:auto;box-shadow:none}
+.tl-ed .tl-in2{border:0;border-bottom:1px solid var(--line);border-radius:0;padding:6px 2px;font-size:14px;background:transparent;min-height:auto;box-shadow:none;margin-top:2px}
+.tl-ed .tl-in:focus,.tl-ed .tl-in2:focus{outline:none;border-bottom-color:var(--pc)}
+.tl-quick{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 0}
+.tl-quick button,.tl-prisel button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border:1.5px solid var(--line);border-radius:99px;background:none;font:600 13px var(--body);color:var(--ink);cursor:pointer;margin:0}
+.tl-quick button:hover{border-color:var(--gold)}
+.tl-when{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:10px}
+.tl-when label{margin:0 0 4px;font-size:12px}
+.tl-plbl{display:block;font-size:12px;color:var(--ink2);margin:12px 0 6px}
+.tl-prisel{display:flex;gap:6px;flex-wrap:wrap}
+.tl-prisel button i{width:9px;height:9px;border-radius:3px;background:var(--pc)}
+.tl-prisel button[aria-pressed="true"]{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 12%,transparent)}
+.tl-edact{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.tl-done{margin-top:14px;border-top:1px solid var(--line);padding-top:4px}
+.tl-done .tl-sh2 b{font:600 14.5px var(--body)}
+.tl-done>.btn{margin:8px 0 0 4px}
+.tl-guide h3{font-size:1.25rem}
+.tl-guide>div{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}
+.tl-guide>div:first-of-type{border-top:0}
+.tl-guide .tl-flag{margin-top:5px}
+.tl-guide span{display:flex;flex-direction:column;gap:1px}.tl-guide b{font-weight:600}.tl-guide small{color:var(--ink2);font-size:13px}
+.tk-pri{display:inline-flex;align-items:center;gap:4px;color:var(--pc);font-weight:600}
+.tk-pri i{width:8px;height:8px;border-radius:3px;background:var(--pc)}
+.tl-row.mini{padding:6px 0}
+.tl-foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+@media(max-width:980px){.tl-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.tl-when{grid-template-columns:1fr 1fr}.tl-when .tl-fd{grid-column:1/-1}.tl-top .btn{flex:1;justify-content:center}.tl-menu{right:0}}
 </style>`;
 
+/* ---------- TO-DO LIST (Google Tasks style) ----------
+   One list in four parts, most important first: Must do, Should do, Could do, Later.
+   Tick the circle to finish a task. A repeating task moves on to its next day when ticked.
+   Tap a task to change it, or the ⋮ button to move it to another part or delete it. */
+Object.assign(ICONS,{pen:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>'});
+function tkOcc(t){if(!t.date)return null;if(!tkRep(t))return t.date;const tdy=isoD(today);let d=t.date>tdy?t.date:tdy;for(let i=0;i<400;i++){if(taskOn(t,d)&&!taskDone(t,d))return d;d=addDays(d,1)}return d}
+const tkIsDone=t=>!t.date?!!t.done:!tkRep(t)&&taskDone(t,t.date);
+const tkSort=(a,b)=>(tkOcc(a)||'9999').localeCompare(tkOcc(b)||'9999')||(a.time||'99').localeCompare(b.time||'99')||a.id-b.id;
+function tkDayLabel(o){const tdy=isoD(today);return o===tdy?'Today':o===addDays(tdy,1)?'Tomorrow':o===addDays(tdy,-1)?'Yesterday':new Date(o+'T00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
+function tkListRow(t,compact){const dn=tkIsDone(t),p=tPri(t),o=tkOcc(t),tdy=isoD(today),late=!dn&&o&&!tkRep(t)&&o<tdy,due=(S.dueNow||[]).includes(t.id)&&!dn,open=!compact&&S.tkMenu===t.id;
+ const chips=[o?`<span class="tl-chip${late?' late':o===tdy&&!dn?' now':''}">${IC('cal',13)}${late?'Overdue · ':''}${tkDayLabel(o)}${t.time?' · '+esc(t.time):''}</span>`:'',
+  tkRep(t)?`<span class="tl-chip">${IC('swap',13)}${REPEAT_L[t.repeat]}</span>`:'',compact?`<span class="tl-chip tk-pri tkp${p}"><i></i>${TK_PRI[p].n}</span>`:'',t.ai&&!compact?`<span class="tl-chip">Suggested</span>`:''].filter(Boolean).join('');
+ const body=`<b>${esc(t.title)}</b>${t.notes&&!compact?`<small>${esc(t.notes)}</small>`:''}${chips?`<span class="tl-meta">${chips}</span>`:''}`;
+ const menu=open?`<div class="tl-menu" role="menu" aria-label="Options for ${esc(t.title)}"><small>Move to</small>${[1,2,3,4].map(i=>`<button role="menuitemradio" aria-checked="${i===p}" class="tkp${i}" onclick="tkMove(${t.id},${i})"><i></i>${TK_PRI[i].n}${i===p?IC('check',15):''}</button>`).join('')}<hr><button role="menuitem" onclick="tkEdit(${t.id})">${IC('pen',15)}Change</button><button role="menuitem" class="del" onclick="tkDel(${t.id})">${IC('del',15)}Delete</button></div>`:'';
+ return `<div class="tl-row tkp${p}${dn?' done':''}${due?' due':''}${compact?' mini':''}"><button class="tl-check" role="checkbox" aria-checked="${dn}" aria-label="${dn?'Mark as not done':'Mark as done'}: ${esc(t.title)}" onclick="tkToggle(${t.id})"><span>${IC('check',13)}</span></button>${compact?`<span class="tl-txt">${body}</span>`:`<button class="tl-txt" onclick="tkEdit(${t.id})"><span class="tl-sr">Change: </span>${body}</button><button class="tl-more" aria-label="More options: ${esc(t.title)}" aria-haspopup="menu" aria-expanded="${open}" onclick="event.stopPropagation();tkMenuOpen(${t.id})">${IC('more',18)}</button>${menu}`}</div>`}
+function tkEditor(){const e=S.tkEd,t=e.id?(S.tasks||[]).find(x=>x.id===e.id):null,d=e.draft||(t?{title:t.title,notes:t.notes||'',date:t.date||'',time:t.time||'',repeat:t.repeat||'none'}:{title:'',notes:'',date:'',time:'',repeat:'none'});
+ return `<div class="tl-ed tkp${e.pri}" role="group" aria-label="${t?'Change task':'New task'}" onkeydown="if(event.key==='Escape')tkCancel()">
+ <label class="tl-sr" for="tl-t">What do you need to do?</label><input id="tl-t" class="tl-in" placeholder="What do you need to do?" maxlength="120" value="${esc(d.title)}" oninput="tkDraft()" onkeydown="if(event.key==='Enter'){event.preventDefault();tkSave(${t?0:1})}">
+ <label class="tl-sr" for="tl-n">Details</label><input id="tl-n" class="tl-in2" placeholder="Details (optional)" maxlength="300" value="${esc(d.notes)}" oninput="tkDraft()" onkeydown="if(event.key==='Enter'){event.preventDefault();tkSave(${t?0:1})}">
+ <div class="tl-quick" role="group" aria-label="Quick date"><button type="button" onclick="tkQuick(0)">Today</button><button type="button" onclick="tkQuick(1)">Tomorrow</button><button type="button" onclick="tkQuick(null)">No date</button></div>
+ <div class="tl-when"><div class="tl-fd"><label for="tl-d">Date</label><input id="tl-d" type="date" value="${esc(d.date)}" onchange="tkDraft()"></div>
+ <div><label for="tl-time">Remind me at</label><input id="tl-time" type="time" value="${esc(d.time)}" onchange="tkDraft()"></div>
+ <div><label for="tl-r">Repeat</label><select id="tl-r" onchange="tkDraft()">${Object.entries(REPEAT_L).map(([k,v])=>`<option value="${k}"${k===d.repeat?' selected':''}>${k==='none'?'Never':v}</option>`).join('')}</select></div></div>
+ <span class="tl-plbl" id="tl-pl">How important is it?</span><div class="tl-prisel" role="group" aria-labelledby="tl-pl">${[1,2,3,4].map(i=>`<button type="button" class="tkp${i}" data-p="${i}" aria-pressed="${i===e.pri}" onclick="tkEdPri(${i})"><i></i>${TK_PRI[i].n}</button>`).join('')}</div>
+ <div class="tl-edact"><button class="btn ghost sm" onclick="tkCancel()">Cancel</button><button class="btn sm" onclick="tkSave(0)">${t?'Save':'Add task'}</button></div></div>`}
+function tkDraft(){const e=S.tkEd;if(!e)return;const v=id=>($(id)||{}).value||'';e.draft={title:v('#tl-t'),notes:v('#tl-n'),date:v('#tl-d'),time:v('#tl-time'),repeat:v('#tl-r')||'none'}}
+function tkQuick(n){const d=$('#tl-d');if(!d)return;if(n===null){d.value='';const tm=$('#tl-time'),r=$('#tl-r');if(tm)tm.value='';if(r)r.value='none'}else d.value=addDays(isoD(today),n);tkDraft()}
+function tkEdPri(i){const e=S.tkEd;if(!e)return;e.pri=i;document.querySelectorAll('.tl-prisel button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.p===i)));const ed=document.querySelector('.tl-ed');if(ed)ed.className='tl-ed tkp'+i}
+function tkFocus(){setTimeout(()=>{const i=$('#tl-t');if(i){i.focus();try{i.scrollIntoView({block:'nearest'})}catch(e){}}},30)}
+function tkAddOpen(seg){S.tkMenu=null;S.tkEd={seg,pri:seg||2,id:null};if(S.tkFolded)S.tkFolded[seg]=false;render();tkFocus()}
+function tkEdit(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;S.tkMenu=null;S.tkEd={seg:tPri(t),pri:tPri(t),id};render();tkFocus()}
+function tkCancel(){S.tkEd=null;render()}
+function tkSave(keep){const e=S.tkEd;if(!e)return;tkDraft();const d=e.draft||{},title=String(d.title||'').trim(),notes=String(d.notes||'').trim().slice(0,300);
+ let date=/^\d{4}-\d{2}-\d{2}$/.test(d.date||'')?d.date:'';const time=/^\d{2}:\d{2}/.test(d.time||'')?d.time.slice(0,5):'',repeat=REPEAT_L[d.repeat]?d.repeat:'none';
+ if(!title){toast('Write what you need to do');const i=$('#tl-t');if(i)i.focus();return}
+ if(title.length>120)return toast('Keep the task under 120 characters');
+ if(!date&&(time||repeat!=='none'))date=isoD(today);
+ S.tasks=S.tasks||[];
+ if(e.id){const t=S.tasks.find(x=>x.id===e.id);if(t){const was=tkIsDone(t);Object.assign(t,{title,notes,date,time,repeat,remind:!!time,pri:e.pri});t.doneDates=t.doneDates||[];
+   if(date)t.done=null;else if(!was)t.done=null;
+   if(was&&!tkIsDone(t)){if(date&&!tkRep(t))t.doneDates.push(date);else if(!date)t.done=isoD(today)}}
+  S.tkEd=null;toast('Task saved')}
+ else{S.tasks.push({id:Date.now(),title,notes,date,time,repeat,remind:!!time,doneDates:[],pri:e.pri});
+  toast((time?'Added to '+TK_PRI[e.pri].n+'. You’ll get a reminder at '+time+'.':'Added to '+TK_PRI[e.pri].n));
+  if(S.tkFolded)S.tkFolded[e.pri]=false;S.tkEd=keep?{seg:e.seg,pri:e.pri,id:null}:null}
+ render();if(S.tkEd)tkFocus()}
+function tkToggle(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;S.tkMenu=null;
+ if(!t.date){t.done=t.done?null:isoD(today);if(t.done)toast('Done: '+t.title);S.dueNow=(S.dueNow||[]).filter(x=>x!==id);return render()}
+ t.done=null;if(!tkRep(t))return toggleTask(id,t.date);
+ toggleTask(id,tkOcc(t));toast('Done: '+t.title+'. Next: '+tkDayLabel(tkOcc(t)))}
+function tkMenuOpen(id){S.tkMenu=S.tkMenu===id?null:id;render();if(S.tkMenu)setTimeout(()=>{const b=document.querySelector('.tl-menu button[aria-checked="true"]');if(b)b.focus()},20)}
+function tkMove(id,p){const t=(S.tasks||[]).find(x=>x.id===id);S.tkMenu=null;if(!t)return render();t.pri=p;if(S.tkFolded)S.tkFolded[p]=false;toast('Moved to '+TK_PRI[p].n);render()}
+function tkDel(id){S.tkMenu=null;if(S.tkEd&&S.tkEd.id===id)S.tkEd=null;delTask(id)}
+function tkFold(p){S.tkFolded=S.tkFolded||{};S.tkFolded[p]=!S.tkFolded[p];render()}
+function tkClearDone(){const n=(S.tasks||[]).filter(tkIsDone).length;S.tasks=(S.tasks||[]).filter(t=>!tkIsDone(t));toast(n+' completed task'+(n===1?'':'s')+' deleted');render()}
+function tkTab(v){S.tkTab=v;S.tkMenu=null;S.tkEd=null;if(v==='list')S.taskDay=null;render()}
+document.addEventListener('click',e=>{if(S.tkMenu&&!(e.target.closest&&e.target.closest('.tl-menu,.tl-more'))){S.tkMenu=null;render()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.tkMenu){const id=S.tkMenu;S.tkMenu=null;render();const b=[...document.querySelectorAll('.tl-more')].find(x=>x.getAttribute('onclick').includes('('+id+')'));if(b)b.focus()}});
+function TodoList(){const all=S.tasks||[],ed=S.tkEd,open=all.filter(t=>!tkIsDone(t)),done=all.filter(tkIsDone).sort((a,b)=>String(b.done||b.date||'').localeCompare(String(a.done||a.date||''))||b.id-a.id);
+ const tdy=isoD(today),must=open.filter(t=>tPri(t)===1).length,dueT=open.filter(t=>{const o=tkOcc(t);return o&&o<=tdy}).length,fold=S.tkFolded||{};
+ const segs=[1,2,3,4].map(p=>{const items=open.filter(t=>tPri(t)===p).sort(tkSort),f=!!fold[p];
+  const rows=items.map(t=>ed&&ed.id===t.id?tkEditor():tkListRow(t)).join('');
+  const adder=ed&&!ed.id&&ed.seg===p?tkEditor():`<button class="tl-add tkp${p}" onclick="tkAddOpen(${p})">${IC('plus',18)}<span>Add a task<span class="tl-sr"> to ${TK_PRI[p].n}</span></span></button>`;
+  return `<section class="tl-seg tkp${p}" aria-label="${TK_PRI[p].n}"><button class="tl-sh" aria-expanded="${!f}" onclick="tkFold(${p})"><i class="tl-flag"></i><span><b>${TK_PRI[p].n}</b><small>${TK_PRI[p].d}</small></span>${items.length?`<em>${items.length}<span class="tl-sr"> to do</span></em>`:''}${IC('chevd',18)}</button>${f?'':`<div class="tl-items">${rows}${adder}</div>`}</section>`}).join('');
+ const comp=done.length?`<div class="tl-done"><button class="tl-sh2" aria-expanded="${!!S.tkShowDone}" onclick="S.tkShowDone=!S.tkShowDone;render()">${IC('chevd',18)}<b>Completed (${done.length})</b></button>${S.tkShowDone?done.map(t=>ed&&ed.id===t.id?tkEditor():tkListRow(t)).join('')+`<button class="btn ghost xs" onclick="arm('tkclear',tkClearDone)">${S.armed==='tkclear'?'Tap again to delete them':'Delete completed tasks'}</button>`:''}</div>`:'';
+ return `<div class="tl-top"><div><h3>My list</h3><small>${open.length?`${open.length} to do${must?' · '+must+' must do':''}${dueT?' · '+dueT+' for today':''}`:all.length?'All done. Nice work!':'Nothing on your list yet'}</small></div><button class="btn sm" onclick="tkAddOpen(0)">${IC('plus',16)}Add a task</button></div>
+ ${ed&&!ed.id&&ed.seg===0?tkEditor():''}
+ ${!all.length?`<p class="sub tl-empty">Add your first task. Put the most important ones in <b>Must do</b>, and the rest further down.</p>`:''}
+ ${segs}${comp}<div class="tl-foot">${ReminderNote()}</div>`}
+function TkGuide(){const tips=['Do these first. They matter and can’t wait.','They matter, but can wait a little. Pick a day for them.','Good to do when you have time.','Ideas and someday jobs. Look at them once a week.'];
+ return `<div class="card tl-guide"><h3 style="margin:0 0 6px">Most important first</h3>${[1,2,3,4].map(i=>`<div class="tkp${i}"><i class="tl-flag"></i><span><b>${TK_PRI[i].n}</b><small>${tips[i-1]}</small></span></div>`).join('')}</div>`}
+
 function taskRow(t,day,compact){const dn=taskDone(t,day),tdy=isoD(today),late=day===tdy&&t.time&&!dn&&t.time<hmNow(),due=(S.dueNow||[]).includes(t.id)&&!dn;
- const meta=[t.time?(late?'⏰ ':'')+t.time:'',t.repeat&&t.repeat!=='none'?REPEAT_L[t.repeat]:'',t.ai&&!compact?'Suggested':''].filter(Boolean).join(' · ');
+ const meta=[`<span class="tk-pri tkp${tPri(t)}"><i></i>${TK_PRI[tPri(t)].n}</span>`,t.time?(late?'⏰ ':'')+t.time:'',t.repeat&&t.repeat!=='none'?REPEAT_L[t.repeat]:'',t.ai&&!compact?'Suggested':''].filter(Boolean).join(' · ');
  return `<div class="tk-row${dn?' done':''}${due?' due':''}"><button class="tk-check" role="checkbox" aria-checked="${dn}" aria-label="${dn?'Mark as not done':'Mark as done'}: ${esc(t.title)}" onclick="toggleTask(${t.id},'${day}')">${dn?IC('check',16):''}</button><span class="tk-txt"><b>${esc(t.title)}</b>${meta?`<small>${meta}</small>`:''}</span>${compact?'':`<button class="btn ghost xs" aria-label="Delete ${esc(t.title)}" onclick="delTask(${t.id})">Delete</button>`}</div>`}
 
 function TodayTasksCard(){const iso=isoD(today),list=tasksOn(iso),done=list.filter(t=>taskDone(t,iso)).length,bills=billsOn(iso).filter(b=>!b.paidThisMonth);
- if(!list.length&&!bills.length)return `<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><span><b>✅ Plan your day</b><br><small style="color:var(--ink2)">Add tasks and reminders, or let WalletMV suggest some.</small></span><button class="btn ghost sm" onclick="S.taskDay=null;mv('tasks')">Open daily tasks</button></div></div>`;
- const open=list.filter(t=>!taskDone(t,iso));
- return `${TASK_CSS}<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Today’s tasks</h3><span class="tk-tag">${done} of ${list.length} done</span></div>
- ${list.length?`<div class="tk-prog"><i style="width:${list.length?Math.round(done/list.length*100):0}%"></i></div>`:''}
+ const ids=new Set(list.map(t=>t.id)),must=(S.tasks||[]).filter(t=>!ids.has(t.id)&&tPri(t)===1&&!tkIsDone(t)&&(!t.date||(!tkRep(t)&&t.date<iso)));
+ const open=[...list.filter(t=>!taskDone(t,iso)),...must].sort((a,b)=>tPri(a)-tPri(b)||(tkOcc(a)||iso).localeCompare(tkOcc(b)||iso)||(a.time||'99').localeCompare(b.time||'99')||a.id-b.id);
+ const go=`S.taskDay=null;S.tkTab='list';S.tkEd=null;mv('tasks')`;
+ if(!list.length&&!bills.length&&!open.length){const n=(S.tasks||[]).filter(t=>!tkIsDone(t)).length;
+  return `<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><span><b>✅ ${n?'Your to-do list':'Plan your day'}</b><br><small style="color:var(--ink2)">${n?`${n} task${n===1?'':'s'} on your list. Nothing is due today.`:'Add tasks and reminders, or let WalletMV suggest some.'}</small></span><button class="btn ghost sm" onclick="${go}">Open to-do list</button></div></div>`}
+ return `${TASK_CSS}<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Today’s tasks</h3>${list.length?`<span class="tk-tag">${done} of ${list.length} done</span>`:''}</div>
+ ${list.length?`<div class="tk-prog"><i style="width:${Math.round(done/list.length*100)}%"></i></div>`:''}
  ${bills.map(b=>`<div class="tk-row"><span class="dot" style="background:var(--rose);margin:0 11px"></span><span class="tk-txt"><b>Pay ${esc(b.name)}</b><small>Bill due today · ${money(b.amt)}</small></span><button class="btn ghost xs" onclick="markPaid(${b.id})">Mark paid</button></div>`).join('')}
- ${open.slice(0,3).map(t=>taskRow(t,iso,true)).join('')}${open.length>3?`<p class="sub" style="margin:8px 0 0;font-size:13px">and ${open.length-3} more</p>`:''}
- <button class="btn ghost sm" style="margin-top:12px" onclick="S.taskDay=null;mv('tasks')">Open daily tasks</button></div>`}
+ ${open.slice(0,4).map(t=>tkListRow(t,true)).join('')}${open.length>4?`<p class="sub" style="margin:8px 0 0;font-size:13px">and ${open.length-4} more</p>`:''}
+ ${list.length&&!open.length?`<p class="sub" style="margin:10px 0 0;font-size:13.5px">All of today’s tasks are done. 🎉</p>`:''}
+ <button class="btn ghost sm" style="margin-top:12px" onclick="${go}">Open to-do list</button></div>`}
 
 function Tasks(){if(S.aiOn===undefined)setTimeout(checkAi,0);
- const tdy=isoD(today),day=S.taskDay||tdy,week=taskWeek(day),list=tasksOn(day),bills=billsOn(day),notes=notesOn(day),done=list.filter(t=>taskDone(t,day)).length;
+ const tab=S.tkTab==='day'?'day':'list',tdy=isoD(today),day=tab==='list'?tdy:(S.taskDay||tdy),week=taskWeek(day),list=tasksOn(day),bills=billsOn(day),notes=notesOn(day),done=list.filter(t=>taskDone(t,day)).length;
  const dayName=day===tdy?'Today':day===addDays(tdy,1)?'Tomorrow':new Date(day+'T00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'});
  const strip=week.map(iso=>{const d=new Date(iso+'T00:00'),n=tasksOn(iso).filter(t=>!taskDone(t,iso)).length+billsOn(iso).filter(b=>!b.paidThisMonth).length,on=iso===day;
   return `<button class="tk-day${on?' on':''}${iso===tdy?' today':''}" aria-pressed="${on}" aria-label="${d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})}${n?', '+n+' to do':''}" onclick="pickTaskDay('${iso}')"><small>${d.toLocaleDateString('en-GB',{weekday:'short'})}</small><b>${d.getDate()}</b><i>${n?n+'<span class="tk-lbl"> to do</span>':''}</i></button>`}).join('');
  const p=S.aiPlan&&S.aiPlan.iso===day?S.aiPlan:null;
  const plan=p?(p.fellBack?`<p class="sub" style="margin:14px 0 0;font-size:13px">The AI didn’t answer just now, so here are WalletMV’s own suggestions.</p>`:'')+(p.items.length?`<div style="margin-top:14px">${p.items.map((it,i)=>`<div class="tk-row"><span class="tk-txt"><b>${esc(it.title)}</b>${it.why?`<small>${esc(it.why)}</small>`:''}</span><button class="btn ghost xs" onclick="addPlanItem(${i})">+ Add</button></div>`).join('')}<button class="btn sm" style="margin-top:10px" onclick="addAllPlan()">Add all ${p.items.length}</button></div>`:`<p class="sub" style="margin:12px 0 0">You’re all set. Nothing more to suggest for this day.</p>`):'';
  const a=S.aiAnswer;
- return `${TASK_CSS}${Head('Daily tasks','Your to-do list and reminders for each day. Tick things off as you go.')}
+ const tabs=`<div class="nl-seg tl-tabs" role="group" aria-label="View">${[['list','My list'],['day','By day']].map(([k,v])=>`<button aria-pressed="${tab===k}" onclick="tkTab('${k}')">${v}</button>`).join('')}</div>`;
+ const side=`<div class="tl-side">${tab==='list'?TkGuide():''}<div class="card"><h3 style="margin:0 0 4px">✨ Plan my day</h3><p class="sub" style="margin:0 0 14px">${S.aiOn?'WalletMV’s AI looks at your bills, budget and goals and suggests tasks for '+(tab==='list'?'today':'this day')+'.':'WalletMV looks at your bills, budget and goals and suggests tasks for '+(tab==='list'?'today':'this day')+'.'}</p>
+  <button class="btn" onclick="planDay(this)">${S.aiOn?'Plan my day with AI':'Suggest tasks'}</button>${plan}
+  ${S.aiOn?`<p class="sub" style="margin:12px 0 0;font-size:12px">To make the plan, your bill names, goals and totals for this month are sent to OpenAI, the makers of ChatGPT. Nothing else is sent.</p>`:''}
+  ${!S.aiOn&&S.isOwner&&S.aiOn!==null?`<p class="sub" style="margin:12px 0 0;font-size:12px">Owner: to switch on the AI (OpenAI, the makers of ChatGPT), add an <b>OPENAI_API_KEY</b> secret for Edge Functions in Supabase.</p>`:''}</div>
+  ${S.aiOn?`<div class="card"><h3 style="margin:0 0 4px">Ask AI about your money</h3><p class="sub" style="margin:0 0 12px">For example: “Can I afford a MVR 2,000 trip this month?”</p>
+  <div class="flex" style="gap:8px;flex-wrap:wrap"><label for="ask-q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Your question</label><input id="ask-q" maxlength="300" placeholder="Ask a question" value="${a?esc(a.q):''}" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')askMoney(this.nextElementSibling)"><button class="btn sm" onclick="askMoney(this)">Ask</button></div>
+  ${a?`<div class="${a.ok?'okbox':'warnbox'}" style="margin-top:12px" role="status">${esc(a.a)}</div>`:''}
+  <p class="sub" style="margin:10px 0 0;font-size:12px">Answers use only your WalletMV figures. They’re not financial advice.</p></div>`:''}</div>`;
+ if(tab==='list')return `${TASK_CSS}${Head('To-do list','Your tasks in order of importance. Tick them off as you go.')}${tabs}
+ <div class="grid2 tl-grid"><div class="card tl-card">${TodoList()}</div>${side}</div>`;
+ return `${TASK_CSS}${Head('To-do list','Your tasks and reminders for each day. Tick them off as you go.')}${tabs}
  <div class="tk-week"><button class="tk-nav" aria-label="Previous week" onclick="pickTaskDay('${addDays(week[0],-7)}')">‹</button><div class="tk-days">${strip}</div><button class="tk-nav" aria-label="Next week" onclick="pickTaskDay('${addDays(week[0],7)}')">›</button></div>
  <div class="grid2" style="align-items:start">
  <div class="card"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">${esc(dayName)}</h3>${list.length?`<span class="tk-tag">${done} of ${list.length} done</span>`:''}</div>
@@ -2128,18 +2297,10 @@ function Tasks(){if(S.aiOn===undefined)setTimeout(checkAi,0);
   <div class="tk-add"><div class="tk-title"><label for="tk-t">New task</label><input id="tk-t" placeholder="e.g. Pay rent, call the bank" maxlength="120" onkeydown="if(event.key==='Enter')addTask()"></div>
   <div><label for="tk-time">Remind me at</label><input id="tk-time" type="time"></div>
   <div><label for="tk-r">Repeat</label><select id="tk-r">${Object.entries(REPEAT_L).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+  <div class="tk-pf"><label for="tk-p">How important</label><select id="tk-p">${[1,2,3,4].map(i=>`<option value="${i}"${i===2?' selected':''}>${TK_PRI[i].n}</option>`).join('')}</select></div>
   <button class="btn" onclick="addTask()">Add task</button></div>
   <div style="margin-top:14px">${ReminderNote()}</div></div>
- <div>
-  <div class="card"><h3 style="margin:0 0 4px">✨ Plan my day</h3><p class="sub" style="margin:0 0 14px">${S.aiOn?'WalletMV’s AI looks at your bills, budget and goals and suggests tasks for this day.':'WalletMV looks at your bills, budget and goals and suggests tasks for this day.'}</p>
-  <button class="btn" onclick="planDay(this)">${S.aiOn?'Plan my day with AI':'Suggest tasks'}</button>${plan}
-  ${S.aiOn?`<p class="sub" style="margin:12px 0 0;font-size:12px">To make the plan, your bill names, goals and totals for this month are sent to OpenAI, the makers of ChatGPT. Nothing else is sent.</p>`:''}
-  ${!S.aiOn&&S.isOwner&&S.aiOn!==null?`<p class="sub" style="margin:12px 0 0;font-size:12px">Owner: to switch on the AI (OpenAI, the makers of ChatGPT), add an <b>OPENAI_API_KEY</b> secret for Edge Functions in Supabase.</p>`:''}</div>
-  ${S.aiOn?`<div class="card" style="margin-top:18px"><h3 style="margin:0 0 4px">Ask AI about your money</h3><p class="sub" style="margin:0 0 12px">For example: “Can I afford a MVR 2,000 trip this month?”</p>
-  <div class="flex" style="gap:8px;flex-wrap:wrap"><label for="ask-q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Your question</label><input id="ask-q" maxlength="300" placeholder="Ask a question" value="${a?esc(a.q):''}" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')askMoney(this.nextElementSibling)"><button class="btn sm" onclick="askMoney(this)">Ask</button></div>
-  ${a?`<div class="${a.ok?'okbox':'warnbox'}" style="margin-top:12px" role="status">${esc(a.a)}</div>`:''}
-  <p class="sub" style="margin:10px 0 0;font-size:12px">Answers use only your WalletMV figures. They’re not financial advice.</p></div>`:''}
- </div></div>`}
+ ${side}</div>`}
 
 /* ---------- Saving each person's data to their own account ----------
    Personal and shop records are saved to Supabase (table walletmv_app_state: one row per account, each person can only

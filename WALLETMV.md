@@ -11,7 +11,7 @@
 
 | Part | Who it's for | What it does |
 |---|---|---|
-| **Money app** | People & families | Safe-to-spend number every morning, income/expense tracking, bills & calendar, budgets, savings goals, groceries lists, reports, 25 currencies, member discount card, shared wallet |
+| **Money app** | People & families | Safe-to-spend number every morning, income/expense tracking, bills & calendar, to-do list (Must do → Later), budgets, savings goals, groceries lists, reports, 25 currencies, member discount card, shared wallet |
 | **MVSHOP** | Small shops & businesses | Point of sale, invoices / quotations / receipts, bill formats, stock & reordering, GST for MIRA, contacts, bill inbox (WhatsApp photos), AI shop assistant, loyalty discount cards |
 | **Website** | Everyone | Home page, Services & packages (one page), Loyalty discount cards, checkout, Terms, Privacy, FAQ |
 | **Admin** | Owner | Approve payments, packages editor, payment methods, WhatsApp orders, alert rules, problem reports |
