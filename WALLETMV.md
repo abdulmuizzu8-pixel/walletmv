@@ -49,6 +49,11 @@ Prices, names and features are editable in **Admin → Packages** (no code chang
 A free **all-access test account** exists for the owner — its login lives in the code and **must move to
 server sign-in before launch** (see §8).
 
+**How a payment is approved:** the customer pays by transfer, m-Faisaa or WhatsApp order and sends the reference (and slip).
+It lands in **Admin → Payment requests from customers**; check it against the bank, then Approve (the package switches on
+for that customer) or Decline with a note. Bank details shown at checkout are kept in the database (Admin → Payment methods),
+never in the code.
+
 **Payment methods:** local card (BML Connect), international card, BML transfer (slip upload),
 Ooredoo m-Faisaa, Dhiraagu Pay, PayPal, Skrill, international transfer, **Order on WhatsApp**.
 
@@ -162,7 +167,7 @@ git push -u origin main
 
 - [ ] Buy **walletmv.com** and connect it on Vercel.
 - [ ] Move **admin login** and the **free test login** out of `index.html` into real sign-in (Supabase Auth).
-- [ ] Save customer data in a database (Supabase) instead of each browser.
+- [x] Save customer data in a database (Supabase) instead of each browser. *(done: each person's data, payment requests and document photos are in Supabase, private to them)*
 - [ ] **BML Connect** approval for card payments (until then: transfer slip / WhatsApp order + Admin approval).
 - [ ] WhatsApp via Twilio: second SIM for the bot, Meta business verification, 5 message templates approved
       (backend code is in the separate `backend/` folder of the project zip).

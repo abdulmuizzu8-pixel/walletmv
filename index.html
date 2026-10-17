@@ -377,14 +377,14 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
  pendingSubs:[{id:1,plan:'plus',price:199,total:199,method:'bank',ref:'BML-2409251187',requestedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),status:'approved',slipName:'bml-slip.jpg'}],checkoutPlan:'plus',
  ownerWhatsapp:'+960 798 7770',supportWhatsapp:'+960 798 7770',issues:[],issueOpen:null,errLog:[],ruleOff:{},inbox:[],waGroupLink:'',inboxBusy:0,ownerViber:'',checkoutSlip:null,checkoutSlipName:'',checkoutMethod:null,checkoutRef:'',
  payMethods:[
-  {id:'bank',name:'Bank transfer (BML)',region:'MV',on:true,custom:false,details:'Bank of Maldives · Account name: Sunshine Beach Maldives · Account number: 7770000264014',refHint:'e.g. BML transfer reference'},
+  {id:'bank',name:'Bank transfer (BML)',region:'MV',on:true,custom:false,details:'The bank account details load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. BML transfer reference'},
   {id:'wallet',name:'Mobile wallet (Ooredoo m-Faisaa / Dhiraagu Pay)',region:'MV',on:true,custom:false,details:'Send to 7771234 (WalletMV)',refHint:'e.g. MF-88231904'},
   {id:'card',name:'Local card (BML Connect)',region:'MV',on:true,custom:false,details:'Pay by card via the BML Connect link we send you, then paste the approval code here',refHint:'e.g. approval code 482913'},
   {id:'intlcard',name:'International card (Visa / Mastercard / Amex)',region:'world',on:true,custom:false,details:'Pay through the secure card link we email you, then paste the transaction ID here',refHint:'e.g. ch_3PqA91xZ'},
   {id:'paypal',name:'PayPal',region:'world',on:true,custom:false,details:'Send to payments@walletmv.com',refHint:'e.g. PayPal transaction ID 9XK12345AB678901C'},
   {id:'skrill',name:'Skrill (wallet or card)',region:'world',on:true,custom:false,details:'Pay from your Skrill wallet to payments@walletmv.com — or pay by Visa / Mastercard through the Skrill card link we send you',refHint:'e.g. Skrill transaction ID 5012345678'},
   {id:'whatsapp',name:'Order on WhatsApp',region:'MV',on:true,custom:false,details:'Send your order on WhatsApp. We reply with how to pay and switch your package on.',refHint:''},
-  {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:true,custom:false,details:'SWIFT / international transfer to Bank of Maldives (SWIFT: MALBMVMV) · Account name: Sunshine Beach Maldives · Account number: 7770000264014',refHint:'e.g. Wise transfer #1234567890'}
+  {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:true,custom:false,details:'The account details for international transfers load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. Wise transfer #1234567890'}
  ],
  autoActivate:false,
  quick:DEFAULT_QUICK.map(q=>({...q})),editQuick:null,
@@ -1025,7 +1025,7 @@ function PayMethodSelect(sel){const act=activeMethods();
 function togglePayMethod(id){const m=payMethod(id);if(!m)return;
  if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
  m.on=!m.on;toast(m.name+(m.on?' switched on':' switched off'));render()}
-function savePayDetails(id){const m=payMethod(id);if(!m)return;m.details=$('#pmd'+id).value.trim();toast('Details saved for '+m.name);render()}
+async function savePayDetails(id){const m=payMethod(id);if(!m)return;const d=$('#pmd'+id).value.trim().slice(0,400);if(!d)return toast('Add the details customers need to pay you');m.details=d;const ok=await savePayCfg(id,d);toast(ok?'Details saved for '+m.name+'. Customers see them at checkout.':'Saved here, but it couldn’t reach the database. Try again.');render()}
 function addPayMethod(){const name=$('#npmName').value.trim(),details=$('#npmDetails').value.trim(),region=$('#npmRegion').value;
  if(!name)return toast('Give the payment method a name');
  if(!details)return toast('Add the details customers need to pay you');
@@ -1035,6 +1035,64 @@ function addPayMethod(){const name=$('#npmName').value.trim(),details=$('#npmDet
 function delPayMethod(id){const m=payMethod(id);if(!m||!m.custom)return;
  if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
  S.payMethods=S.payMethods.filter(x=>x.id!==id);toast(m.name+' removed');render()}
+/* ---------- PAYMENTS THROUGH THE DATABASE ----------
+   Bank details shown at checkout live in the database (walletmv_public_config), never in this file.
+   A customer's payment request is saved to walletmv_payment_requests (they can only add their own, always "pending";
+   their slip goes to the private walletmv-slips storage). Only WalletMV admins can see all requests and approve or decline them.
+   The customer's app reads its own requests and switches the package on once one is approved. */
+const PAY_CFG_KEY='pay_details';
+async function loadPublicConfig(){if(!walletAuth)return;try{const {data,error}=await walletAuth.from('walletmv_public_config').select('key,value').eq('key',PAY_CFG_KEY).maybeSingle();
+ if(error||!data||!data.value||typeof data.value!=='object')return;S.payCfg=data.value;Object.entries(data.value).forEach(([id,det])=>{const m=payMethod(id);if(m&&typeof det==='string'&&det.trim())m.details=det.trim().slice(0,400)});
+ if(['checkout','admin','packages'].includes(S.page))render()}catch(e){}}
+async function savePayCfg(id,details){if(!walletAuth||!S.isOwner)return false;const value={...(S.payCfg||{}),[id]:details};
+ try{const {error}=await walletAuth.from('walletmv_public_config').upsert({key:PAY_CFG_KEY,value,updated_at:new Date().toISOString(),updated_by:_dataUid||null});if(error)return false;S.payCfg=value;return true}catch(e){return false}}
+async function sendPayRequest(sub){if(!walletAuth||!S.signed||!_dataUid||!sub||sub.serverId)return !!(sub&&sub.serverId);
+ let slip_path=null;
+ if(sub.slip&&/^data:/.test(sub.slip)&&walletAuth.storage){try{const blob=await (await fetch(sub.slip)).blob(),ext=blob.type==='application/pdf'?'pdf':blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg',path=`${_dataUid}/${sub.id}.${ext}`;
+  const {error}=await walletAuth.storage.from('walletmv-slips').upload(path,blob,{contentType:blob.type||'image/jpeg',upsert:false});if(!error)slip_path=path}catch(e){}}
+ const row={email:(S.email||'').slice(0,200)||null,name:(S.name||'').slice(0,120)||null,plan:sub.plan,period:sub.days>=300?'year':'month',days:sub.days,amount:sub.total,method:String(sub.method).slice(0,60),method_name:payName(sub.method).slice(0,120),reference:String(sub.ref||'').slice(0,120),slip_path,joined_on:S.joinedAt||null};
+ try{const {data,error}=await walletAuth.from('walletmv_payment_requests').insert(row).select('id').maybeSingle();if(error)return false;sub.serverId=(data&&data.id)||'sent';sub.slip=null;sub.unsent=false;return true}catch(e){return false}}
+async function loadMyPayments(quiet){if(!walletAuth||!S.signed||!_dataUid)return;
+ for(const sub of (S.pendingSubs||[]).filter(x=>x.status==='pending'&&!x.serverId&&x.method!=='card'))await sendPayRequest(sub);
+ let r;try{r=await walletAuth.from('walletmv_payment_requests').select('id,plan,period,days,amount,method,method_name,reference,status,note,starts_on,ends_on,created_at,decided_at').eq('user_id',_dataUid).order('created_at',{ascending:false}).limit(30)}catch(e){return}
+ if(!r||r.error||!Array.isArray(r.data))return;
+ const rows=r.data,tdy=isoD(today),before=JSON.stringify([S.subscription,S.pendingSubs]);
+ rows.slice().reverse().forEach(row=>{let x=(S.pendingSubs||[]).find(y=>y.serverId===row.id);
+  if(!x){x={id:Date.parse(row.created_at)||Date.now(),serverId:row.id,plan:row.plan,price:+row.amount,total:+row.amount,days:row.days,method:row.method,ref:row.reference||'',requestedAt:String(row.created_at||'').slice(0,10)||tdy,slipName:''};S.pendingSubs.unshift(x)}
+  x.status=row.status;x.note=row.note||'';x.endsOn=row.ends_on||null});
+ if(!S.comp){const live=rows.filter(x=>x.status==='approved'&&x.ends_on&&x.ends_on>tdy).sort((a,b)=>b.ends_on.localeCompare(a.ends_on))[0],waiting=rows.find(x=>x.status==='pending');
+  if(live)S.subscription={plan:live.plan,status:'active',requestedAt:String(live.created_at||'').slice(0,10),approvedAt:String(live.decided_at||'').slice(0,10)||tdy,verified:true,startsAt:live.starts_on||tdy,expiresAt:live.ends_on,serverId:live.id};
+  else if(waiting)S.subscription={plan:waiting.plan,status:'pending_approval',requestedAt:String(waiting.created_at||'').slice(0,10),approvedAt:null,serverId:waiting.id};
+  else{const cur=S.subscription||{};if(cur.serverId||cur.status==='pending_approval')S.subscription={plan:'',status:'none',requestedAt:null,approvedAt:null}}
+  const rej=rows[0]&&rows[0].status==='rejected'&&!live&&!waiting?rows[0]:null;S.payRejected=rej?{plan:rej.plan,ref:rej.reference||'',note:rej.note||''}:null}
+ if(JSON.stringify([S.subscription,S.pendingSubs])!==before)render();else if(!quiet)render()}
+async function checkPayNow(btn){if(btn){btn.disabled=true;btn.textContent='Checking…'}await loadMyPayments(true);const i=subInfo();toast(i.state==='active'&&!i.trial?(i.p.short||i.p.name)+' is on':i.state==='pending'?'Still waiting for confirmation':'Not confirmed yet');render()}
+/* Admin: payment requests from every customer */
+async function loadAdminPays(){if(!walletAuth||!S.isOwner)return;S.adminPay=S.adminPay||{filter:'pending'};S.adminPay.busy=true;
+ let r;try{r=await walletAuth.from('walletmv_payment_requests').select('*').order('created_at',{ascending:false}).limit(200)}catch(e){r={error:e}}
+ S.adminPay.busy=false;S.adminPay.err=r&&r.error?'Couldn’t load the payment requests. Check you’re logged in as the owner, then refresh.':'';S.adminPay.list=(r&&!r.error&&Array.isArray(r.data))?r.data:(S.adminPay.list||[]);if(S.page==='admin')render()}
+function adminPayEnd(row,list){const tdy=isoD(today);let base=tdy;
+ const same=list.filter(x=>x.user_id===row.user_id&&x.id!==row.id&&x.status==='approved'&&x.plan===row.plan&&x.ends_on&&x.ends_on>tdy).sort((a,b)=>b.ends_on.localeCompare(a.ends_on))[0];if(same)base=same.ends_on;
+ if(row.plan===veliPlan().id&&row.joined_on){const te=addDays(row.joined_on,veliPlan().trial||90);if(te>base)base=te}
+ return addDays(base,row.days||30)}
+async function adminDecide(id,ok,btn){const P=S.adminPay||{},row=(P.list||[]).find(x=>x.id===id);if(!row||row.status!=='pending'||!walletAuth)return;
+ const note=((($('#apn_'+id)||{}).value)||'').trim().slice(0,300);
+ const patch=ok?{status:'approved',starts_on:isoD(today),ends_on:adminPayEnd(row,P.list),note:note||null}:{status:'rejected',note:note||null};
+ patch.decided_at=new Date().toISOString();patch.decided_by=_dataUid||null;if(btn)btn.disabled=true;
+ let r;try{r=await walletAuth.from('walletmv_payment_requests').update(patch).eq('id',id).eq('status','pending')}catch(e){r={error:e}}
+ if(r&&r.error){if(btn)btn.disabled=false;return toast('Couldn’t save that. Try again.')}
+ Object.assign(row,patch);toast(ok?`Approved: ${row.name||row.email||'customer'} has ${planInfo(row.plan)?planInfo(row.plan).short:row.plan} until ${ld(patch.ends_on)}`:`Declined: ${row.name||row.email||'customer'}`);render()}
+async function adminSlip(path){if(!walletAuth||!walletAuth.storage)return;try{const {data,error}=await walletAuth.storage.from('walletmv-slips').createSignedUrl(path,300);if(error||!data)return toast('Couldn’t open the slip');window.open(data.signedUrl,'_blank','noopener')}catch(e){toast('Couldn’t open the slip')}}
+function AdminPayHTML(){const P=S.adminPay||{filter:'pending'};if(!P.list&&!P.busy)setTimeout(loadAdminPays,0);
+ const list=P.list||[],f=P.filter||'pending',n=k=>list.filter(x=>x.status===k).length,show=list.filter(x=>f==='all'||x.status===f);
+ const row=x=>{const pl=planInfo(x.plan),st=x.status;return `<div class="today-row" style="align-items:flex-start;flex-wrap:wrap;gap:10px"><span class="dot" style="margin-top:6px;background:var(--${st==='approved'?'ok':st==='rejected'?'rose':'gold'})"></span>
+  <span style="flex:1;min-width:220px"><b>${esc(x.name||x.email||'Customer')}</b> · ${esc(pl?pl.short:x.plan)}${x.period==='year'?' (yearly)':''} · <b>MVR ${(+x.amount).toLocaleString('en-GB')}</b><br><small style="color:var(--ink2)">${esc(mvt(x.created_at))} · ${esc(x.method_name||x.method)} · ref <b>${esc(x.reference||'—')}</b>${x.email?' · '+esc(x.email):''}${x.slip_path?` · <button class="lnk" onclick="adminSlip('${esc(x.slip_path)}')">View slip</button>`:' · no slip'}${st!=='pending'?` · ${st==='approved'?'approved'+(x.ends_on?' until '+esc(ld(x.ends_on)):''):'declined'}${x.note?' — '+esc(x.note):''}`:''}</small></span>
+  ${st==='pending'?`<span class="flex" style="gap:6px;flex-wrap:wrap;align-items:center"><label for="apn_${x.id}" class="hide">Note</label><input id="apn_${x.id}" maxlength="300" placeholder="Note (optional)" style="width:170px;min-height:38px"><button class="btn sm" onclick="adminDecide('${x.id}',true,this)">Approve</button><button class="btn ghost sm" style="color:var(--rose)" onclick="adminDecide('${x.id}',false,this)">Decline</button></span>`:''}</div>`};
+ return `<div class="card" style="margin-top:22px" id="admin-pays"><div class="flex between" style="flex-wrap:wrap;gap:10px;align-items:center"><div><h3 style="margin:0">Payment requests from customers</h3><p class="sub" style="margin:4px 0 0">Check each one against your bank or m-Faisaa, then approve or decline. Approving switches the customer’s package on.</p></div><button class="btn ghost sm" onclick="loadAdminPays()">${P.busy?'Loading…':'Refresh'}</button></div>
+ <div class="nl-seg" role="group" aria-label="Show" style="margin-top:12px">${[['pending','Waiting'],['approved','Approved'],['rejected','Declined'],['all','All']].map(([k,l])=>`<button aria-pressed="${f===k}" onclick="S.adminPay.filter='${k}';render()">${l}${k!=='all'?' ('+n(k)+')':''}</button>`).join('')}</div>
+ ${P.err?`<div class="warnbox" style="margin-top:12px">${esc(P.err)}</div>`:''}
+ <div style="margin-top:8px">${show.length?show.map(row).join(''):`<p class="sub" style="margin:12px 0 0">${P.busy&&!P.list?'Loading…':f==='pending'?'Nothing waiting. New requests show up here.':'Nothing here yet.'}</p>`}</div></div>`}
+
 function submitPayment(){
  const method=$('#payMethod').value||checkoutMethodId(),ref=$('#payRef').value.trim();
  if(!method)return toast('No payment method is available right now');
@@ -1046,7 +1104,8 @@ function submitPayment(){
  S.pendingSubs.unshift(sub);
  if(auto)activateSub(plan,false,info.days);else S.subscription={plan,status:'pending_approval',requestedAt:isoD(today),approvedAt:null,prev:S.subscription};
  S.checkoutSlip=null;S.checkoutSlipName='';S.checkoutRef='';S.checkoutMethod=null;S.checkoutStep='done';S.lastSubId=sub.id;
- toast(auto?planInfo(plan).name+' is active — thank you!':'Payment submitted — your package is awaiting approval');render()}
+ toast(auto?planInfo(plan).name+' is active — thank you!':'Payment submitted — your package is awaiting approval');render();
+ if(S.signed)sendPayRequest(sub).then(ok=>{if(!ok){sub.unsent=true;toast('Saved on this device. It will be sent to WalletMV when you’re back online.')}render()})}
 function notifyMsg(sub){return 'Payment submitted on WalletMV\nPackage: '+planInfo(sub.plan).name+'\nAmount: MVR '+sub.price+'\nMethod: '+payName(sub.method)+'\nReference: '+sub.ref+'\nDate: '+sd(sub.requestedAt)+(sub.slipName?'\n\n(Attach the payment slip photo "'+sub.slipName+'" to this message before sending)':'')}
 function waHref(sub){if(!S.ownerWhatsapp)return null;const num=S.ownerWhatsapp.replace(/[^\d]/g,'');if(!num)return null;return 'https://wa.me/'+num+'?text='+encodeURIComponent(notifyMsg(sub))}
 function viberHref(sub){if(!S.ownerViber)return null;const num=S.ownerViber.replace(/[^\d+]/g,'');if(!num)return null;return 'viber://chat?number='+encodeURIComponent(num)}
@@ -1128,7 +1187,7 @@ function MyPackage(){const i=subInfo();
  const hist=S.pendingSubs.length?`<div class="card store-hide" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:8px"><h3>Payment history</h3><button class="lnk" onclick="reportProblem('Payment or package')">Problem with a payment?</button></div>${S.pendingSubs.map(x=>{const xp=planInfo(x.plan);return `<div class="lrow">${ICB(KIND_IC[methodKind(payMethod(x.method)||{id:x.method})]||'receipt','rgba(11,26,44,.06)','var(--deep)',38)}<span class="t"><b>${esc(xp?xp.short:x.plan)} Package · MVR ${x.total||x.price}</b><small>${ld(x.requestedAt)} · ${esc(payName(x.method))} · ref ${esc(x.ref)}</small></span><span class="badge" style="background:${x.status==='approved'?'rgba(31,122,92,.14)':x.status==='rejected'?'rgba(180,67,78,.12)':'rgba(212,178,106,.22)'};color:${x.status==='approved'?'var(--ok)':x.status==='rejected'?'var(--rose)':'var(--gold-d)'}">${x.status==='approved'?'Paid':x.status==='auto'?'Active · checking':x.status==='rejected'?'Declined':'Waiting'}</span>${x.status!=='rejected'?`<button class="btn ghost sm" style="margin-left:8px" onclick="openBill('sub',${x.id},'paid')">Receipt</button>`:''}</div>`}).join('')}</div>`:'';
  if(i.state==='none'){const fp=veliPlan(),c=cheapest();return `${Head('My package','Your package details.')}<div class="card" style="border:2px solid var(--line)"><span class="badge" style="background:rgba(31,122,92,.14);color:var(--ok)">${esc(fp.name)}</span><div class="flex" style="gap:14px;align-items:flex-start;margin-top:14px;flex-wrap:wrap">${ICB(fp.icon||'sun','rgba(212,178,106,.2)','var(--gold-d)',56)}<div style="flex:1;min-width:200px"><h3 style="margin:0">You’re on ${esc(fp.name)}</h3>${fp.meaning?`<p style="margin:2px 0 6px;font:italic 500 15.5px/1.35 var(--head);color:var(--gold-d)">${esc(fp.meaning)}</p>`:''}<ul class="pkchk" style="margin:10px 0 0">${(fp.features||[]).map(f=>`<li>${IC('check',17)}<span>${esc(f)}</span></li>`).join('')}</ul></div></div>
  <div class="store-hide"><p class="sub" style="margin:16px 0 0">${c?`Want more? Paid packages start at MVR ${c.price} for ${c.days} days.`:''}</p><button class="btn" style="margin-top:12px" onclick="go('packages')">See packages</button></div></div>${hist}`}
- if(i.state==='pending')return `${Head('My package','Your plan, dates and what\'s included.')}<div class="card"><span class="badge" style="background:rgba(212,178,106,.22);color:var(--gold-d)">Waiting for payment confirmation</span><div style="margin-top:14px">${PlanBox(i.p,false)}</div><p class="sub" style="margin-top:14px">Requested ${ld(i.s.requestedAt)}. It switches on as soon as the payment is confirmed.</p></div>${hist}`;
+ if(i.state==='pending')return `${Head('My package','Your plan, dates and what\'s included.')}<div class="card"><span class="badge" style="background:rgba(212,178,106,.22);color:var(--gold-d)">Waiting for payment confirmation</span><div style="margin-top:14px">${PlanBox(i.p,false)}</div><p class="sub" style="margin-top:14px">Requested ${ld(i.s.requestedAt)}. It switches on as soon as the payment is confirmed.</p><button class="btn ghost sm" onclick="checkPayNow(this)">Check again</button></div>${hist}`;
  const ex=i.state==='expired';
  return `${Head('My package','Your plan, dates and what\'s included.')}
  <div class="card"><span class="badge" style="background:${ex?'rgba(180,67,78,.12)':'rgba(31,122,92,.14)'};color:${ex?'var(--rose)':'var(--ok)'}">${ex?'Expired':i.trial?`Free for your first ${trialMonths()} months`:'Active'}</span>${i.trial&&!ex?`<p class="sub" style="margin:10px 0 0">After ${longD(i.end)}, ${esc(i.p.short||'Veli')} is MVR ${veliPlan().price} every ${veliPlan().days} days. Or choose a bigger package any time.</p>`:''}
@@ -1291,7 +1350,7 @@ function waOrderHref(planId,kind){const p=planInfo(planId);if(!p||!waReady())ret
 function waOrder(planId,kind){const p=planInfo(planId);if(!p)return;const ref='WA-'+String(Date.now()).slice(-6);
  const sub={id:Date.now(),plan:planId,price:p.price,total:planTotal(p),days:p.days,method:'whatsapp',ref,requestedAt:isoD(today),status:'pending',slipName:''};
  S.pendingSubs.unshift(sub);if(subInfo().state!=='active')S.subscription={plan:planId,status:'pending_approval',requestedAt:isoD(today),approvedAt:null};
- S.checkoutPlan=planId;S.checkoutStep='done';S.lastSubId=sub.id;S.page='checkout';
+ S.checkoutPlan=planId;S.checkoutStep='done';S.lastSubId=sub.id;S.page='checkout';if(S.signed)sendPayRequest(sub);
  const a=document.createElement('a');a.href='https://wa.me/'+waNum()+'?text='+encodeURIComponent(waOrderText(p,ref,kind));a.target='_blank';a.rel='noopener';document.body.appendChild(a);try{a.click()}catch(e){}a.remove();
  toast('Order '+ref+' sent to WhatsApp');render();scrollTo(0,0)}
 function saveWaNumber(){const v=$('#adwa').value.trim();if(v&&!/^\+?[\d\s-]{7,}$/.test(v))return toast('Enter a valid WhatsApp number, e.g. +960 777 1234');S.ownerWhatsapp=v;S.ownerViber=($('#advb')&&$('#advb').value.trim())||S.ownerViber;toast(v?'WhatsApp orders go to '+v:'WhatsApp number removed');render()}
@@ -1460,7 +1519,7 @@ function WaGroupCard(){return `<div class="card" style="margin-top:22px"><div cl
  <label for="wagLink" style="margin-top:0">Group invite link</label><div class="flex" style="gap:8px;flex-wrap:wrap"><input id="wagLink" placeholder="https://chat.whatsapp.com/…" value="${esc(S.waGroupLink)}" style="flex:1;min-width:200px;margin:0"><button class="btn ghost sm" onclick="saveGroupLink()">Save</button>${S.waGroupLink?`<a class="btn sm" style="text-decoration:none" href="${esc(S.waGroupLink)}" target="_blank" rel="noopener">Open group</a>`:''}</div>
  <p class="sub" style="font-size:12.5px;margin:12px 0 0">Coming with the live version: the WalletMV bill number joins your group and reads every bill the moment it's sent — no saving photos. It needs a verified WhatsApp Business account; groups hold up to 8 people.</p></div></div></div>`}
 const longD=iso=>new Date(iso+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-function pkgNotice(){const i=subInfo();if(needPkg())return '';
+function pkgNotice(){const i=subInfo();if(S.payRejected&&S.page==='money'&&S.mview==='package'){const x=S.payRejected,xp=planInfo(x.plan);return `<div class="pkgnote" style="background:rgba(180,67,78,.1);color:var(--rose)">${IC('bell',18)}<span style="flex:1">We couldn’t confirm your payment for ${esc(xp?xp.short:x.plan)}${x.ref?' (ref '+esc(x.ref)+')':''}.${x.note?' '+esc(x.note):''} Message us on WhatsApp ${esc(S.supportWhatsapp)}.</span></div>`}if(needPkg())return '';
  if(i.trial&&i.state==='active'&&i.left<=14){const v=veliPlan();return `<div class="pkgnote" style="background:rgba(212,178,106,.18)">${IC('clock',18)}<span style="flex:1">Your free months end on ${longD(i.end)}. Keep ${esc(v.name)} for MVR ${v.price} every ${v.days} days.</span><button class="btn sm" onclick="requestUpgrade('${v.id}')">Keep ${esc(v.name)}</button></div>`}
  if(S.upsell&&S.page==='money'&&onFree()){const c=cheapest();return `<div class="pkgnote" role="status" style="background:rgba(212,178,106,.18)">${IC('box',18)}<span style="flex:1">${esc(S.upsell)} isn’t in ${esc(veliPlan().name)}.${c?` Get it with ${esc(c.name)} for MVR ${c.price} every ${c.days} days.`:''}</span><button class="btn sm" onclick="S.upsell=null;go('packages')">See packages</button><button class="btn ghost sm" aria-label="Close" onclick="S.upsell=null;render()">${IC('x',16)}</button></div>`}if(i.free)return i.until&&i.left<=14?`<div class="pkgnote" style="background:rgba(201,145,61,.14);color:#7A4E0E">${IC('bell',18)}<span style="flex:1">Your free ${esc(i.p.short||i.p.name)} package ends on ${longD(i.until)}. Message us on WhatsApp ${esc(S.supportWhatsapp)} to keep it.</span></div>`:'';
  if(S.shared&&i.state==='active'&&S.shared.length>seatLimit())return `<div class="pkgnote" style="background:rgba(180,67,78,.1);color:var(--rose)">${IC('users',18)}<span style="flex:1">Your wallet has ${S.shared.length} people but ${esc(i.p.short)} allows ${seatLimit()}.</span><button class="btn sm" onclick="S.page='money';mv('people')">Manage</button></div>`;
@@ -1515,7 +1574,9 @@ function AdminPanel(){
  return `${PageHeader('packages',false)}
  <div class="wrap" style="padding:24px 24px 90px">
  <div class="eyebrow" style="color:var(--gold-d)">Staff only</div><h1 style="margin-top:10px;font-size:clamp(2.2rem,5vw,3rem)">Package &amp; payment approvals</h1><p class="sub" style="margin-top:10px;max-width:56ch">${S.autoActivate?'Packages switch on as soon as a customer submits a transfer reference and slip. Check each one against your bank statement, then confirm it or switch it off.':'Every upgrade request lands here first — check the payment reference against what actually came in, then approve or decline. Nothing activates on its own.'}</p>
- <div class="grid3" style="margin-top:28px"><div class="card stat"><small>To check with your bank</small><b class="${(pending.length+autoList.length)?'neg':''}">${pending.length+autoList.length}</b></div><div class="card stat"><small>Approved (all time)</small><b class="pos">${approved.length}</b></div><div class="card stat"><small>Recognised MRR</small><b>${money(mrr)}</b></div></div>
+ ${AdminPayHTML()}
+ <h3 style="margin:28px 0 0">Requests made from this account</h3>
+ <div class="grid3" style="margin-top:12px"><div class="card stat"><small>To check with your bank</small><b class="${(pending.length+autoList.length)?'neg':''}">${pending.length+autoList.length}</b></div><div class="card stat"><small>Approved (all time)</small><b class="pos">${approved.length}</b></div><div class="card stat"><small>Recognised MRR</small><b>${money(mrr)}</b></div></div>
  <div class="card" style="margin-top:22px"><h3>Current account</h3><p class="sub" style="margin:8px 0">${esc(S.name)} · ${esc(S.email)} — on <b>${planInfo(S.subscription.plan)?planInfo(S.subscription.plan).name:'No package yet'}</b>, <span class="badge" style="background:${S.subscription.status==='active'?'rgba(47,143,107,.18)':'rgba(227,168,87,.25)'}">${S.subscription.status==='active'?'active':'pending approval'}</span></p></div>
  <div class="card" style="margin-top:22px"><h3>Activation</h3><label style="display:flex;gap:10px;align-items:flex-start;margin:10px 0 0;color:var(--ink);font-weight:500"><input type="checkbox" ${S.autoActivate?'checked':''} style="width:auto;margin-top:4px" onchange="S.autoActivate=this.checked;toast(this.checked?'Packages now switch on as soon as a slip is submitted':'Packages now wait for your approval');render()"><span>Switch packages on automatically when a customer submits a transfer reference and slip<br><small style="color:var(--ink2);font-weight:400">You then confirm each payment against your bank statement, or switch it off if the money never arrived.</small></span></label></div>
  ${autoList.length?`<div class="card" style="margin-top:22px;border:2px solid var(--gold)"><h3>Activated — check with your bank (${autoList.length})</h3>${autoList.map(row).join('')}</div>`:''}
@@ -2664,7 +2725,7 @@ async function loadMyData(user){if(!walletAuth||!user||_dataUid===user.id)return
  if(res&&res.error){if(!local)applyData(blankData());S.syncErr=true}
  else if(cloud&&(!local||!local.at||new Date(row.updated_at)>=new Date(local.at))){applyData(cloud);_lastSaved=JSON.stringify(myData());S.syncErr=false}
  else if(!local&&!cloud){applyData(blankData())}
- S.dataReady=true;render()}
+ S.dataReady=true;render();loadMyPayments(true)}
 function queueSave(){if(!S.signed||!_dataUid||!S.dataReady||!walletAuth)return;const j=JSON.stringify(myData());if(j===_lastSaved)return;clearTimeout(_saveT);_saveT=setTimeout(()=>saveNow(j),1200)}
 async function saveNow(j){if(!_dataUid||!walletAuth||!S.dataReady)return;j=j||JSON.stringify(myData());if(j===_lastSaved)return;
  const uid=_dataUid,at=new Date().toISOString(),d=JSON.parse(j);
@@ -3959,6 +4020,7 @@ if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()
  else if(event==='SIGNED_OUT'){clearMyData();S.signed=false;S.allAccess=false;S.recovery=false;S.comp=null;S.isOwner=false;S.freeList=null}},0)});}
 
 /* ============ STUDIO ============ */
+if(walletAuth)loadPublicConfig();
 render();
 </script>
 </body>
