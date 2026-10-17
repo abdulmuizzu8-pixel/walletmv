@@ -14,9 +14,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="WalletMV">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="canonical" href="https://walletmv.com/">
-<meta property="og:url" content="https://walletmv.com/">
-<meta property="og:image" content="https://walletmv.com/icons/og-image.png">
+<link rel="canonical" href="https://www.walletmv.com/">
+<meta property="og:url" content="https://www.walletmv.com/">
+<meta property="og:image" content="https://www.walletmv.com/icons/og-image.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="WalletMV — Know exactly what you can spend today">
 <meta property="og:description" content="Budget app and shop tools made in the Maldives. Daily safe-to-spend, bill reminders, savings goals, POS and GST reports. From MVR 199.">
@@ -377,7 +377,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
   {id:'whatsapp',name:'Order on WhatsApp',region:'MV',on:true,custom:false,details:'Send your order on WhatsApp. We reply with how to pay and switch your package on.',refHint:''},
   {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:true,custom:false,details:'SWIFT / international transfer to Bank of Maldives (SWIFT: MALBMVMV) · Account name: Sunshine Beach Maldives · Account number: 7770000264014',refHint:'e.g. Wise transfer #1234567890'}
  ],
- autoActivate:true,
+ autoActivate:false,
  quick:DEFAULT_QUICK.map(q=>({...q})),editQuick:null,
  inv:{cust:'',custId:null,status:'paid',tax:8,items:[{id:1,desc:'',qty:1,price:0}],charges:[],docType:'invoice',docNo:null,validDays:14},
  docCounters:{invoice:1001,quotation:2001,receipt:5001},receiptTxId:null,
@@ -477,6 +477,8 @@ const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
+/* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
+const TEST_PAY=(()=>{try{const h=location.hostname;return h==='localhost'||h==='127.0.0.1'||/\.vercel\.app$/.test(h)}catch(e){return false}})();
 const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
 const mv=k=>{S.mview=k;if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
 const arm=(key,fn)=>{if(S.armed===key){S.armed=null;fn()}else{S.armed=key;render();toast('Tap again to confirm')}};
@@ -958,8 +960,6 @@ const planTotal=p=>Math.round(p.price*(1+(S.planTax||0)/100)*100)/100;
 const addDays=(iso,n)=>{const d=new Date(iso+'T00:00');d.setDate(d.getDate()+n);return isoD(d)};
 const dayDiff=(a,b)=>Math.round((new Date(b+'T00:00')-new Date(a+'T00:00'))/864e5);
 const ld=s=>new Date(s+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-// Free all-access owner account (prototype). Move this check to the server before launch.
-const FREE_ACCOUNTS={muis:'12345'};
 function allAccessPlan(){const shop=planOf('mvshop')||{},fam=planOf('family')||{};return{...shop,id:'all',name:'WalletMV All packages',short:'All packages',meaning:'Free owner account',price:0,days:365,members:Math.max(fam.members||9,shop.members||4),scan:true,features:S.plans.filter(p=>p.on).map(p=>p.name+' — everything included')}}
 function subInfo(){if(S.comp&&!S.allAccess){const cp=S.comp.plan==='all'?allAccessPlan():planInfo(S.comp.plan);if(cp){const start=isoD(today),end=addDays(start,365);return{state:'active',free:true,comp:true,p:cp,s:{plan:cp.id,status:'active'},start,end,total:365,left:365,used:0}}}
  if(S.allAccess){const start=isoD(today),end=addDays(start,365);return{state:'active',free:true,p:allAccessPlan(),s:{plan:'all',status:'active'},start,end,total:365,left:365,used:0}}
@@ -1040,7 +1040,7 @@ function payNow(){const id=($('#payMethod')&&$('#payMethod').value)||checkoutMet
  if(methodKind(m)==='wa'){if(!waReady())return toast('WhatsApp ordering isn\'t set up yet');return waOrder(S.checkoutPlan)}
  if(methodKind(m)==='card'){S.checkoutMethod=id;S.checkoutStep='gateway';render();scrollTo(0,0);return}
  submitPayment();scrollTo(0,0)}
-function gatewayPaid(){const plan=S.checkoutPlan,info=planInfo(plan),method=S.checkoutMethod||'card';
+function gatewayPaid(){if(!TEST_PAY){S.checkoutStep='pay';toast('Card payments are coming soon. Pay by bank transfer or order on WhatsApp for now.');render();return}const plan=S.checkoutPlan,info=planInfo(plan),method=S.checkoutMethod||'card';
  const sub={id:Date.now(),plan,price:info.price,total:planTotal(info),days:info.days,method,ref:'CARD-'+String(Date.now()).slice(-6),requestedAt:isoD(today),status:'approved',slipName:''};
  S.pendingSubs.unshift(sub);activateSub(plan,true,info.days);S.checkoutStep='done';S.lastSubId=sub.id;S.checkoutMethod=null;toast(info.name+' is active — thank you!');render();scrollTo(0,0)}
 const PayLogos=()=>`<span class="flex" style="gap:8px;flex-wrap:wrap"><span class="plogo" style="font-style:italic">VISA</span><span class="plogo"><svg width="26" height="16" viewBox="0 0 26 16" aria-hidden="true"><circle cx="9" cy="8" r="7" fill="#EB001B"/><circle cx="17" cy="8" r="7" fill="#F79E1B" fill-opacity=".9"/></svg><span style="color:#222;font-weight:700">mastercard</span></span><span class="plogo" style="color:#E2001A">m-Faisaa</span><span class="plogo" style="color:#003F87">BML</span></span>`;
@@ -1053,7 +1053,7 @@ function OrderSummary(p,btn){const tax=Math.round(p.price*(S.planTax||0))/100;re
 function Checkout(){
  const plan=S.checkoutPlan&&planOf(S.checkoutPlan)?S.checkoutPlan:'plus';S.checkoutPlan=plan;const p=planInfo(plan);
  if(S.checkoutStep==='done')return PaySuccess();
- const act=activeMethods().filter(m=>m.id!=='whatsapp'||waReady());const mid=(act.some(m=>m.id===S.checkoutMethod)&&S.checkoutMethod)||checkoutMethodId();const pm=payMethod(mid);const kind=pm?methodKind(pm):'other';
+ const act=activeMethods().filter(m=>(m.id!=='whatsapp'||waReady())&&(methodKind(m)!=='card'||TEST_PAY));const mid=(act.some(m=>m.id===S.checkoutMethod)&&S.checkoutMethod)||checkoutMethodId();const pm=payMethod(mid);const kind=pm?methodKind(pm):'other';
  const order=['card','bank','mobile','other'];const sorted=[...act].sort((a,b)=>order.indexOf(methodKind(a))-order.indexOf(methodKind(b))||((a.region==='MV')===isMV()?-1:1));
  const waiting=S.pendingSubs.find(x=>x.status==='pending');
  if(S.checkoutStep==='gateway'){return `${PageHeader('packages',false)}<div class="wrap" style="padding:18px 24px 90px"><div class="co"><div class="card" style="padding:0">${Steps(1)}</div>
@@ -3178,6 +3178,7 @@ function registerApp(){try{
  addEventListener('appinstalled',()=>{_installEvt=null;toast('WalletMV is installed — find it on your home screen')});
  }catch(e){}}
 // opened from the home-screen icon → go straight to the app, not the website
+try{if(/^\/join\/[A-Za-z0-9-]{3,40}$/.test(location.pathname)){S.page='money';S.joinCode=location.pathname.split('/')[2].toUpperCase();S.auFlash={m:'You\u2019ve been invited to share a WalletMV wallet. Log in, or create a free account, then let the person who invited you know.',k:'ok'};try{history.replaceState(null,'','/')}catch(e){}}}catch(e){}
 try{const pth=location.pathname.replace(/\/+$/,''),LP={'/privacy':'privacy','/terms':'terms','/refund':'refund','/delete-account':'deletion','/disclaimer':'disclaimer'},h=(location.hash||'').slice(1);if(LP[pth])S.page=LP[pth];else if(['privacy','terms','refund','deletion','disclaimer'].includes(h))S.page=h}catch(e){}
 try{if(/[?&]app=1\b/.test(location.search)||isStandalone()){const h=(location.hash||'').slice(1);if(h==='shop')S.page='shop';else if(S.page==='home'){S.page='money';if(h==='addx'||h==='addi')S.mview=h}}}catch(e){}
 registerApp();
