@@ -1023,17 +1023,18 @@ function checkoutMethodId(){const act=activeMethods().filter(m=>m.id!=='whatsapp
 function PayMethodSelect(sel){const act=activeMethods();
  const grp=(label,list)=>list.length?`<optgroup label="${label}">${list.map(m=>`<option value="${m.id}" ${sel===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}</optgroup>`:'';
  return grp('In the Maldives',act.filter(m=>m.region==='MV'))+grp('Worldwide',act.filter(m=>m.region!=='MV'))}
+const paymentDetailsReady=details=>{const d=String(details||'').trim();return !!d&&!/load in a moment|send to 7771234|payments@walletmv\.com|pay by card via|pay through the secure card link|pay from your Skrill|placeholder|replace this|example\.com|configure .*payment/i.test(d)};
 async function togglePayMethod(id){const m=payMethod(id);if(!m)return;
   if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
   const enabling=!m.on;
-  if(enabling&&/load in a moment|send to 7771234|payments@walletmv\.com|pay by card via|pay through the secure card link|pay from your Skrill/i.test(m.details||''))return toast('Enter and save verified payment instructions before enabling this method');
+  if(enabling&&!paymentDetailsReady(m.details))return toast('Enter verified payment instructions before enabling this method');
   const previous=m.on;m.on=enabling;
   const saved=await savePayCfg(id,m.details);
   if(!saved){m.on=previous;return toast('Could not save payment settings. Check the owner account and database policies.');}
   toast(m.name+(m.on?' enabled':' disabled'));render()}
-async function savePayDetails(id){const m=payMethod(id);if(!m)return;const d=$('#pmd'+id).value.trim().slice(0,400);if(!d)return toast('Add the details customers need to pay you');m.details=d;const ok=await savePayCfg(id,d);toast(ok?'Details saved for '+m.name+'. Customers see them at checkout.':'Saved here, but it couldn’t reach the database. Try again.');render()}
+async function savePayDetails(id){const m=payMethod(id);if(!m)return;const d=$('#pmd'+id).value.trim().slice(0,400);if(!paymentDetailsReady(d))return toast('Enter real payment instructions, not placeholder text');m.details=d;const ok=await savePayCfg(id,d);toast(ok?'Details saved for '+m.name+'. Customers see them at checkout.':'Saved here, but it couldn’t reach the database. Try again.');render()}
 async function addPayMethod(){const name=$('#npmName').value.trim(),details=$('#npmDetails').value.trim(),region=$('#npmRegion').value;
-  if(!name)return toast('Give the payment method a name');if(!details)return toast('Add the details customers need to pay you');
+  if(!name)return toast('Give the payment method a name');if(!paymentDetailsReady(details))return toast('Enter real payment instructions, not placeholder text');
   if(S.payMethods.some(m=>m.name.toLowerCase()===name.toLowerCase()))return toast('A payment method with that name already exists');
   const m={id:'c'+Date.now(),name,region,on:true,custom:true,details,refHint:'Transaction or receipt number'};S.payMethods.push(m);
   const ok=await savePayCfg(m.id,m.details);if(!ok){S.payMethods=S.payMethods.filter(x=>x.id!==m.id);return toast('Could not save this payment method. Check the owner account and database policies.');}
@@ -1054,8 +1055,8 @@ const PAY_CFG_KEY='pay_details';
 async function loadPublicConfig(){if(!walletAuth)return;try{const {data,error}=await walletAuth.from('walletmv_public_config').select('key,value').eq('key',PAY_CFG_KEY).maybeSingle();
  if(error||!data||!data.value||typeof data.value!=='object')return;S.payCfg=data.value;Object.entries(data.value).forEach(([id,entry])=>{let m=payMethod(id);
   if(!m&&id.startsWith('c')&&entry&&typeof entry==='object'&&entry.custom===true){const name=String(entry.name||'').trim().slice(0,120);if(name){m={id,name,region:entry.region==='world'?'world':'MV',on:false,custom:true,details:'',refHint:String(entry.refHint||'Transaction or receipt number').slice(0,120)};S.payMethods.push(m)}}
-  if(!m)return;if(typeof entry==='string'&&entry.trim()){m.details=entry.trim().slice(0,400);m.on=!/load in a moment|send to 7771234|payments@walletmv\.com|pay by card via|pay through the secure card link|pay from your Skrill/i.test(m.details)}
-  else if(entry&&typeof entry==='object'){if(typeof entry.details==='string'&&entry.details.trim())m.details=entry.details.trim().slice(0,400);if(typeof entry.on==='boolean')m.on=entry.on}});
+  if(!m)return;if(typeof entry==='string'&&entry.trim()){m.details=entry.trim().slice(0,400);m.on=paymentDetailsReady(m.details)}
+  else if(entry&&typeof entry==='object'){if(typeof entry.details==='string'&&entry.details.trim())m.details=entry.details.trim().slice(0,400);m.on=entry.on===true&&paymentDetailsReady(m.details)}});
  if(['checkout','admin','packages'].includes(S.page))render()}catch(e){}}
 async function savePayCfg(id,details){if(!walletAuth||!S.isOwner)return false;const m=payMethod(id);const entry={details:String(details||'').trim().slice(0,400),on:!!(m&&m.on)};if(m&&m.custom)Object.assign(entry,{name:m.name,region:m.region==='world'?'world':'MV',custom:true,refHint:m.refHint||'Transaction or receipt number'});const value={...(S.payCfg||{}),[id]:entry};
  try{const {error}=await walletAuth.from('walletmv_public_config').upsert({key:PAY_CFG_KEY,value,updated_at:new Date().toISOString(),updated_by:_dataUid||null});if(error)return false;S.payCfg=value;return true}catch(e){return false}}
