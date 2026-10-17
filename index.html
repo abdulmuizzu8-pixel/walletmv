@@ -377,14 +377,14 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
  pendingSubs:[],checkoutPlan:'plus',
  ownerWhatsapp:'+960 798 7770',supportWhatsapp:'+960 798 7770',issues:[],issueOpen:null,errLog:[],ruleOff:{},inbox:[],waGroupLink:'',inboxBusy:0,ownerViber:'',checkoutSlip:null,checkoutSlipName:'',checkoutMethod:null,checkoutRef:'',
  payMethods:[
-  {id:'bank',name:'Bank transfer (BML)',region:'MV',on:true,custom:false,details:'The bank account details load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. BML transfer reference'},
-  {id:'wallet',name:'Mobile wallet (Ooredoo m-Faisaa / Dhiraagu Pay)',region:'MV',on:true,custom:false,details:'Send to 7771234 (WalletMV)',refHint:'e.g. MF-88231904'},
-  {id:'card',name:'Local card (BML Connect)',region:'MV',on:true,custom:false,details:'Pay by card via the BML Connect link we send you, then paste the approval code here',refHint:'e.g. approval code 482913'},
-  {id:'intlcard',name:'International card (Visa / Mastercard / Amex)',region:'world',on:true,custom:false,details:'Pay through the secure card link we email you, then paste the transaction ID here',refHint:'e.g. ch_3PqA91xZ'},
-  {id:'paypal',name:'PayPal',region:'world',on:true,custom:false,details:'Send to payments@walletmv.com',refHint:'e.g. PayPal transaction ID 9XK12345AB678901C'},
-  {id:'skrill',name:'Skrill (wallet or card)',region:'world',on:true,custom:false,details:'Pay from your Skrill wallet to payments@walletmv.com — or pay by Visa / Mastercard through the Skrill card link we send you',refHint:'e.g. Skrill transaction ID 5012345678'},
+  {id:'bank',name:'Bank transfer (BML)',region:'MV',on:false,custom:false,details:'The bank account details load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. BML transfer reference'},
+  {id:'wallet',name:'Mobile wallet (Ooredoo m-Faisaa / Dhiraagu Pay)',region:'MV',on:false,custom:false,details:'Send to 7771234 (WalletMV)',refHint:'e.g. MF-88231904'},
+  {id:'card',name:'Local card (BML Connect)',region:'MV',on:false,custom:false,details:'Pay by card via the BML Connect link we send you, then paste the approval code here',refHint:'e.g. approval code 482913'},
+  {id:'intlcard',name:'International card (Visa / Mastercard / Amex)',region:'world',on:false,custom:false,details:'Pay through the secure card link we email you, then paste the transaction ID here',refHint:'e.g. ch_3PqA91xZ'},
+  {id:'paypal',name:'PayPal',region:'world',on:false,custom:false,details:'Send to payments@walletmv.com',refHint:'e.g. PayPal transaction ID 9XK12345AB678901C'},
+  {id:'skrill',name:'Skrill (wallet or card)',region:'world',on:false,custom:false,details:'Pay from your Skrill wallet to payments@walletmv.com — or pay by Visa / Mastercard through the Skrill card link we send you',refHint:'e.g. Skrill transaction ID 5012345678'},
   {id:'whatsapp',name:'Order on WhatsApp',region:'MV',on:true,custom:false,details:'Send your order on WhatsApp. We reply with how to pay and switch your package on.',refHint:''},
-  {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:true,custom:false,details:'The account details for international transfers load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. Wise transfer #1234567890'}
+  {id:'wise',name:'Wise / international bank transfer (SWIFT)',region:'world',on:false,custom:false,details:'The account details for international transfers load in a moment. If they don’t show, choose Order on WhatsApp.',refHint:'e.g. Wise transfer #1234567890'}
  ],
  autoActivate:false,
  quick:DEFAULT_QUICK.map(q=>({...q})),editQuick:null,
@@ -1022,9 +1022,14 @@ function checkoutMethodId(){const act=activeMethods().filter(m=>m.id!=='whatsapp
 function PayMethodSelect(sel){const act=activeMethods();
  const grp=(label,list)=>list.length?`<optgroup label="${label}">${list.map(m=>`<option value="${m.id}" ${sel===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}</optgroup>`:'';
  return grp('In the Maldives',act.filter(m=>m.region==='MV'))+grp('Worldwide',act.filter(m=>m.region!=='MV'))}
-function togglePayMethod(id){const m=payMethod(id);if(!m)return;
- if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
- m.on=!m.on;toast(m.name+(m.on?' switched on':' switched off'));render()}
+async function togglePayMethod(id){const m=payMethod(id);if(!m)return;
+  if(m.on&&activeMethods().length===1)return toast('Keep at least one payment method switched on');
+  const enabling=!m.on;
+  if(enabling&&/load in a moment|send to 7771234|payments@walletmv\.com|pay by card via|pay through the secure card link|pay from your Skrill/i.test(m.details||''))return toast('Enter and save verified payment instructions before enabling this method');
+  const previous=m.on;m.on=enabling;
+  const saved=await savePayCfg(id,m.details);
+  if(!saved){m.on=previous;return toast('Could not save payment settings. Check the owner account and database policies.');}
+  toast(m.name+(m.on?' enabled':' disabled'));render()}
 async function savePayDetails(id){const m=payMethod(id);if(!m)return;const d=$('#pmd'+id).value.trim().slice(0,400);if(!d)return toast('Add the details customers need to pay you');m.details=d;const ok=await savePayCfg(id,d);toast(ok?'Details saved for '+m.name+'. Customers see them at checkout.':'Saved here, but it couldn’t reach the database. Try again.');render()}
 function addPayMethod(){const name=$('#npmName').value.trim(),details=$('#npmDetails').value.trim(),region=$('#npmRegion').value;
  if(!name)return toast('Give the payment method a name');
@@ -1042,9 +1047,11 @@ function delPayMethod(id){const m=payMethod(id);if(!m||!m.custom)return;
    The customer's app reads its own requests and switches the package on once one is approved. */
 const PAY_CFG_KEY='pay_details';
 async function loadPublicConfig(){if(!walletAuth)return;try{const {data,error}=await walletAuth.from('walletmv_public_config').select('key,value').eq('key',PAY_CFG_KEY).maybeSingle();
- if(error||!data||!data.value||typeof data.value!=='object')return;S.payCfg=data.value;Object.entries(data.value).forEach(([id,det])=>{const m=payMethod(id);if(m&&typeof det==='string'&&det.trim())m.details=det.trim().slice(0,400)});
+ if(error||!data||!data.value||typeof data.value!=='object')return;S.payCfg=data.value;Object.entries(data.value).forEach(([id,entry])=>{const m=payMethod(id);if(!m)return;
+  if(typeof entry==='string'&&entry.trim()){m.details=entry.trim().slice(0,400);m.on=true}
+  else if(entry&&typeof entry==='object'){if(typeof entry.details==='string'&&entry.details.trim())m.details=entry.details.trim().slice(0,400);if(typeof entry.on==='boolean')m.on=entry.on}});
  if(['checkout','admin','packages'].includes(S.page))render()}catch(e){}}
-async function savePayCfg(id,details){if(!walletAuth||!S.isOwner)return false;const value={...(S.payCfg||{}),[id]:details};
+async function savePayCfg(id,details){if(!walletAuth||!S.isOwner)return false;const m=payMethod(id);const value={...(S.payCfg||{}),[id]:{details:String(details||'').trim().slice(0,400),on:!!(m&&m.on)}};
  try{const {error}=await walletAuth.from('walletmv_public_config').upsert({key:PAY_CFG_KEY,value,updated_at:new Date().toISOString(),updated_by:_dataUid||null});if(error)return false;S.payCfg=value;return true}catch(e){return false}}
 async function sendPayRequest(sub){if(!walletAuth||!S.signed||!_dataUid||!sub||sub.serverId)return !!(sub&&sub.serverId);
  let slip_path=null;
