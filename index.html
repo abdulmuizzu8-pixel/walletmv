@@ -1018,7 +1018,8 @@ const payName=id=>{const m=payMethod(id);return m?m.name:(id||'Unknown method')}
 const activeMethods=()=>S.payMethods.filter(m=>m.on);
 function checkoutMethodId(){const act=activeMethods().filter(m=>m.id!=='whatsapp');
  if(S.checkoutMethod&&act.some(m=>m.id===S.checkoutMethod))return S.checkoutMethod;
- const pref=act.find(m=>m.region===(isMV()?'MV':'world'))||act[0];return pref?pref.id:null}
+ const pref=act.find(m=>m.region===(isMV()?'MV':'world'))||act[0];if(pref)return pref.id;
+ const wa=activeMethods().find(m=>m.id==='whatsapp'&&waReady());return wa?wa.id:null}
 function PayMethodSelect(sel){const act=activeMethods();
  const grp=(label,list)=>list.length?`<optgroup label="${label}">${list.map(m=>`<option value="${m.id}" ${sel===m.id?'selected':''}>${esc(m.name)}</option>`).join('')}</optgroup>`:'';
  return grp('In the Maldives',act.filter(m=>m.region==='MV'))+grp('Worldwide',act.filter(m=>m.region!=='MV'))}
