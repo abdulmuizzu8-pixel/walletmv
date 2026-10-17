@@ -488,8 +488,14 @@ const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
 const TEST_PAY=(()=>{try{const h=location.hostname;return h==='localhost'||h==='127.0.0.1'||/\.vercel\.app$/.test(h)}catch(e){return false}})();
-const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
-const mv=k=>{S.mview=k;S.upsell=null;if(k==='addx'||k==='addi')S.xScan=null;if(k==='docs'){S.docOpen=null;S.docShow=null;S.docZoom=null;if(S.docEd&&!S.docEd.busy)docCancel()}if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
+/* Moving to another page: let the browser show the tap first, then draw the new page in the next frame.
+   This keeps taps feeling instant (good INP) even on slower phones. */
+function afterTap(fn){if(window.__syncUI)return fn();let done=false;const run=()=>{if(done)return;done=true;fn()};try{requestAnimationFrame(()=>setTimeout(run,0))}catch(e){setTimeout(run,0)}setTimeout(run,120)}
+const showPage=()=>afterTap(()=>{render();scrollTo(0,0)});
+const openSheet=k=>{S.sheet=k;afterTap(render)};
+const closeSheet=()=>{S.sheet=null;afterTap(render)};
+const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;showPage()};
+const mv=k=>{S.mview=k;S.upsell=null;if(k==='addx'||k==='addi')S.xScan=null;if(k==='docs'){S.docOpen=null;S.docShow=null;S.docZoom=null;if(S.docEd&&!S.docEd.busy)docCancel()}if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;showPage()};
 const arm=(key,fn)=>{if(S.armed===key){S.armed=null;fn()}else{S.armed=key;render();toast('Tap again to confirm')}};
 const toggleTheme=()=>{S.theme=S.theme==='light'?'noir':'light';document.documentElement.setAttribute('data-theme',S.theme);toast(S.theme==='noir'?'Noir theme on':'Light theme on');render()};
 
@@ -540,9 +546,9 @@ function Shell(items,cur,body){
    <button class="nl-income" onclick="mv('addi')">${IC('up',15)}Add income</button>
    <nav class="nl-nav" aria-label="Money">${snav}</nav>
    <button class="nl-shop" onclick="go('shop')">${IC('store',19)}Open MVSHOP</button>
-   <div class="nl-me">
+   <div class="nl-me" style="position:sticky;bottom:-16px;z-index:2;background:var(--deep);padding-bottom:16px;margin-bottom:-16px;box-shadow:0 -14px 18px -14px rgba(0,0,0,.6)">
     <button class="nl-user" onclick="mv('settings')"><span class="nl-av">${esc(initials(S.name))}</span><span><b>${esc(S.name||'You')}</b><small>${esc(planLabel())}</small></span></button>
-    <div class="nl-tools"><button onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}" title="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button><button onclick="reportProblem()" aria-label="Report a problem" title="Report a problem">${IC('chat',18)}</button><button onclick="logoutUser()" aria-label="Log out" title="Log out">${IC('logout',18)}</button></div>
+    <div class="nl-tools"><button onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}" title="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button><button onclick="reportProblem()" aria-label="Report a problem" title="Report a problem">${IC('chat',18)}</button><button onclick="logoutUser()" aria-label="Log out" title="Log out" style="flex:2.2;display:flex;align-items:center;justify-content:center;gap:6px;font:600 13px var(--body)">${IC('logout',17)}<span>Log out</span></button></div>
    </div>
   </aside>
   <header class="nl-top${cur==='today'?' hide':''}"><button class="nl-brand sm" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>WalletMV</span></button><button class="nl-topbtn" onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button></header>
@@ -1317,11 +1323,12 @@ function ScanReview(target){const r=S.scanReview;if(!r||r.target!==target){const
  <div class="flex" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost sm" onclick="scanAddRow()">+ Add a row</button></div>
  ${ScanMoney(r)}
  <div class="flex" style="gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn" id="scGo" onclick="applyScan()">${scanGoLabel(r)}</button></div></div>`}
+const SCAN_CSS=cssOnce(`<style>.sc-money{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}.sc-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0 4px}.sc-seg button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer;margin:0}.sc-seg button b{font-weight:600;font-size:14px}.sc-seg button small{color:var(--ink2);font-size:12px}.sc-seg button[aria-checked="true"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent)}.sc-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px}.sc-f label{margin:6px 0 4px;font-size:12px}.sc-f input,.sc-f select{width:100%}</style>`);
 function ScanMoney(r){const inv=r.target==='inv',opts=inv?[['bought','I bought this','Adds to stock and saves an expense'],['sold','I sold this','Takes from stock and saves a sale'],['stock','Stock only','No money saved']]:[['expense','Save as an expense','Adds to home inventory and your spending'],['none','Inventory only','No money saved']];
  const seg=`<div class="sc-seg" role="radiogroup" aria-label="What is this bill?">${opts.map(([k,l,d])=>`<button type="button" role="radio" aria-checked="${r.rec===k}" onclick="scanSet('rec','${k}')"><b>${l}</b><small>${d}</small></button>`).join('')}</div>`;
  const showMoney=r.rec==='expense'||r.rec==='bought'||r.rec==='sold';
  const cats=S.cats.filter(c=>c.t==='expense').map(c=>c.n);
- return `<style>.sc-money{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}.sc-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0 4px}.sc-seg button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer;margin:0}.sc-seg button b{font-weight:600;font-size:14px}.sc-seg button small{color:var(--ink2);font-size:12px}.sc-seg button[aria-checked="true"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 12%,transparent)}.sc-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:8px}.sc-f label{margin:6px 0 4px;font-size:12px}.sc-f input,.sc-f select{width:100%}</style>
+ return `
  <div class="sc-money"><h4 style="margin:0;font-size:15px">What is this bill?</h4>${seg}
  ${showMoney?`<div class="sc-f"><div><label for="scWho">${r.rec==='sold'?'Sold to':'From'}</label><input id="scWho" maxlength="60" placeholder="${inv?(r.rec==='sold'?'Customer':'Supplier'):'Shop'}" value="${esc(r.who||'')}" oninput="scanSet('who',this.value)"></div>
   <div><label for="scTot">Bill total (${esc(S.cur)})</label><input id="scTot" type="number" min="0" step="0.01" inputmode="decimal" value="${r.total||''}" oninput="scanSet('total',this.value)"></div>
@@ -1375,12 +1382,12 @@ const SGROUP={dashboard:'Overview',invoice:'Selling',customers:'Customers & stoc
 function MobileBar(kind){const money=kind==='money',cur=money?S.mview:S.shopView,f=money?'mv':'sv';
  const prim=money?[['today','Home','home'],['tx','Activity','activity'],['+','Add','plus'],['goals','Goals','plane'],['more','More','more']]:[['dashboard','Home','chart'],['inbox','Bills in','receipt'],['invoice','New bill','plus'],['inventory','Stock','box'],['more','More','menu']];
  const inPrim=prim.some(p=>p[0]===cur);
- const bar=`<nav class="nl-tabs" aria-label="Sections">${prim.map(([k,l,ic])=>k==='+'?`<button class="nl-fab" aria-label="Add" onclick="S.sheet='add';render()">${IC('plus',26)}</button>`:`<button ${(k===cur||(k==='more'&&!inPrim))?'aria-current="page"':''} onclick="${k==='more'?`S.sheet='${kind}';render()`:`S.sheet=null;${f}('${k}')`}">${IC(ic,22)}<span>${l}</span></button>`).join('')}</nav>`;
+ const bar=`<nav class="nl-tabs" aria-label="Sections">${prim.map(([k,l,ic])=>k==='+'?`<button class="nl-fab" aria-label="Add" onclick="openSheet('add')">${IC('plus',26)}</button>`:`<button ${(k===cur||(k==='more'&&!inPrim))?'aria-current="page"':''} onclick="${k==='more'?`openSheet('${kind}')`:`S.sheet=null;${f}('${k}')`}">${IC(ic,22)}<span>${l}</span></button>`).join('')}</nav>`;
  let sheet='';
  if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['tasks','Add a task','task'],['calendar','Add a bill','bill'],['docs','Save a document','folder'],['pdf','Photos to PDF','file']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
  else if(S.sheet===kind){const items=money?MNAV.map(i=>[i[0],i[1],MICON[i[0]]]):SHOPNAV.map(i=>[i[0],i[2],SICON[i[0]]]);const G=money?MGROUP:SGROUP;
-  sheet=items.map(([k,l,ic])=>`${G[k]?`<div class="sgrp">${G[k]}</div>`:''}<button class="tile ${k===cur?'on':''}" onclick="S.sheet=null;${f}('${k}')">${ICB(ic||'box','rgba(11,26,44,.06)','var(--deep)',40)}${l}</button>`).join('')+(money?`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;go('shop')">${ICB('store','rgba(11,26,44,.06)','var(--deep)',40)}MVSHOP</button>`:`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;S.signed=true;go('money')">${ICB('wallet','rgba(11,26,44,.06)','var(--deep)',40)}Money app</button>`)+`<button class="tile" onclick="S.sheet=null;go('home')">${ICB('globe','rgba(11,26,44,.06)','var(--deep)',40)}Website</button>${isStandalone()?'':`<button class="tile" onclick="installApp()">${ICB('mobile','rgba(201,169,97,.16)','var(--gold-d)',40)}Install app</button>`}<button class="tile" onclick="reportProblem()">${ICB('chat','rgba(180,67,78,.1)','var(--rose)',40)}Report a problem</button>`}
- return bar+(sheet?`<div class="msheet" role="dialog" aria-label="${S.sheet==='add'?'Add':'All sections'}" onclick="if(event.target===this){S.sheet=null;render()}"><div class="pan"><div class="flex between" style="margin-bottom:6px"><b style="font:600 1.3rem var(--head)">${S.sheet==='add'?'Add something':'All sections'}</b><button class="btn ghost sm" onclick="S.sheet=null;render()">Close</button></div><div class="sgrid">${sheet}</div></div></div>`:'')}
+  sheet=items.map(([k,l,ic])=>`${G[k]?`<div class="sgrp">${G[k]}</div>`:''}<button class="tile ${k===cur?'on':''}" onclick="S.sheet=null;${f}('${k}')">${ICB(ic||'box','rgba(11,26,44,.06)','var(--deep)',40)}${l}</button>`).join('')+(money?`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;go('shop')">${ICB('store','rgba(11,26,44,.06)','var(--deep)',40)}MVSHOP</button>`:`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;S.signed=true;go('money')">${ICB('wallet','rgba(11,26,44,.06)','var(--deep)',40)}Money app</button>`)+`<button class="tile" onclick="S.sheet=null;go('home')">${ICB('globe','rgba(11,26,44,.06)','var(--deep)',40)}Website</button>${isStandalone()?'':`<button class="tile" onclick="installApp()">${ICB('mobile','rgba(201,169,97,.16)','var(--gold-d)',40)}Install app</button>`}<button class="tile" onclick="reportProblem()">${ICB('chat','rgba(180,67,78,.1)','var(--rose)',40)}Report a problem</button>${S.signed?`<button class="tile" onclick="S.sheet=null;logoutUser()">${ICB('logout','rgba(180,67,78,.1)','var(--rose)',40)}Log out</button>`:''}`}
+ return bar+(sheet?`<div class="msheet" role="dialog" aria-label="${S.sheet==='add'?'Add':'All sections'}" onclick="if(event.target===this){closeSheet()}"><div class="pan"><div class="flex between" style="margin-bottom:6px"><b style="font:600 1.3rem var(--head)">${S.sheet==='add'?'Add something':'All sections'}</b><span class="flex" style="gap:8px">${S.sheet!=='add'&&S.signed?`<button class="btn ghost sm" style="color:var(--rose)" onclick="S.sheet=null;logoutUser()">Log out</button>`:''}<button class="btn ghost sm" onclick="closeSheet()">Close</button></span></div><div class="sgrid">${sheet}</div></div></div>`:'')}
 const ISSUE_CATS=['Payment or package','Something isn\'t working','Wrong numbers or data','Account or login','Scanning','Suggestion','Other'];
 const supNum=()=>String(S.supportWhatsapp||'').replace(/[^\d]/g,'');
 const PAGE_NAME=()=>S.page==='money'?'Money · '+((MNAV.find(m=>m[0]===S.mview)||[])[1]||S.mview):S.page==='shop'?'MVSHOP · '+((SHOPNAV.find(m=>m[0]===S.shopView)||[])[2]||S.shopView):({home:'Website home',services:'Services',packages:'Packages',checkout:'Checkout',partners:'Loyalty discount cards',admin:'Admin',terms:'Terms',privacy:'Privacy'})[S.page]||S.page;
@@ -1725,7 +1732,7 @@ function ShopChargesTab(){
  <div class="scroll">${chargeRows()}</div>
  <div class="flex" style="margin-top:16px;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px"><input id="ncn" aria-label="New charge name" placeholder="Service charge" style="flex:1;min-width:140px"><select id="nct" aria-label="New charge type" style="width:120px"><option value="percent">Percent %</option><option value="fixed">Fixed (${S.cur})</option></select><input id="ncv" aria-label="New charge amount" type="number" min="0" placeholder="10" style="width:100px"><button class="btn" onclick="addCharge()">Add preset</button></div></div>`}
 const SHOPNAV=[['dashboard','📊','Dashboard'],['inbox','📥','Bill inbox'],['assistant','✨','AI assistant'],['discounts','🎟️','Discount cards'],['calendar','🗓️','Calendar'],['invoice','🧾','Create bill'],['charges','💰','Tax & charges'],['customers','📇','Contacts'],['inventory','📦','Products & services'],['ledger','📑','Sales & expenses'],['reports','📈','Reports'],['pdf','📄','Image to PDF'],['people','👥','Shared wallet'],['package','💳','My package'],['settings','⚙️','Settings']];
-const sv=k=>{S.shopView=k;S.armed=null;render();scrollTo(0,0)};
+const sv=k=>{S.shopView=k;S.armed=null;showPage()};
 function ShopView(){if(needPkg()&&!['package','settings'].includes(S.shopView))return PayWall();return ({dashboard:ShopDashTab,inbox:ShopInboxTab,assistant:ShopAssistantTab,discounts:ShopDiscountsTab,calendar:ShopCalendarTab,invoice:ShopInvoiceTab,charges:ShopChargesTab,customers:ShopCustomersTab,inventory:ShopInventoryTab,ledger:ShopLedgerTab,reports:ShopReportsTab,pdf:ImgPdf,package:MyPackage,people:People,settings:ShopSettingsTab})[S.shopView]()}
 const AI_SUGGEST=['What sold best this month?','What should I reorder this week?','Which products are not selling?','How is my profit compared with last month?','Who owes me money?','Summarise my week in 3 points'];
 function shopContext(){const c=shopCalc();const prev=shopCalcMonth(lastMonths(2)[1]);const st=prodStats(30);
@@ -1797,7 +1804,7 @@ function ShopShell(){
   <button class="nl-primary" onclick="sv('invoice')">${IC('plus',18)}New bill</button>
   <nav class="nl-nav" aria-label="MVSHOP">${snav}</nav>
   <button class="nl-shop" onclick="go('money')">${IC('wallet',19)}My money app</button>
-  <div class="nl-me"><div class="nl-tools"><button onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}" title="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button><button onclick="reportProblem()" aria-label="Report a problem" title="Report a problem">${IC('chat',18)}</button></div></div>
+  <div class="nl-me" style="position:sticky;bottom:-16px;z-index:2;background:var(--deep);padding-bottom:16px;margin-bottom:-16px;box-shadow:0 -14px 18px -14px rgba(0,0,0,.6)"><div class="nl-tools"><button onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}" title="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button><button onclick="reportProblem()" aria-label="Report a problem" title="Report a problem">${IC('chat',18)}</button>${S.signed?`<button onclick="logoutUser()" aria-label="Log out" title="Log out" style="flex:2.2;display:flex;align-items:center;justify-content:center;gap:6px;font:600 13px var(--body)">${IC('logout',17)}<span>Log out</span></button>`:''}</div></div>
  </aside>
  <header class="nl-top"><button class="nl-brand sm" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>MVSHOP</span></button><button class="nl-topbtn" onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button></header>
  <main class="main nl-main">${pkgNotice()}${ShopView()}</main>${MobileBar('shop')}</div>`}
@@ -2227,7 +2234,10 @@ function ReminderNote(){if(!canNotify())return `<p class="sub" style="margin:0;f
  if(p==='denied')return `<p class="sub" style="margin:0;font-size:13px">${IC('bell',15)} Notifications are blocked in your browser settings, so reminders show on screen while WalletMV is open.</p>`;
  return `<div class="flex" style="gap:10px;align-items:center;flex-wrap:wrap"><p class="sub" style="margin:0;font-size:13px;flex:1;min-width:180px">${IC('bell',15)} Get a reminder at the time you set, even in another tab.</p><button class="btn ghost sm" onclick="enableReminders()">Turn on reminders</button></div>`}
 
-const TASK_CSS=`<style>
+/* Page styles are added to <head> once, not re-added on every redraw (keeps taps fast). */
+cssOnce(`<style>.svtable,.sec.faq,footer.sfoot{content-visibility:auto;contain-intrinsic-size:auto 900px}</style>`);
+function cssOnce(h){try{document.head.insertAdjacentHTML('beforeend',h)}catch(e){}return ''}
+const TASK_CSS=cssOnce(`<style>
 .tk-week{display:flex;align-items:stretch;gap:6px;margin:4px 0 18px}
 .tk-days{flex:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .tk-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 0 6px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);cursor:pointer;min-height:66px;font:inherit;color:var(--ink)}
@@ -2339,7 +2349,7 @@ span.tl-txt{cursor:default}
 @media(max-width:640px){.cl-grid{gap:12px;margin-top:12px}}
 @media(max-width:980px){.tl-grid{grid-template-columns:1fr}}
 @media(max-width:640px){.tl-when{grid-template-columns:1fr 1fr}.tl-when .tl-fd{grid-column:1/-1}.tl-top .btn{flex:1;justify-content:center}.tl-menu{right:0}}
-</style>`;
+</style>`);
 
 /* ---------- IMAGE TO PDF ----------
    Pick photos (bills, receipts, documents), put them in order, turn them if needed, and make one PDF.
@@ -2388,7 +2398,7 @@ async function pdfMake(){const P=S.pdf;if(!P.imgs.length)return toast('Add at le
  catch(e){P.busy=false;toast('Couldn’t make the PDF. Try fewer or smaller pictures.');render()}}
 function pdfCanShare(){try{const o=S.pdf.out;return !!(o&&navigator.canShare&&navigator.share&&navigator.canShare({files:[new File([o.bytes],o.name,{type:'application/pdf'})]}))}catch(e){return false}}
 async function pdfShare(){const o=S.pdf.out;if(!o)return;try{await navigator.share({files:[new File([o.bytes],o.name,{type:'application/pdf'})],title:o.name})}catch(e){if(e&&e.name!=='AbortError')toast('Sharing didn’t work here. Use Save PDF instead.')}}
-const PDF_CSS=`<style>
+const PDF_CSS=cssOnce(`<style>
 .ip{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
 .ip-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;border:2px dashed color-mix(in srgb,var(--gold) 60%,transparent);border-radius:18px;padding:26px 16px;background:color-mix(in srgb,var(--gold) 6%,transparent);color:var(--ink)}
 .ip-drop.over{background:color-mix(in srgb,var(--gold) 16%,transparent)}
@@ -2418,7 +2428,7 @@ const PDF_CSS=`<style>
 .ip-note{font-size:12.5px;color:var(--ink2);margin:12px 0 0;display:flex;gap:6px;align-items:flex-start}
 @media(max-width:900px){.ip{grid-template-columns:1fr}}
 @media(max-width:400px){.ip-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
-</style>`;
+</style>`);
 function ImgPdf(){const P=S.pdf,n=P.imgs.length,seg=(k,v,l)=>`<button aria-pressed="${P[k]===v}" onclick="S.pdf.${k}='${v}';S.pdf.out=null;render()">${l}</button>`;
  const tiles=P.imgs.map((it,i)=>`<figure class="ip-pg"><div class="ip-th"><span class="ip-n">${i+1}</span><img class="r${it.rot}" src="${it.url}" alt="Page ${i+1}: ${esc(it.name)}" style="transform:rotate(${it.rot}deg)"></div>
   <div class="ip-act"><button data-pdfmv="${i}:-1" aria-label="Move page ${i+1} earlier" ${i===0?'disabled':''} onclick="pdfMove(${i},-1)">${IC('left',17)}</button><button data-pdfrot="${i}" aria-label="Turn page ${i+1}" onclick="pdfRot(${i})">${IC('rotate',17)}</button><button data-pdfmv="${i}:1" aria-label="Move page ${i+1} later" ${i===n-1?'disabled':''} onclick="pdfMove(${i},1)">${IC('right',17)}</button><button class="del" aria-label="Remove page ${i+1}" onclick="pdfDel(${i})">${IC('x',17)}</button></div></figure>`).join('');
@@ -2513,7 +2523,7 @@ async function docCopy(id){const d=S.docs.find(x=>x.id===id);if(!d||!d.number)re
 async function docToPdf(id){const d=S.docs.find(x=>x.id===id);if(!d)return;const imgs=(d.files||[]).filter(f=>f.type!=='application/pdf');if(!imgs.length)return toast('No photos to put in a PDF');
  toast('Getting your photos…');const files=[];for(const f of imgs){try{const u=await docUrl(f.path);if(!u)continue;const b=await (await fetch(u)).blob();files.push(new File([b],f.name||'photo.jpg',{type:b.type||'image/jpeg'}))}catch(e){}}
  if(!files.length)return toast('Couldn’t get the photos. Try again.');pdfClear();S.pdf.name=d.title;S.page='money';mv('pdf');pdfAdd(files)}
-const DOC_CSS=`<style>
+const DOC_CSS=cssOnce(`<style>
 .dc-safe{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(31,122,92,.08);color:var(--ink);font-size:13.5px;margin:0 0 16px}.dc-safe svg{flex:none;color:var(--ok);margin-top:1px}
 .dc-chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .dc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
@@ -2544,7 +2554,7 @@ const DOC_CSS=`<style>
 .dc-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.dc-add label{cursor:pointer}.dc-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
 .dc-zoom{position:fixed;inset:0;z-index:90;background:rgba(5,10,18,.9);display:grid;place-items:center;padding:16px}.dc-zoom img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}.dc-zoom button{position:absolute;top:14px;right:14px}
 @media(max-width:640px){.dc-f{grid-template-columns:1fr}.dc-dl{grid-template-columns:1fr;gap:2px}.dc-dl dd{margin-bottom:10px}.dc-grid{grid-template-columns:1fr}}
-</style>`;
+</style>`);
 function docZoom(path){const u=(_docUrl[path]||{}).url;if(!u)return;S.docZoom=u;render()}
 function DocsView(){setTimeout(docLoadImgs,0);const lim=DOC_LIM(),zoom=S.docZoom?`<div class="dc-zoom" role="dialog" aria-label="Photo" onclick="S.docZoom=null;render()"><img src="${esc(S.docZoom)}" alt="Document photo"><button class="nl-btn" aria-label="Close" onclick="S.docZoom=null;render()">${IC('x',18)}</button></div>`:'';
  const safe=`<div class="dc-safe">${IC('lock',18)}<span>Only you can see these. Photos are kept in your own private WalletMV storage. Don’t save passwords, PINs or full bank card numbers here.</span></div>`;
@@ -2938,7 +2948,7 @@ function Login(){if(_googleOn===null)setTimeout(checkGoogle,0);const v=S.recover
  <main class="au-main"><div class="au-top">${STORE_APP?'<span></span>':`<button type="button" onclick="go('home')">← WalletMV website</button>`}<button type="button" onclick="reportProblem('Account or login')">Need help?</button></div>
  <div class="au-wrap"><div class="au-card">${AuthBody(v,f)}${v==='login'?`<p class="au-note">Secure sign-in by Supabase. By continuing you agree to our <a href="#" onclick="event.preventDefault();go('terms')">Terms</a> and <a href="#" onclick="event.preventDefault();go('privacy')">Privacy Policy</a>.</p>`:''}</div></div></main></div>`}
 
-const AUTH_CSS=`<style>
+const AUTH_CSS=cssOnce(`<style>
 .au{min-height:100vh;display:flex;background:var(--bg);color:var(--ink);font-family:var(--body)}
 .au-side{position:relative;flex:0 0 44%;max-width:620px;display:flex;flex-direction:column;gap:28px;padding:32px 48px 40px;color:#fff;overflow:hidden;background:radial-gradient(120% 80% at 0% 0%,#1C3D5E 0%,#14304B 35%,#0B1A2C 75%)}
 [data-theme="noir"] .au-side{background:radial-gradient(120% 80% at 0% 0%,#14304B 0%,#0B1A2C 45%,#05080C 100%)}
@@ -3034,7 +3044,7 @@ const AUTH_CSS=`<style>
 }
 @media(max-width:360px){.au-card{padding:22px 16px}.au-meter span{min-width:0}}
 @media(min-width:861px) and (max-height:800px){.au-points{display:none}.au-side{gap:22px}}
-</style>`;
+</style>`);
 function calc(month){const c=S.tx.filter(t=>mk(t.date)===month);const inc=c.filter(t=>t.type==='income').reduce((a,t)=>a+t.amt,0);const by={};c.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);const exp=Object.values(by).reduce((a,b)=>a+b,0);return{inc,exp,by}}
 function calcRange(from,to){const c=S.tx.filter(t=>t.date>=from&&t.date<=to);const inc=c.filter(t=>t.type==='income').reduce((a,t)=>a+t.amt,0);const by={};c.filter(t=>t.type==='expense').forEach(t=>by[t.cat]=(by[t.cat]||0)+t.amt);const exp=Object.values(by).reduce((a,b)=>a+b,0);return{inc,exp,by}}
 function setRepMode(mode){S.repMode=mode;if(mode==='range'&&!S.repFrom){const d=new Date();S.repFrom=isoD(new Date(d.getFullYear(),d.getMonth(),1));S.repTo=isoD(today)}render()}
@@ -3332,7 +3342,7 @@ function PayWall(){const i=subInfo(),v=veliPlan(),pp=paidPlans(),trial=!!i.trial
  return `${Head(trial?`Your ${trialMonths()} free months are over`:`Your ${esc(i.p&&i.p.short||'')} package has ended`,'Choose a package to carry on. Your records are safe and waiting for you.')}
  <div class="card" style="border:2px solid var(--gold)"><div class="flex between" style="gap:14px;flex-wrap:wrap;align-items:center"><div style="flex:1;min-width:220px"><h3 style="margin:0">Keep ${esc(v.name)} for MVR ${v.price} every ${v.days} days</h3><p class="sub" style="margin:6px 0 0">Everything you’ve been using: safe-to-spend, tracking, bills, the to-do list, groceries and your documents.</p></div><button class="btn" onclick="requestUpgrade('${v.id}')">Keep ${esc(v.name)}</button></div></div>
  <div class="pw-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:16px">${pp.map(p=>`<div class="card" style="display:flex;flex-direction:column;gap:6px"><div class="flex between" style="gap:8px;align-items:baseline;flex-wrap:wrap"><b style="font:600 1.3rem var(--head)">${esc(p.name)}</b><span style="font-weight:600">MVR ${p.price}<small style="color:var(--ink2);font-weight:400"> / ${p.days} days</small></span></div><p class="sub" style="margin:0;flex:1">${esc(p.tag)}</p><button class="btn ghost sm" onclick="requestUpgrade('${p.id}')">Choose ${esc(p.name)}</button></div>`).join('')}</div>
- <p class="sub" style="margin:16px 0 0;font-size:13.5px">Paid by transfer or WhatsApp? It switches on as soon as we confirm it. Questions: WhatsApp ${esc(S.supportWhatsapp)}. My package and Settings stay open.</p>`}
+ <p class="sub" style="margin:16px 0 0;font-size:13.5px">Paid by transfer or WhatsApp? It switches on as soon as we confirm it. Questions: WhatsApp ${esc(S.supportWhatsapp)}. My package and Settings stay open.</p><button class="nl-link" style="margin-top:6px" onclick="logoutUser()">Log out</button>`}
 function MoneyView(){if(needPkg()&&!['package','settings'].includes(S.mview))return PayWall();return ({today:MoneyToday,dash:MoneyToday,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,docs:DocsView,pdf:ImgPdf,settings:Settings})[S.mview]()}
 function accountBalance(id){const a=S.accounts.find(x=>x.id===id);if(!a)return 0;
  const txSum=S.tx.filter(t=>t.accId===id).reduce((s,t)=>s+(t.type==='income'?t.amt:-t.amt),0);
@@ -3389,7 +3399,7 @@ function MoneyToday(){const s=safeToSpend(),bills=dueBills(),m=calc(curMk()),iso
  const groc=(()=>{try{grocAutoDaily();return S.groc.list.filter(i=>!i.done)}catch(e){return []}})();
  const disc=(()=>{try{return myDiscounts().filter(d=>discState(d)==='active')}catch(e){return []}})();
  return `
- <div class="nl-mhead"><button class="nl-av" onclick="S.sheet='money';render()" aria-label="Menu and settings">${esc(initials(S.name))}</button><span class="who"><small>${greetNow()}</small><b>${first}</b></span><button class="nl-ibtn" onclick="mv('tasks')" aria-label="Today's tasks and reminders">${IC('bell',19)}${alert?'<span class="nl-dot"></span>':''}</button></div>
+ <div class="nl-mhead"><button class="nl-av" onclick="openSheet('money')" aria-label="Menu and settings">${esc(initials(S.name))}</button><span class="who"><small>${greetNow()}</small><b>${first}</b></span><button class="nl-ibtn" onclick="mv('tasks')" aria-label="Today's tasks and reminders">${IC('bell',19)}${alert?'<span class="nl-dot"></span>':''}</button></div>
  <div class="nl-head nl-dhead"><div><h1>${greetNow()}, ${first}</h1><p>${today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})} · here’s where your money stands</p></div>
   <div class="act"><button class="nl-pill" onclick="mv('reports')">${mLabel(curMk())}${IC('chevd',16)}</button><button class="nl-ibtn" onclick="mv('tasks')" aria-label="Today's tasks and reminders">${IC('bell',19)}${alert?'<span class="nl-dot"></span>':''}</button></div></div>
  <div class="nl-kpis">
@@ -3982,7 +3992,7 @@ function billHTML(d,f){const T=billTotals(d),title=billTitle(d,f),me=d.me,pt=d.p
   <div class="bx-line"><span>${d.sale?'Received from':'Paid to'}</span><b>${esc(pt.name||'—')}</b></div><div class="bx-line"><span>For</span><span>${items.map(i=>esc(i.desc)).join(', ')}</span></div>
   <div class="bx-line"><span>Payment method</span><span>${esc(d.method)}</span></div>${d.gst?`<div class="bx-line"><span>GST included</span><span>${bm(T.tax)} (${d.rate}%)</span></div>`:''}${me.tin?`<div class="bx-line"><span>TIN</span><span>${esc(me.tin)}</span></div>`:''}
   <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:34px"><div>${qrSVG(verify,3)}</div><div class="bx-r"><div style="border-top:1px solid #13202E;width:200px;padding-top:6px;text-align:center;font-size:12.5px">Signature</div></div></div></div>`}
-function openBill(src,id,fmt){const t=src==='shop'?S.shopTx.find(x=>x.id===id):null;S.bill={src,id,fmt:fmt||S.billFmt||(src==='shop'&&t&&t.type==='income'?'thermal':'paid')};S.sheet=null;render()}
+function openBill(src,id,fmt){const t=src==='shop'?S.shopTx.find(x=>x.id===id):null;S.bill={src,id,fmt:fmt||S.billFmt||(src==='shop'&&t&&t.type==='income'?'thermal':'paid')};closeSheet()}
 function billText(d){const T=billTotals(d);return `*${d.me.name}*\n${billTitle(d,'paid')} ${d.no}\nDate: ${bd(d.date)}\n${d.sale?'Customer':'Paid to'}: ${d.party.name||'-'}\n\n${d.items.map(i=>`• ${i.desc} x${i.qty||1} — ${bm((i.qty||1)*i.price)}`).join('\n')}\n${d.gst?`\nGST ${d.rate}% included: ${bm(T.tax)}`:''}\n*Total: ${bm(T.total)}*\nPaid by: ${d.method}\n\nThank you! — sent from WalletMV`}
 function billDoc(d,f){const size=f==='thermal'?'80mm auto':f==='simple'?'A5':'A4';return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(billTitle(d,f))} ${esc(d.no)}</title><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@400;500;600;800&display=swap" rel="stylesheet"><style>${BILL_CSS}@page{size:${size};margin:${f==='thermal'?'0':'10mm'}}body{margin:0;padding:${f==='thermal'?'0':'16px'};background:#fff}</style></head><body>${billHTML(d,f)}<scr`+`ipt>window.onload=function(){setTimeout(function(){window.print()},400)}</scr`+`ipt></body></html>`}
 function printBill(){const d=billData(),f=S.bill.fmt;if(!d)return;const doc=billDoc(d,f);const inFrame=!!(window.claude&&window.claude.use);
