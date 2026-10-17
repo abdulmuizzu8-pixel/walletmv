@@ -2752,8 +2752,8 @@ addEventListener('pagehide',()=>{clearTimeout(_saveT);saveNow()});
 function syncNote(){if(!S.signed)return'';return S.syncErr?`<p class="sub" style="margin:10px 0 0;font-size:13px;color:var(--rose)">Not saved to your account yet. Check your internet; we’ll keep trying.</p>`:(S.dataReady?`<p class="sub" style="margin:10px 0 0;font-size:13px;color:var(--ok)">✓ Saved to your account</p>`:'')}
 
 /* ---------- Inside the Google Play and App Store apps ----------
-   In the Maldives, store rules don't allow selling packages with outside payment methods inside an app, so the store
-   apps (opened with ?store=android or ?store=ios) hide prices and payment pages. Customers buy on walletmv.com. */
+   Store-specific checkout behavior must be reviewed against current Google Play and Apple App Store rules
+   for each storefront and market before submission. */
 function storeTidy(){if(!STORE_APP)return;try{document.querySelectorAll('#app [onclick*="requestUpgrade("],#app [onclick*="go(\'packages\')"],#app [onclick*="go(\'checkout\')"],#app [onclick*="go(\'services\')"],#app [onclick*="waOrder("]').forEach(e=>e.remove());document.querySelectorAll('#app .store-hide').forEach(e=>e.remove())}catch(e){}}
 
 /* ---------- Phone app lock (Face ID / fingerprint), only inside the WalletMV phone apps ---------- */
