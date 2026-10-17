@@ -1054,7 +1054,7 @@ const PAY_CFG_KEY='pay_details';
 async function loadPublicConfig(){if(!walletAuth)return;try{const {data,error}=await walletAuth.from('walletmv_public_config').select('key,value').eq('key',PAY_CFG_KEY).maybeSingle();
  if(error||!data||!data.value||typeof data.value!=='object')return;S.payCfg=data.value;Object.entries(data.value).forEach(([id,entry])=>{let m=payMethod(id);
   if(!m&&id.startsWith('c')&&entry&&typeof entry==='object'&&entry.custom===true){const name=String(entry.name||'').trim().slice(0,120);if(name){m={id,name,region:entry.region==='world'?'world':'MV',on:false,custom:true,details:'',refHint:String(entry.refHint||'Transaction or receipt number').slice(0,120)};S.payMethods.push(m)}}
-  if(!m)return;if(typeof entry==='string'&&entry.trim()){m.details=entry.trim().slice(0,400);m.on=true}
+  if(!m)return;if(typeof entry==='string'&&entry.trim()){m.details=entry.trim().slice(0,400);m.on=!/load in a moment|send to 7771234|payments@walletmv\.com|pay by card via|pay through the secure card link|pay from your Skrill/i.test(m.details)}
   else if(entry&&typeof entry==='object'){if(typeof entry.details==='string'&&entry.details.trim())m.details=entry.details.trim().slice(0,400);if(typeof entry.on==='boolean')m.on=entry.on}});
  if(['checkout','admin','packages'].includes(S.page))render()}catch(e){}}
 async function savePayCfg(id,details){if(!walletAuth||!S.isOwner)return false;const m=payMethod(id);const entry={details:String(details||'').trim().slice(0,400),on:!!(m&&m.on)};if(m&&m.custom)Object.assign(entry,{name:m.name,region:m.region==='world'?'world':'MV',custom:true,refHint:m.refHint||'Transaction or receipt number'});const value={...(S.payCfg||{}),[id]:entry};
