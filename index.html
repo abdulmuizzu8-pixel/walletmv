@@ -539,7 +539,7 @@ function Shell(items,cur,body){
   <header class="nl-top${cur==='today'?' hide':''}"><button class="nl-brand sm" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>WalletMV</span></button><button class="nl-topbtn" onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button></header>
   <main class="main nl-main">${pkgNotice()}${body}</main>${MobileBar('money')}</div>`;
 }
-const Head=(t,s)=>`<h2>${t}</h2><div class="rule"></div>${s?`<p class="sub">${s}</p>`:''}`;
+const Head=(t,s)=>`<div class="nl-head"><div><h1>${t}</h1>${s?`<p>${s}</p>`:''}</div></div>`;
 
 /* ============ landing ============ */
 const NAVI=[['home','Home'],['packages','Services & packages'],['partners','Loyalty discount cards']];
@@ -3059,6 +3059,36 @@ const NL_CSS2=`
 @media(max-width:420px){.nl-budsum{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.nl-budsum .bg{grid-column:1/-1}.nl-seg button{padding:0 10px}}
 `;
 (function(){try{const st=document.createElement('style');st.id='nl-css2';st.textContent=NL_CSS2;document.head.appendChild(st)}catch(e){}})();
+const NL_CSS3=`
+.nl-main .card{padding:22px;border-radius:18px;box-shadow:none;border:1px solid var(--line)}
+.nl-main .card h3{font:600 1.35rem/1.2 var(--head);margin:0 0 6px;color:var(--ink)}
+.nl-main .card h3:not(:first-child){margin-top:18px}
+.nl-main .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:12px;background:var(--deep);color:#FFFFFF;box-shadow:none;font:600 14.5px var(--body);letter-spacing:0;text-decoration:none}
+.nl-main .btn:hover{filter:brightness(1.15)}
+.nl-main .btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--line)}
+.nl-main .btn.ghost:hover{border-color:var(--gold);filter:none}
+.nl-main .btn.dark{background:var(--deep);color:#FFFFFF}
+.nl-main .btn.sm{min-height:38px;padding:0 13px;font-size:13.5px}
+.nl-main .btn.xs{min-height:32px;padding:0 10px;font-size:12.5px;border-radius:10px}
+[data-theme="noir"] .nl-main .btn:not(.ghost){background:var(--gold);color:#0B1A2C}
+.nl-main .chip{min-height:36px;padding:0 13px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:500 13.5px var(--body)}
+.nl-main .chip[aria-pressed="true"]{background:rgba(201,169,97,.16);border:2px solid var(--gold);color:var(--ink);font-weight:600}
+.nl-main label:not(.btn):not(.nl-ibtn):not(.nl-btn):not(.tk-chk){font-size:13px;font-weight:600;color:var(--ink2)}
+.nl-main .sub{margin-bottom:16px}
+.nl-main .grid2,.nl-main .grid3{gap:16px}
+.nl-main .today-row,.nl-main .list li{padding:12px 0}
+.nl-main .badge{padding:3px 10px}
+.nl-main .stat b{font-size:2rem}
+.nl-main .btn.rose{background:transparent;color:var(--rose);border:1.5px solid rgba(180,67,78,.45)}
+.nl-main .btn.rose:hover{background:rgba(180,67,78,.08);filter:none}
+.nl-main .card.danger{border-color:rgba(180,67,78,.35)}
+.nl-set{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start;max-width:1100px}
+.nl-logout{align-self:flex-start}
+.nl-main [style*="text-align:center"] .sub{margin-left:auto;margin-right:auto}
+@media(max-width:1020px){.nl-set{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:860px){.nl-main .card{padding:18px}.nl-main .card h3{font-size:1.25rem}}
+`;
+(function(){try{const st=document.createElement('style');st.id='nl-css3';st.textContent=NL_CSS3;document.head.appendChild(st)}catch(e){}})();
 /* ============ NEW LOOK · stage 2: Accounts, Transactions, Budgets, Goals, Bills, Reports ============ */
 const nlHead=(t,sub,act)=>`<div class="nl-head"><div><h1>${t}</h1>${sub?`<p>${sub}</p>`:''}</div>${act?`<div class="act">${act}</div>`:''}</div>`;
 const nlBtn=(label,on,ic,kind)=>`<button class="nl-btn${kind?' '+kind:''}" onclick="${on}">${ic?IC(ic,17):''}${label}</button>`;
@@ -3229,35 +3259,30 @@ function resetAppData(){
  toast('Personal app data reset. Your account and package were kept.');
  S.page='money';S.mview='today';render();
 }
-function Settings(){return `<div style="max-width:680px">${Head('Settings','Manage your profile and app preferences.')}
+function Settings(){return `${Head('Settings','Your package, profile and preferences.')}
+ <div class="nl-set"><div class="nl-col"><div class="card"><h3>Billing &amp; package</h3>
+ <p class="sub" style="margin:6px 0 14px">Current plan: ${(()=>{const i=subInfo();if(i.state==='none')return '<b>No package yet</b>';const st={active:['Active','rgba(47,143,107,.18)'],pending:['Waiting for payment confirmation','rgba(227,168,87,.25)'],expired:['Ended','rgba(180,67,78,.14)']}[i.state]||['','transparent'];return `<b>${esc(i.p.short||i.p.name)}</b> — <span class="badge" style="background:${st[1]}">${st[0]}</span>`})()}</p>
+ <span class="flex" style="gap:8px;flex-wrap:wrap">${S.subscription.status==='pending_approval'?`<button class="btn ghost sm" onclick="go('checkout')">Review request</button>`:`<button class="btn ghost sm" onclick="go('packages')">Change package</button>`}${S.isOwner?`<button class="btn ghost sm" onclick="go('admin')">Open admin panel</button>`:''}</span>
+ ${S.pendingSubs.length?`<div class="store-hide" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><p class="sub" style="font-size:13px;margin-bottom:8px">Request history</p>${S.pendingSubs.map(s=>`<div class="today-row"><span class="dot" style="background:var(--${s.status==='approved'?'ok':s.status==='rejected'?'rose':'gold'})"></span><span style="flex:1"><b>${esc(planInfo(s.plan).name)} — ${money(s.price)}/mo</b><br><small style="color:var(--ink2)">${sd(s.requestedAt)} · ${esc(s.method)} · ref ${esc(s.ref)} · ${s.status}</small></span></div>`).join('')}</div>`:''}
+ </div>
  <div class="card"><h3>Profile</h3><label for="s1">Full name</label><input id="s1" value="${esc(S.name)}"><label>Email</label><p style="margin:0;color:var(--ink2)">${S.email}</p>
  <label for="s2">Currency</label><select id="s2">${curOptions()}</select>
  <label for="s5">Appearance</label><select id="s5" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select>
  <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--ink)"><input id="s3" type="checkbox" ${S.notif?'checked':''}> Notify me at 90% of my budget</label>
  <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.cur=$('#s2').value;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>${AppLockCard()}
-  <div class="card" style="margin-top:18px;border:1px solid rgba(180,67,78,.35)"><h3>Reset App Data</h3><p class="sub" style="margin:6px 0 14px">Clear personal transactions, transfers, savings goals, bill reminders, personal calendar notes, grocery list, budget targets, and account opening balances. Your profile, package entitlement, shop records, products, customers, and saved grocery templates will remain.</p><button class="btn rose" onclick="resetAppData()">Reset App Data</button></div>
- <div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:10px"><div><h3>Help &amp; support</h3><p class="sub" style="margin:4px 0 0">Something not right? Send it to the WalletMV team on WhatsApp: <b style="user-select:all">${esc(S.supportWhatsapp)}</b></p></div><button class="btn sm" onclick="reportProblem()">${IC('chat',15)} Report a problem</button></div></div>
- <div class="card" style="margin-top:18px"><h3>Recurring bills</h3><p class="sub" style="margin:6px 0 14px">These appear on your Today board with due dates.</p>
- <ul class="list">${S.bills.map(b=>`<li><span><b>${esc(b.name)}</b> <small style="color:var(--ink2)">· due day ${b.due} · ${money(b.amt)}</small></span><span class="flex" style="gap:6px"><span class="badge" style="background:${b.paidThisMonth?'rgba(47,143,107,.18)':'rgba(227,168,87,.25)'}">${b.paidThisMonth?'Paid':'Unpaid'}</span><button class="btn ghost sm" onclick="S.bills=S.bills.filter(x=>x.id!==${b.id});render()">Remove</button></span></li>`).join('')}</ul>
- <div class="flex" style="margin-top:14px;align-items:center">${scanBtn('billImg','Scan a bill','scanBill')}<span id="scanStatus"></span></div>
- <div class="flex" style="margin-top:14px"><input id="bn" aria-label="Bill name" placeholder="Internet" style="flex:1;min-width:140px"><input id="ba" aria-label="Amount" type="number" min="0" placeholder="500" style="width:110px"><input id="bd" aria-label="Due day" type="number" min="1" max="31" placeholder="Due day" style="width:100px"><button class="btn" onclick="const n=$('#bn').value.trim(),a=+$('#ba').value,d=+$('#bd').value;if(!n||!(a>0)||!(d>=1&&d<=31))return toast('Add a name, amount and a due day from 1 to 31');S.bills.push({id:Date.now(),name:n,cat:'Bills',amt:a,due:d,paidThisMonth:false});$('#bn').value='';$('#ba').value='';$('#bd').value='';const st=$('#scanStatus');if(st)st.innerHTML='';toast('Bill added');render()">Add bill</button></div>
- <p class="sub" style="margin:8px 0 0;font-size:13px">Scan a photo of the bill to pre-fill the name, amount and due day — you can still edit them before saving.</p></div>
- <div class="card" style="margin-top:18px"><h3>Quick add presets</h3><p class="sub" style="margin:6px 0 14px">The one-tap chips on Today and Add expense.</p>
+ <div class="card"><h3>Quick add presets</h3><p class="sub" style="margin:6px 0 14px">The one-tap chips on Today and Add expense.</p>
  <ul class="list">${S.quick.map(q=>{const ed=S.editQuick===q.id;return ed?`<li><div class="flex" style="gap:8px;width:100%"><input id="qi${q.id}" aria-label="Icon" value="${q.ic}" style="width:56px;text-align:center"><input id="qn${q.id}" aria-label="Name" value="${esc(q.n)}" style="flex:1;min-width:100px"><select id="qc${q.id}" aria-label="Category" style="width:150px">${S.cats.filter(c=>c.t==='expense').map(c=>`<option ${q.cat===c.n?'selected':''}>${esc(c.n)}</option>`).join('')}</select><input id="qa${q.id}" aria-label="Amount" type="number" min="0" value="${q.amt}" style="width:100px"><button class="btn sm" onclick="saveQuick(${q.id})">Save</button><button class="btn ghost sm" onclick="S.editQuick=null;render()">Cancel</button></div></li>`
  :`<li><span><span style="font-size:18px;margin-right:8px">${q.ic}</span><b>${esc(q.n)}</b> <small style="color:var(--ink2)">· ${esc(q.cat)} · ${money(q.amt)}</small></span><span class="flex" style="gap:6px"><button class="btn ghost sm" onclick="S.editQuick=${q.id};render()">Edit</button><button class="btn ghost sm" onclick="arm('q${q.id}',()=>{S.quick=S.quick.filter(x=>x.id!==${q.id});toast('Preset removed');render()})">${S.armed==='q'+q.id?'Confirm':'Remove'}</button></span></li>`}).join('')||'<p class="sub">No presets yet — add one below.</p>'}</ul>
  <div class="flex" style="margin-top:14px;gap:8px"><input id="qni" aria-label="New preset icon" placeholder="🛍" style="width:56px;text-align:center"><input id="qnn" aria-label="New preset name" placeholder="Snacks" style="flex:1;min-width:120px"><select id="qnc" aria-label="New preset category" style="width:150px">${S.cats.filter(c=>c.t==='expense').map(c=>`<option>${esc(c.n)}</option>`).join('')}</select><input id="qna" aria-label="New preset amount" type="number" min="0" placeholder="50" style="width:100px"><button class="btn" onclick="addQuick()">Add preset</button></div></div>
- <div class="card" style="margin-top:18px"><h3>Categories</h3><div class="flex" style="gap:8px;margin:14px 0">${S.cats.map((c,i)=>`<span class="chip">${esc(c.n)} <small style="color:var(--ink2)">(${c.t})</small><button aria-label="Delete ${esc(c.n)}" style="border:0;background:none;font-weight:700" onclick="S.cats.splice(${i},1);render()">×</button></span>`).join('')}</div>
+ <div class="card"><h3>Categories</h3><div class="flex" style="gap:8px;margin:14px 0">${S.cats.map((c,i)=>`<span class="chip">${esc(c.n)} <small style="color:var(--ink2)">(${c.t})</small><button aria-label="Delete ${esc(c.n)}" style="border:0;background:none;font-weight:700" onclick="S.cats.splice(${i},1);render()">×</button></span>`).join('')}</div>
  <div class="flex"><input id="cn" aria-label="New category" placeholder="Ferry pass" style="flex:1;min-width:140px"><select id="ct" aria-label="Type" style="width:130px"><option value="expense">Expense</option><option value="income">Income</option></select><button class="btn" onclick="const n=$('#cn').value.trim();if(!n)return toast('Name the category first');S.cats.push({n,t:$('#ct').value});toast('Category added');render()">Add</button></div></div>
- <div class="card" style="margin-top:18px"><h3>Billing &amp; package</h3>
- <p class="sub" style="margin:6px 0 14px">Current plan: ${(()=>{const i=subInfo();if(i.state==='none')return '<b>No package yet</b>';const st={active:['Active','rgba(47,143,107,.18)'],pending:['Waiting for payment confirmation','rgba(227,168,87,.25)'],expired:['Ended','rgba(180,67,78,.14)']}[i.state]||['','transparent'];return `<b>${esc(i.p.short||i.p.name)}</b> — <span class="badge" style="background:${st[1]}">${st[0]}</span>`})()}</p>
- <span class="flex" style="gap:8px;flex-wrap:wrap">${S.subscription.status==='pending_approval'?`<button class="btn ghost sm" onclick="go('checkout')">Review request</button>`:`<button class="btn ghost sm" onclick="go('packages')">Change package</button>`}${S.isOwner?`<button class="btn ghost sm" onclick="go('admin')">Open admin panel</button>`:''}</span>
- ${S.pendingSubs.length?`<div class="store-hide" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><p class="sub" style="font-size:13px;margin-bottom:8px">Request history</p>${S.pendingSubs.map(s=>`<div class="today-row"><span class="dot" style="background:var(--${s.status==='approved'?'ok':s.status==='rejected'?'rose':'gold'})"></span><span style="flex:1"><b>${esc(planInfo(s.plan).name)} — ${money(s.price)}/mo</b><br><small style="color:var(--ink2)">${sd(s.requestedAt)} · ${esc(s.method)} · ref ${esc(s.ref)} · ${s.status}</small></span></div>`).join('')}</div>`:''}
- </div>
-
- <div class="card" style="margin-top:18px"><h3>Legal &amp; policies</h3><p class="sub" style="margin:6px 0 14px">Review WalletMV's terms, privacy practices, payment rules, and data controls.</p><div class="flex" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="go('terms')">Terms &amp; Conditions</button><button class="btn ghost sm" onclick="go('privacy')">Privacy Policy</button><button class="btn ghost sm" onclick="go('refund')">Refund Policy</button><button class="btn ghost sm" onclick="go('deletion')">Data Deletion</button><button class="btn ghost sm" onclick="go('disclaimer')">Financial Disclaimer</button></div></div>
- <div class="card" style="margin-top:18px"><h3>Password</h3><label for="pw2">New password</label><input id="pw2" type="password" autocomplete="new-password"><button class="btn ghost" style="margin-top:14px" onclick="changePassword(this)">Change password</button></div>
- <div class="card" style="margin-top:18px;border:1px solid rgba(180,67,78,.35)"><h3>Delete my account</h3><p class="sub" style="margin:6px 0 14px">Permanently delete your WalletMV account and everything saved in it. Export anything you want to keep first, from Reports.</p><button class="btn rose" onclick="deleteMyAccount(this)">Delete my account</button></div>
- <button class="btn rose" style="margin-top:18px" onclick="logoutUser()">Log out</button></div>`}
+ </div><div class="nl-col"><div class="card"><div class="flex between" style="flex-wrap:wrap;gap:10px"><div><h3>Help &amp; support</h3><p class="sub" style="margin:4px 0 0">Something not right? Send it to the WalletMV team on WhatsApp: <b style="user-select:all">${esc(S.supportWhatsapp)}</b></p></div><button class="btn sm" onclick="reportProblem()">${IC('chat',15)} Report a problem</button></div></div>
+ <div class="card"><h3>Bills</h3><p class="sub" style="margin:6px 0 14px">Your monthly bills and reminders now have their own page.</p><button class="btn ghost sm" onclick="mv('calendar')">Open Bills and calendar</button></div>
+ <div class="card"><h3>Password</h3><label for="pw2">New password</label><input id="pw2" type="password" autocomplete="new-password"><button class="btn ghost" style="margin-top:14px" onclick="changePassword(this)">Change password</button></div>
+ <div class="card"><h3>Legal &amp; policies</h3><p class="sub" style="margin:6px 0 14px">Review WalletMV's terms, privacy practices, payment rules, and data controls.</p><div class="flex" style="gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="go('terms')">Terms &amp; Conditions</button><button class="btn ghost sm" onclick="go('privacy')">Privacy Policy</button><button class="btn ghost sm" onclick="go('refund')">Refund Policy</button><button class="btn ghost sm" onclick="go('deletion')">Data Deletion</button><button class="btn ghost sm" onclick="go('disclaimer')">Financial Disclaimer</button></div></div>
+ <div class="card danger"><h3>Reset App Data</h3><p class="sub" style="margin:6px 0 14px">Clear personal transactions, transfers, savings goals, bill reminders, personal calendar notes, grocery list, budget targets, and account opening balances. Your profile, package entitlement, shop records, products, customers, and saved grocery templates will remain.</p><button class="btn rose" onclick="resetAppData()">Reset App Data</button></div>
+ <div class="card danger"><h3>Delete my account</h3><p class="sub" style="margin:6px 0 14px">Permanently delete your WalletMV account and everything saved in it. Export anything you want to keep first, from Reports.</p><button class="btn rose" onclick="deleteMyAccount(this)">Delete my account</button></div>
+ <button class="btn ghost nl-logout" onclick="logoutUser()">${IC('logout',17)}Log out</button></div></div>`}
 
 
 /* ============ BILL FORMATS ============ */
