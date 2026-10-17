@@ -1,5 +1,5 @@
 // WalletMV: "Delete my account" (Settings → Delete my account).
-// Deletes the signed-in person's WalletMV records, then their login.
+// Deletes the signed-in person's WalletMV records and their saved document photos, then their login.
 // The login is kept if the same person also has Laari data in this Supabase project (both apps share sign-in),
 // so deleting WalletMV never wipes someone's Laari account.
 // Runs with the project's built-in service role key; no secrets are stored in this file.
@@ -18,6 +18,7 @@ const WALLETMV_TABLES = [
   "walletmv_settings",
   "walletmv_app_state",
 ];
+const DOCS_BUCKET = "walletmv-docs"; // private: each person's files sit in a folder named after their user id
 
 function headersFor(origin: string | null): Record<string, string> {
   const ok = !!origin && ALLOWED.some((r) => r.test(origin));
@@ -45,6 +46,17 @@ Deno.serve(async (req: Request) => {
   const { data: who, error: whoErr } = await admin.auth.getUser(jwt);
   const user = who?.user;
   if (whoErr || !user) return reply({ ok: false, error: "Not signed in" }, 401);
+
+  // Document photos first, so nothing private is left behind.
+  const bucket = admin.storage.from(DOCS_BUCKET);
+  for (let round = 0; round < 50; round++) {
+    const { data: files, error: listErr } = await bucket.list(user.id, { limit: 100 });
+    if (listErr) return reply({ ok: false, error: "Could not delete documents" }, 500);
+    const names = (files || []).filter((f) => f && f.name).map((f) => user.id + "/" + f.name);
+    if (!names.length) break;
+    const { error: rmErr } = await bucket.remove(names);
+    if (rmErr) return reply({ ok: false, error: "Could not delete documents" }, 500);
+  }
 
   for (const table of WALLETMV_TABLES) {
     const { error } = await admin.from(table).delete().eq("user_id", user.id);

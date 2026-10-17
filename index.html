@@ -367,8 +367,8 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
  repMode:'month',repFrom:'',repTo:'',shopRepMode:'month',shopRepFrom:'',shopRepTo:'',
  subscription:{plan:'plus',status:'active',requestedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),approvedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),verified:true,startsAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),expiresAt:isoD(new Date(new Date().setDate(new Date().getDate()+22)))},
  plans:[
-  {id:'free',name:'Veli',meaning:'Sand — where every island starts',icon:'sun',tag:'Free for one person. Start here and move up when you need more.',best:'Free forever',price:0,days:30,members:1,scan:false,on:true,popular:false,free:true,features:['Safe-to-spend number every morning','Income & expense tracking','3 accounts','1 monthly budget','1 savings goal','Up to 5 bills','To-do list & reminders','Groceries lists','Image to PDF converter','Member discount card','Reports for this month and last month']},
-  {id:'starter',name:'Boli',meaning:'Cowrie shell — the Maldives’ first money',icon:'wallet',tag:'For one person or a couple who want no limits.',best:'',price:49,days:30,members:2,scan:false,on:true,popular:false,features:['Everything in Veli, with no limits','Unlimited accounts, bills & goals','A budget for each category','Full reports & Excel export','25 currencies','Share with 1 more person']},
+  {id:'free',name:'Veli',meaning:'Sand — where every island starts',icon:'sun',tag:'Free for one person. Start here and move up when you need more.',best:'Free forever',price:0,days:30,members:1,scan:false,on:true,popular:false,free:true,features:['Safe-to-spend number every morning','Income & expense tracking','3 accounts','1 monthly budget','1 savings goal','Up to 5 bills','To-do list & reminders','Groceries lists','Image to PDF converter','Document box (3 documents)','Member discount card','Reports for this month and last month']},
+  {id:'starter',name:'Boli',meaning:'Cowrie shell — the Maldives’ first money',icon:'wallet',tag:'For one person or a couple who want no limits.',best:'',price:49,days:30,members:2,scan:false,on:true,popular:false,features:['Everything in Veli, with no limits','Unlimited accounts, bills & goals','A budget for each category','Full reports & Excel export','25 currencies','Document box (30 documents)','Share with 1 more person']},
   {id:'plus',name:'Muraka',meaning:'Coral — strong, growing, beautiful',icon:'users',tag:'For couples and small households — snap bills instead of typing them.',best:'Most popular',price:99,days:30,members:3,scan:true,on:true,popular:true,features:['Everything in Boli','Scan receipts & bills','Home inventory from receipts','AI that plans your day','Shared wallet for the household','Priority support']},
   {id:'family',name:'Atholhu',meaning:'Atoll — a family of islands',icon:'heart',tag:'For the whole family — up to 9 people on one wallet.',best:'Best value per person',price:199,days:30,members:9,scan:true,on:true,popular:false,features:['Everything in Muraka','Everyone can scan bills','Shared family budget & bills','Everyone logs their own spending','See who spent what','Pocket-money goals for children','Shared groceries lists']},
   {id:'mvshop',name:'Dhoni',meaning:'The trading boat — built for business',icon:'store',tag:'For shops and small businesses — sell, stock and GST in one place.',best:'Best for shops',price:349,days:30,members:4,scan:true,on:true,popular:false,features:['Everything in Muraka for the owner','MVSHOP sales, POS & invoices','Bill inbox — bills sort themselves','Stock & smart reordering','GST return tools','AI shop assistant','Loyalty & discount cards for your customers']}],
@@ -481,7 +481,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
 };
 
 /* ============ routing ============ */
-const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do list'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['pdf','Image to PDF'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
+const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do list'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['docs','Documents'],['pdf','Image to PDF'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
@@ -489,7 +489,7 @@ const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
 const TEST_PAY=(()=>{try{const h=location.hostname;return h==='localhost'||h==='127.0.0.1'||/\.vercel\.app$/.test(h)}catch(e){return false}})();
 const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
-const mv=k=>{S.mview=k;S.upsell=null;if(k==='addx'||k==='addi')S.xScan=null;if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
+const mv=k=>{S.mview=k;S.upsell=null;if(k==='addx'||k==='addi')S.xScan=null;if(k==='docs'){S.docOpen=null;S.docShow=null;S.docZoom=null;if(S.docEd&&!S.docEd.busy)docCancel()}if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
 const arm=(key,fn)=>{if(S.armed===key){S.armed=null;fn()}else{S.armed=key;render();toast('Tap again to confirm')}};
 const toggleTheme=()=>{S.theme=S.theme==='light'?'noir':'light';document.documentElement.setAttribute('data-theme',S.theme);toast(S.theme==='noir'?'Noir theme on':'Light theme on');render()};
 
@@ -525,8 +525,8 @@ function render(){
   if(S.bill)a.innerHTML+='<style>'+BILL_CSS+'</style>'+BillSheet();
   storeTidy();queueSave();
 }
-const MGROUP={today:'Overview',accounts:'Money',cards:'Rewards',budget:'Plan',pdf:'Tools',people:'Account'};
-const MICON={today:'clock',dash:'chart',calendar:'cal',tasks:'task',accounts:'bank',tx:'receipt',addx:'down',addi:'up',groceries:'cart',cards:'card',budget:'target',goals:'shield',reports:'chart',pdf:'file',package:'box',people:'users',settings:'gear'};
+const MGROUP={today:'Overview',accounts:'Money',cards:'Rewards',budget:'Plan',docs:'Tools',people:'Account'};
+const MICON={today:'clock',dash:'chart',calendar:'cal',tasks:'task',accounts:'bank',tx:'receipt',addx:'down',addi:'up',groceries:'cart',cards:'card',budget:'target',goals:'shield',reports:'chart',docs:'folder',pdf:'file',package:'box',people:'users',settings:'gear'};
 /* ============ NEW LOOK · app frame (from the design canvas, in the WalletMV gold brand) ============ */
 const NL_HIDE_NAV=['addx','addi'];
 const initials=n=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'W';
@@ -626,7 +626,7 @@ function TermsBody(){
 }
 function PrivacyBody(){
  return LegalSection('1. Overview',"<p>This Privacy Policy explains how WalletMV collects, uses, stores, and protects information when you use the website or application. We aim to collect information reasonably needed to provide and secure the Service.</p>")
- +LegalSection('2. Information we may collect',"<ul><li><b>Account information:</b> name, email address, account identifier, and authentication data.</li><li><b>Financial and business records:</b> transactions, budgets, goals, invoices, inventory, customer records, and notes you enter.</li><li><b>Payment verification:</b> selected package, payment reference, amount, date, and transfer proof if submitted.</li><li><b>Support communications:</b> messages and details you provide to support.</li><li><b>Technical and usage information:</b> device, browser, session, security, diagnostic, and feature-usage information needed to operate and improve the Service.</li></ul><p>The published policy must match information the live Service actually collects.</p>")
+ +LegalSection('2. Information we may collect',"<ul><li><b>Account information:</b> name, email address, account identifier, and authentication data.</li><li><b>Financial and business records:</b> transactions, budgets, goals, invoices, inventory, customer records, and notes you enter.</li><li><b>Payment verification:</b> selected package, payment reference, amount, date, and transfer proof if submitted.</li><li><b>Documents you choose to save:</b> details and photos you add to the Document box, such as a driving licence, vehicle registration, ID card, passport or insurance. They are kept in private storage that only your account can open, shown through links that expire after 10 minutes, and used only to show them back to you and to remind you before they expire. Please don’t save passwords, PINs or full bank card numbers there.</li><li><b>Support communications:</b> messages and details you provide to support.</li><li><b>Technical and usage information:</b> device, browser, session, security, diagnostic, and feature-usage information needed to operate and improve the Service.</li></ul><p>The published policy must match information the live Service actually collects.</p>")
  +LegalSection('3. How we use information',"<p>We use information to create and maintain accounts, provide budgeting and business features, verify payments, activate purchased access, respond to support requests, prevent misuse, secure the Service, and troubleshoot problems.</p>")
  +LegalSection('4. Storage and security',"<p>WalletMV takes reasonable technical and organisational steps to protect information from unauthorised access, loss, misuse, or disclosure. No online system can guarantee absolute security. Users should protect their devices and passwords and report suspected account compromise. User records must be separated from other users and demo accounts.</p>")
  +LegalSection('5. Sharing',"<p>We do not sell personal information. Information may be processed by service providers needed to host, secure, authenticate, or support WalletMV, or by payment or messaging services when you choose to use them. We aim to limit access to what each provider needs and use appropriate confidentiality and security arrangements. Information may also be retained or disclosed where reasonably necessary to protect the Service, handle disputes, or meet applicable obligations.</p>")
@@ -646,7 +646,7 @@ function RefundBody(){
 }
 function DeletionBody(){
  return LegalSection('1. Deleting your account',"<p>Delete your account at any time in the app: <b>Settings → Delete my account</b>. This permanently deletes your WalletMV records and closes your login. If you can’t log in, email privacy@walletmv.com or message +960 798 7770 on WhatsApp from your registered number, and we’ll delete it for you. We may verify that the account is yours first.</p>")
- +LegalSection('2. What may be deleted',"<p>After a valid request is processed, WalletMV will delete or de-identify information no longer needed, subject to applicable retention requirements. This may include profile details, transactions, budgets, goals, dashboard records, notes, and preferences.</p>")
+ +LegalSection('2. What may be deleted',"<p>After a valid request is processed, WalletMV will delete or de-identify information no longer needed, subject to applicable retention requirements. This may include profile details, transactions, budgets, goals, dashboard records, notes, preferences, and the documents and photos saved in the Document box. Deleting your account in the app removes Document box photos straight away.</p>")
  +LegalSection('3. Records that may be retained',"<p>Payment-verification records, security logs, or information needed to resolve disputes or meet applicable obligations may be retained for an appropriate period. Where permitted, we will explain what is retained and why.</p>")
  +LegalSection('4. Reset App Data versus deleting an account',"<p><b>Reset App Data</b> is different from account deletion. A reset should clear only the current user's selected personal records and preserve their account and verified package entitlement. It must not affect other users' records. The app should explain what will be cleared and ask for confirmation.</p><p><b>Delete Account</b> closes the account and starts the deletion process. Export records you wish to keep before confirming deletion.</p>")
  +LegalSection('5. Processing and contact',"<p>We aim to handle valid requests within a reasonable timeframe, subject to verification and retention requirements. Contact <a href='mailto:privacy@walletmv.com' style='color:var(--gold-d);font-weight:600'>privacy@walletmv.com</a>.</p>")
@@ -706,6 +706,7 @@ const SVC=[
   ['A budget for each category','Food, transport, bills — each with its own limit.',{free:false,starter:true,plus:true,family:true,mvshop:true}],
   ['Savings goals','Umrah, a home, an island holiday — see how much to save each month.',{free:'1',starter:'Unlimited',plus:'Unlimited',family:'Unlimited',mvshop:'Unlimited'}],
   ['Image to PDF','Turn photos of bills, receipts or documents into one PDF, right on your phone.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
+  ['Document box','Keep licence, car, ID and passport details with photos, privately, and get renewal reminders.',{free:'3',starter:'30',plus:'30',family:'30',mvshop:'30'}],
   ['Groceries lists','Save your weekly list and send it on WhatsApp or as Excel.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['To-do list','Must do, Should do, Could do and Later — with reminders.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['Reports & Excel export','Monthly and yearly charts, downloadable for your records.',{free:'2 months',starter:true,plus:true,family:true,mvshop:true}],
@@ -1296,7 +1297,7 @@ function MobileBar(kind){const money=kind==='money',cur=money?S.mview:S.shopView
  const inPrim=prim.some(p=>p[0]===cur);
  const bar=`<nav class="nl-tabs" aria-label="Sections">${prim.map(([k,l,ic])=>k==='+'?`<button class="nl-fab" aria-label="Add" onclick="S.sheet='add';render()">${IC('plus',26)}</button>`:`<button ${(k===cur||(k==='more'&&!inPrim))?'aria-current="page"':''} onclick="${k==='more'?`S.sheet='${kind}';render()`:`S.sheet=null;${f}('${k}')`}">${IC(ic,22)}<span>${l}</span></button>`).join('')}</nav>`;
  let sheet='';
- if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['tasks','Add a task','task'],['calendar','Add a bill','bill'],['pdf','Photos to PDF','file']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
+ if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['tasks','Add a task','task'],['calendar','Add a bill','bill'],['docs','Save a document','folder'],['pdf','Photos to PDF','file']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
  else if(S.sheet===kind){const items=money?MNAV.map(i=>[i[0],i[1],MICON[i[0]]]):SHOPNAV.map(i=>[i[0],i[2],SICON[i[0]]]);const G=money?MGROUP:SGROUP;
   sheet=items.map(([k,l,ic])=>`${G[k]?`<div class="sgrp">${G[k]}</div>`:''}<button class="tile ${k===cur?'on':''}" onclick="S.sheet=null;${f}('${k}')">${ICB(ic||'box','rgba(11,26,44,.06)','var(--deep)',40)}${l}</button>`).join('')+(money?`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;go('shop')">${ICB('store','rgba(11,26,44,.06)','var(--deep)',40)}MVSHOP</button>`:`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;S.signed=true;go('money')">${ICB('wallet','rgba(11,26,44,.06)','var(--deep)',40)}Money app</button>`)+`<button class="tile" onclick="S.sheet=null;go('home')">${ICB('globe','rgba(11,26,44,.06)','var(--deep)',40)}Website</button>${isStandalone()?'':`<button class="tile" onclick="installApp()">${ICB('mobile','rgba(201,169,97,.16)','var(--gold-d)',40)}Install app</button>`}<button class="tile" onclick="reportProblem()">${ICB('chat','rgba(180,67,78,.1)','var(--rose)',40)}Report a problem</button>`}
  return bar+(sheet?`<div class="msheet" role="dialog" aria-label="${S.sheet==='add'?'Add':'All sections'}" onclick="if(event.target===this){S.sheet=null;render()}"><div class="pan"><div class="flex between" style="margin-bottom:6px"><b style="font:600 1.3rem var(--head)">${S.sheet==='add'?'Add something':'All sections'}</b><button class="btn ghost sm" onclick="S.sheet=null;render()">Close</button></div><div class="sgrid">${sheet}</div></div></div>`:'')}
@@ -2356,6 +2357,149 @@ function ImgPdf(){const P=S.pdf,n=P.imgs.length,seg=(k,v,l)=>`<button aria-press
   <p class="ip-note">${IC('lock',15)}<span>Your pictures stay on this device. WalletMV doesn’t upload them.</span></p>
  </div></div>`}
 
+/* ---------- DOCUMENT BOX ----------
+   A private place for licence, car, ID, passport and insurance details, with photos and renewal reminders.
+   Details are saved with the rest of the person's data (only they can read their own row).
+   Photos go to the private 'walletmv-docs' storage bucket, in a folder named after their user id; no one else can open them,
+   and they are shown through links that stop working after 10 minutes. Not for passwords, PINs or full bank card numbers. */
+Object.assign(ICONS,{folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'});
+const DOC_BUCKET='walletmv-docs';
+const DOC_T={licence:{n:'Driving licence',ic:'card',num:'Licence number',exp:'Expiry date'},vehicle:{n:'Car or bike',ic:'car',num:'Registration (plate) number',x:'Make and model',exp:'Registration due'},id:{n:'ID card',ic:'users',num:'ID card number',exp:'Expiry date'},passport:{n:'Passport',ic:'globe',num:'Passport number',exp:'Expiry date'},insurance:{n:'Insurance',ic:'shield',num:'Policy number',x:'Insurer',exp:'Renewal date'},other:{n:'Other document',ic:'file',num:'Number',x:'Issued by',exp:'Expiry or renewal date'}};
+const docT=d=>DOC_T[d&&d.type]||DOC_T.other;
+const DOC_LIM=()=>onFree()?{docs:3,files:1}:{docs:30,files:4};
+const docMask=n=>{n=String(n||'');return n.length>4?'•••• '+n.slice(-4):n?'••••':''};
+const docDays=d=>d&&d.expires?dayDiff(isoD(today),d.expires):null;
+function docBadge(d){const n=docDays(d);if(n===null)return '';if(n<0)return `<span class="dc-b bad">Expired</span>`;if(n===0)return `<span class="dc-b bad">Expires today</span>`;if(n<=30)return `<span class="dc-b warn">Expires in ${n} day${n===1?'':'s'}</span>`;if(n<=60)return `<span class="dc-b soon">Expires in ${n} days</span>`;return `<span class="dc-b">Until ${esc(ld(d.expires))}</span>`}
+const _docUrl={};
+async function docUrl(path){const c=_docUrl[path];if(c&&c.exp>Date.now()+30000)return c.url;if(!walletAuth||!walletAuth.storage)return null;
+ try{const {data,error}=await walletAuth.storage.from(DOC_BUCKET).createSignedUrl(path,600);if(error||!data||!data.signedUrl)return null;_docUrl[path]={url:data.signedUrl,exp:Date.now()+590000};return data.signedUrl}catch(e){return null}}
+function docLoadImgs(){document.querySelectorAll('img[data-docpath]').forEach(async im=>{if(im.dataset.loaded)return;im.dataset.loaded='1';const u=await docUrl(im.dataset.docpath);
+ if(u)im.src=u;else{const t=im.closest('.dc-ph');if(t)t.classList.add('err');im.alt='Couldn’t load this photo'}})}
+async function docOpenFile(path){const u=await docUrl(path);if(!u)return toast('Couldn’t open that file. Try again.');try{window.open(u,'_blank','noopener')}catch(e){location.href=u}}
+async function docPrep(file){if(file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')){if(file.size>5*1024*1024)throw new Error('big');return {blob:file,type:'application/pdf',ext:'pdf'}}
+ const url=URL.createObjectURL(file);try{const im=await pdfLoad(url),sc=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.max(1,Math.round(im.naturalWidth*sc)),h=Math.max(1,Math.round(im.naturalHeight*sc));
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);const bytes=await pdfJpeg(c,.82);return {blob:new Blob([bytes],{type:'image/jpeg'}),type:'image/jpeg',ext:'jpg'}}
+ finally{URL.revokeObjectURL(url)}}
+function docSyncTask(doc){S.tasks=S.tasks||[];let t=doc.taskId?S.tasks.find(x=>x.id===doc.taskId):null;
+ if(!doc.remind||!doc.expires){if(t&&!tkIsDone(t))S.tasks=S.tasks.filter(x=>x.id!==t.id);doc.taskId=null;return}
+ if(t&&tkIsDone(t))t=null;
+ const tdy=isoD(today),due=addDays(doc.expires,-30),date=due<tdy?tdy:due,title=('Renew '+doc.title).slice(0,120),notes=`${docT(doc).n} ${doc.expires<tdy?'expired':'expires'} on ${longD(doc.expires)}`;
+ if(t)Object.assign(t,{title,date,notes,pri:1,repeat:'none'});else{t={id:Date.now()+1,title,notes,date,time:'',repeat:'none',remind:false,doneDates:[],pri:1,docId:doc.id};S.tasks.push(t);doc.taskId=t.id}}
+function docNew(type){if(S.docs.length>=DOC_LIM().docs)return onFree()?freeStop('More than '+DOC_LIM().docs+' documents'):toast('You can keep up to '+DOC_LIM().docs+' documents');
+ S.docEd={id:null,type:DOC_T[type]?type:'licence',draft:{title:'',holder:'',number:'',extra:'',issued:'',expires:'',notes:'',remind:true},add:[],del:[]};S.docOpen=null;render();scrollTo(0,0)}
+function docEdit(id){const d=S.docs.find(x=>x.id===id);if(!d)return;S.docEd={id,type:d.type,draft:{title:d.title||'',holder:d.holder||'',number:d.number||'',extra:d.extra||'',issued:d.issued||'',expires:d.expires||'',notes:d.notes||'',remind:d.remind!==false},add:[],del:[]};render();scrollTo(0,0)}
+function docDraft(){const e=S.docEd;if(!e)return;const v=id=>{const el=$(id);return el?el.value:''};const r=$('#dcR');
+ e.draft={title:v('#dcT'),holder:v('#dcH'),number:v('#dcN'),extra:v('#dcX'),issued:v('#dcI'),expires:v('#dcE'),notes:v('#dcO'),remind:r?r.checked:e.draft.remind}}
+function docType(k){const e=S.docEd;if(!e||!DOC_T[k])return;docDraft();e.type=k;render()}
+function docKeep(e){const d=e.id?S.docs.find(x=>x.id===e.id):null;return (d?d.files||[]:[]).filter(f=>!e.del.includes(f.path))}
+function docAddFiles(files){const e=S.docEd;if(!e)return;docDraft();const lim=DOC_LIM().files,list=[...(files||[])].filter(f=>/^image\//.test(f.type||'')||f.type==='application/pdf'||/\.(pdf|jpe?g|png|webp|heic|heif)$/i.test(f.name||''));
+ if(!list.length)return toast('Pick photos or a PDF');let room=lim-docKeep(e).length-e.add.length;
+ if(room<=0)return onFree()?freeStop('More than '+lim+' photo per document'):toast('Up to '+lim+' photos per document');
+ list.slice(0,room).forEach(f=>{const pdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name||'');e.add.push({key:Date.now()+Math.random(),file:f,name:f.name||(pdf?'document.pdf':'photo'),pdf,preview:pdf?'':URL.createObjectURL(f)})});
+ if(list.length>room)toast(onFree()?freePlan().name+' keeps '+lim+' photo per document. Paid packages keep 4.':'Up to '+lim+' photos per document');render()}
+function docRmAdd(k){const e=S.docEd;if(!e)return;docDraft();const a=e.add.find(x=>x.key===k);if(a&&a.preview)URL.revokeObjectURL(a.preview);e.add=e.add.filter(x=>x.key!==k);render()}
+function docRmFile(path){const e=S.docEd;if(!e)return;docDraft();if(!e.del.includes(path))e.del.push(path);render()}
+function docCancel(){const e=S.docEd;if(e)e.add.forEach(a=>{if(a.preview)URL.revokeObjectURL(a.preview)});S.docEd=null;render()}
+async function docSave(){const e=S.docEd;if(!e||e.busy)return;docDraft();const d=e.draft,T=DOC_T[e.type]||DOC_T.other;
+ const title=String(d.title||'').trim().slice(0,80)||T.n,holder=String(d.holder||'').trim().slice(0,60),number=String(d.number||'').trim(),extra=String(d.extra||'').trim().slice(0,80),notes=String(d.notes||'').trim();
+ const okD=x=>!x||/^\d{4}-\d{2}-\d{2}$/.test(x),issued=d.issued||'',expires=d.expires||'';
+ if(number.length>60)return toast('Keep the number under 60 characters');if(notes.length>500)return toast('Keep the notes under 500 characters');
+ if(!okD(issued)||!okD(expires))return toast('Check the dates');if(issued&&expires&&expires<issued)return toast('The expiry date can’t be before the issue date');
+ if(/\b\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}\b/.test(number+' '+notes))return toast('For your safety, don’t save full bank card numbers here');
+ const existing=e.id?S.docs.find(x=>x.id===e.id):null;if(!existing&&S.docs.length>=DOC_LIM().docs)return freeStop('More than '+DOC_LIM().docs+' documents');
+ const keep=docKeep(e);if(keep.length+e.add.length>DOC_LIM().files)return onFree()?freeStop('More than '+DOC_LIM().files+' photo per document'):toast('Up to '+DOC_LIM().files+' photos per document');
+ const uid=_dataUid;if(e.add.length&&(!walletAuth||!walletAuth.storage||!uid))return toast('Log in to save photos');
+ e.busy=true;render();
+ const id=e.id||Date.now(),up=[];let failed=0;
+ for(const a of e.add){try{const p=await docPrep(a.file),path=`${uid}/${id}-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${p.ext}`;
+   const {error}=await walletAuth.storage.from(DOC_BUCKET).upload(path,p.blob,{contentType:p.type,upsert:false,cacheControl:'0'});if(error)throw error;up.push({path,name:String(a.name).slice(0,80),type:p.type,size:p.blob.size})}catch(err){failed++}}
+ if(e.del.length&&walletAuth&&walletAuth.storage){try{await walletAuth.storage.from(DOC_BUCKET).remove(e.del)}catch(err){}}
+ e.del.forEach(p=>delete _docUrl[p]);e.add.forEach(a=>{if(a.preview)URL.revokeObjectURL(a.preview)});
+ const rec={id,type:e.type,title,holder,number,extra,issued,expires,notes,remind:!!d.remind,files:[...keep,...up],updated:isoD(today)};
+ let doc=existing;if(doc){rec.taskId=doc.taskId;Object.assign(doc,rec)}else{doc=rec;S.docs.unshift(doc)}
+ docSyncTask(doc);S.docEd=null;S.docOpen=id;S.docShow=null;
+ toast(failed?`Saved, but ${failed} photo${failed===1?'':'s'} couldn’t upload. Open the document and try again.`:(doc.taskId?'Saved. A renewal reminder is on your to-do list.':'Document saved'));render();scrollTo(0,0)}
+async function docDel(id){const d=S.docs.find(x=>x.id===id);if(!d)return;const paths=(d.files||[]).map(f=>f.path);
+ if(paths.length&&walletAuth&&walletAuth.storage){try{const {error}=await walletAuth.storage.from(DOC_BUCKET).remove(paths);if(error)return toast('Couldn’t delete the photos. Check your connection and try again.')}catch(e){return toast('Couldn’t delete the photos. Check your connection and try again.')}}
+ paths.forEach(p=>delete _docUrl[p]);if(d.taskId)S.tasks=(S.tasks||[]).filter(t=>t.id!==d.taskId||tkIsDone(t));
+ S.docs=S.docs.filter(x=>x.id!==id);S.docOpen=null;S.armed=null;toast('Document deleted');render()}
+let _docShowT=null;
+function docToggleNum(id){S.docShow=S.docShow===id?null:id;clearTimeout(_docShowT);if(S.docShow)_docShowT=setTimeout(()=>{if(S.docShow===id){S.docShow=null;if(S.mview==='docs')render()}},30000);render()}
+async function docCopy(id){const d=S.docs.find(x=>x.id===id);if(!d||!d.number)return;try{await navigator.clipboard.writeText(d.number);toast('Number copied')}catch(e){toast('Couldn’t copy here. Tap Show and copy it by hand.')}}
+async function docToPdf(id){const d=S.docs.find(x=>x.id===id);if(!d)return;const imgs=(d.files||[]).filter(f=>f.type!=='application/pdf');if(!imgs.length)return toast('No photos to put in a PDF');
+ toast('Getting your photos…');const files=[];for(const f of imgs){try{const u=await docUrl(f.path);if(!u)continue;const b=await (await fetch(u)).blob();files.push(new File([b],f.name||'photo.jpg',{type:b.type||'image/jpeg'}))}catch(e){}}
+ if(!files.length)return toast('Couldn’t get the photos. Try again.');pdfClear();S.pdf.name=d.title;S.page='money';mv('pdf');pdfAdd(files)}
+const DOC_CSS=`<style>
+.dc-safe{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(31,122,92,.08);color:var(--ink);font-size:13.5px;margin:0 0 16px}.dc-safe svg{flex:none;color:var(--ok);margin-top:1px}
+.dc-chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.dc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.dc-card{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"ic m" "ic b";gap:4px 12px;align-items:start;text-align:left;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer;margin:0;min-height:96px}
+.dc-card:hover{border-color:var(--gold)}
+.dc-ic{grid-area:ic;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(212,178,106,.18);color:var(--gold-d)}.dc-ic.big{width:56px;height:56px;border-radius:16px}
+.dc-m{grid-area:m;display:flex;flex-direction:column;gap:2px;min-width:0}.dc-m b{font-weight:600;font-size:15.5px;word-break:break-word}.dc-m small{color:var(--ink2);font-size:13px}.dc-num{font-family:ui-monospace,Menlo,monospace;letter-spacing:.04em}
+.dc-row{grid-area:b;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.dc-b{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--bg);color:var(--ink2);white-space:nowrap}
+.dc-b.bad{background:rgba(180,67,78,.12);color:var(--rose)}.dc-b.warn{background:rgba(201,145,61,.16);color:#8A5A12}.dc-b.soon{background:rgba(212,178,106,.16);color:var(--gold-d)}
+[data-theme="noir"] .dc-b.warn{color:#E7B866}
+.dc-pc{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2)}
+.dc-empty{text-align:center;padding:30px 16px}.dc-empty .dc-ic{margin:0 auto 10px}.dc-empty .dc-chips{justify-content:center;margin-top:14px}
+.dc-dh{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.dc-dh h2{margin:0}.dc-dh small{color:var(--ink2)}.dc-dh>div{flex:1;min-width:160px}
+.dc-dl{display:grid;grid-template-columns:minmax(120px,auto) minmax(0,1fr);gap:10px 18px;margin:4px 0 0}.dc-dl dt{color:var(--ink2);font-size:13px}.dc-dl dd{margin:0;font-weight:500;word-break:break-word;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dc-dl .nl-link{min-height:32px;padding:0;display:inline-flex;gap:4px;align-items:center}
+.dc-phs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.dc-ph{position:relative;margin:0;border-radius:14px;border:1px solid var(--line);overflow:hidden;background:var(--bg);aspect-ratio:4/3;display:grid;place-items:center}
+.dc-ph img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}.dc-ph.err::after{content:"Couldn’t load";font-size:12px;color:var(--ink2);position:absolute}
+.dc-ph button.x{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:99px;border:0;background:rgba(11,26,44,.75);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+.dc-ph .pdf{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12.5px;color:var(--ink);padding:10px;text-align:center;word-break:break-all;background:none;border:0;cursor:pointer;font-family:inherit}
+.dc-acts{display:flex;gap:8px;flex-wrap:wrap}
+.dc-types{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.dc-types button{display:flex;align-items:center;gap:8px;min-height:46px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font:600 14px var(--body);cursor:pointer;margin:0;text-align:left}
+.dc-types button[aria-checked="true"]{border-color:var(--gold);background:rgba(212,178,106,.14)}.dc-types svg{color:var(--gold-d);flex:none}
+.dc-f{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dc-f .wide{grid-column:1/-1}.dc-f textarea{min-height:84px;resize:vertical}
+.dc-rem{display:flex!important;gap:10px;align-items:center;font-size:14px!important;font-weight:500!important;color:var(--ink)!important;cursor:pointer;margin:0!important}.dc-rem input{width:20px;height:20px;margin:0;flex:none}
+.dc-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.dc-add label{cursor:pointer}.dc-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.dc-zoom{position:fixed;inset:0;z-index:90;background:rgba(5,10,18,.9);display:grid;place-items:center;padding:16px}.dc-zoom img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}.dc-zoom button{position:absolute;top:14px;right:14px}
+@media(max-width:640px){.dc-f{grid-template-columns:1fr}.dc-dl{grid-template-columns:1fr;gap:2px}.dc-dl dd{margin-bottom:10px}.dc-grid{grid-template-columns:1fr}}
+</style>`;
+function docZoom(path){const u=(_docUrl[path]||{}).url;if(!u)return;S.docZoom=u;render()}
+function DocsView(){setTimeout(docLoadImgs,0);const lim=DOC_LIM(),zoom=S.docZoom?`<div class="dc-zoom" role="dialog" aria-label="Photo" onclick="S.docZoom=null;render()"><img src="${esc(S.docZoom)}" alt="Document photo"><button class="nl-btn" aria-label="Close" onclick="S.docZoom=null;render()">${IC('x',18)}</button></div>`:'';
+ const safe=`<div class="dc-safe">${IC('lock',18)}<span>Only you can see these. Photos are kept in your own private WalletMV storage. Don’t save passwords, PINs or full bank card numbers here.</span></div>`;
+ const e=S.docEd;
+ if(e){const T=DOC_T[e.type]||DOC_T.other,d=e.draft,keep=docKeep(e),n=keep.length+e.add.length;
+  return `${DOC_CSS}${nlHead(e.id?'Change document':'Add a document',e.id?'':'Pick what it is, then fill in what you need.')}
+  <section class="nl-card nl-form" style="cursor:default"><span class="tl-plbl" id="dct-l" style="margin:0">What is it?</span><div class="dc-types" role="radiogroup" aria-labelledby="dct-l">${Object.entries(DOC_T).map(([k,t])=>`<button type="button" role="radio" aria-checked="${e.type===k}" onclick="docType('${k}')">${IC(t.ic,18)}${t.n}</button>`).join('')}</div>
+  <div class="dc-f"><div class="nl-field"><label for="dcT">Name</label><input id="dcT" maxlength="80" placeholder="${esc(T.n)}" value="${esc(d.title)}" oninput="docDraft()"></div>
+  <div class="nl-field"><label for="dcH">Whose is it?</label><input id="dcH" maxlength="60" placeholder="e.g. Me, or Aishath" value="${esc(d.holder)}" oninput="docDraft()"></div>
+  <div class="nl-field"><label for="dcN">${esc(T.num)} (optional)</label><input id="dcN" maxlength="60" autocomplete="off" value="${esc(d.number)}" oninput="docDraft()"></div>
+  ${T.x?`<div class="nl-field"><label for="dcX">${esc(T.x)}</label><input id="dcX" maxlength="80" value="${esc(d.extra)}" oninput="docDraft()"></div>`:''}
+  <div class="nl-field"><label for="dcI">Issue date</label><input id="dcI" type="date" value="${esc(d.issued)}" onchange="docDraft()"></div>
+  <div class="nl-field"><label for="dcE">${esc(T.exp)}</label><input id="dcE" type="date" value="${esc(d.expires)}" onchange="docDraft();render()"></div>
+  ${d.expires?`<label class="dc-rem wide" for="dcR"><input type="checkbox" id="dcR" ${d.remind?'checked':''} onchange="docDraft()"> Remind me on my to-do list 30 days before it ends</label>`:''}
+  <div class="nl-field wide"><label for="dcO">Notes</label><textarea id="dcO" maxlength="500" placeholder="e.g. where the original is kept" oninput="docDraft()">${esc(d.notes)}</textarea></div></div>
+  <div><span class="tl-plbl" style="margin-top:0">Photos or PDF · ${n} of ${lim.files}</span>
+  ${n?`<div class="dc-phs" style="margin-bottom:10px">${keep.map(f=>`<figure class="dc-ph">${f.type==='application/pdf'?`<span class="pdf">${IC('file',26)}${esc(f.name||'PDF')}</span>`:`<img data-docpath="${esc(f.path)}" alt="${esc(f.name||'Photo')}">`}<button type="button" class="x" aria-label="Remove ${esc(f.name||'photo')}" onclick="docRmFile('${esc(f.path)}')">${IC('x',16)}</button></figure>`).join('')}${e.add.map(a=>`<figure class="dc-ph">${a.pdf?`<span class="pdf">${IC('file',26)}${esc(a.name)}</span>`:`<img src="${a.preview}" alt="${esc(a.name)}">`}<button type="button" class="x" aria-label="Remove ${esc(a.name)}" onclick="docRmAdd(${a.key})">${IC('x',16)}</button></figure>`).join('')}</div>`:''}
+  ${n<lim.files?`<div class="dc-add"><input id="dcF" class="dc-file" type="file" accept="image/*,application/pdf" multiple onchange="docAddFiles(this.files);this.value=''"><label for="dcF" class="nl-btn">${IC('plus',17)}Choose photos</label><input id="dcC" class="dc-file" type="file" accept="image/*" capture="environment" onchange="docAddFiles(this.files);this.value=''"><label for="dcC" class="nl-btn">${IC('camera',17)}Take a photo</label></div>`:`<p class="sub" style="margin:0;font-size:13px">${onFree()?`Veli keeps ${lim.files} photo per document. Paid packages keep 4.`:'That’s the most photos for one document.'}</p>`}</div>
+  ${safe}
+  <div class="dc-acts"><button class="nl-btn" onclick="docCancel()">Cancel</button><button class="nl-btn primary" ${e.busy?'disabled':''} onclick="docSave()">${e.busy?'Saving…':'Save document'}</button></div></section>`}
+ const o=S.docOpen&&S.docs.find(x=>x.id===S.docOpen);
+ if(o){const T=docT(o),shown=S.docShow===o.id,files=o.files||[],task=o.taskId&&(S.tasks||[]).find(t=>t.id===o.taskId);
+  return `${DOC_CSS}${zoom}<div style="margin-bottom:10px"><button class="nl-link" onclick="S.docOpen=null;S.docShow=null;render()">← All documents</button></div>
+  <section class="nl-card" style="cursor:default"><div class="dc-dh"><span class="dc-ic big">${IC(T.ic,26)}</span><div><h2>${esc(o.title)}</h2><small>${esc(T.n)}${o.holder?' · '+esc(o.holder):''}</small></div>${docBadge(o)}</div>
+  <dl class="dc-dl">${o.number?`<dt>${esc(T.num)}</dt><dd><span class="dc-num" aria-live="polite">${esc(shown?o.number:docMask(o.number))}</span><button class="nl-link sm" onclick="docToggleNum(${o.id})">${IC('eye',15)}${shown?'Hide':'Show'}</button><button class="nl-link sm" onclick="docCopy(${o.id})">${IC('copy',15)}Copy</button></dd>`:''}
+  ${o.extra&&T.x?`<dt>${esc(T.x)}</dt><dd>${esc(o.extra)}</dd>`:''}${o.issued?`<dt>Issue date</dt><dd>${esc(longD(o.issued))}</dd>`:''}${o.expires?`<dt>${esc(T.exp)}</dt><dd>${esc(longD(o.expires))}</dd>`:''}${o.notes?`<dt>Notes</dt><dd style="white-space:pre-wrap">${esc(o.notes)}</dd>`:''}</dl>
+  ${task&&!tkIsDone(task)?`<p class="sub" style="margin:0;font-size:13.5px">${IC('bell',15)} “${esc(task.title)}” is on your to-do list for ${esc(tkDayLabel(task.date))}.</p>`:''}
+  ${files.length?`<div class="dc-phs">${files.map(f=>`<figure class="dc-ph">${f.type==='application/pdf'?`<button class="pdf" onclick="docOpenFile('${esc(f.path)}')">${IC('file',26)}${esc(f.name||'PDF')}<b style="color:var(--gold-d)">Open</b></button>`:`<img data-docpath="${esc(f.path)}" alt="${esc(f.name||'Photo of '+o.title)}" onclick="docZoom('${esc(f.path)}')">`}</figure>`).join('')}</div>`:`<p class="sub" style="margin:0">No photos yet. Tap Change to add a photo of the front and back.</p>`}
+  <div class="dc-acts"><button class="nl-btn primary" onclick="docEdit(${o.id})">${IC('pen',16)}Change</button>${files.some(f=>f.type!=='application/pdf')?`<button class="nl-btn" onclick="docToPdf(${o.id})">${IC('file',16)}Save photos as PDF</button>`:''}<button class="nl-btn" style="color:var(--rose)" onclick="arm('dcdel${o.id}',()=>docDel(${o.id}))">${IC('del',16)}${S.armed==='dcdel'+o.id?'Tap again to delete':'Delete'}</button></div></section>`}
+ const f=S.docFilter&&DOC_T[S.docFilter]?S.docFilter:'all',list=S.docs.filter(d=>f==='all'||d.type===f).sort((a,b)=>(docDays(a)??99999)-(docDays(b)??99999)||String(a.title).localeCompare(String(b.title)));
+ const soon=S.docs.filter(d=>{const n=docDays(d);return n!==null&&n<=30}).length,types=Object.keys(DOC_T).filter(k=>S.docs.some(d=>d.type===k));
+ const card=d=>{const T=docT(d);return `<button class="dc-card" onclick="S.docOpen=${d.id};S.docShow=null;render();scrollTo(0,0)"><span class="dc-ic">${IC(T.ic,22)}</span><span class="dc-m"><b>${esc(d.title)}</b><small>${esc(T.n)}${d.holder?' · '+esc(d.holder):''}</small>${d.number?`<small class="dc-num">${esc(docMask(d.number))}</small>`:''}</span><span class="dc-row">${docBadge(d)}${(d.files||[]).length?`<span class="dc-pc">${IC('camera',14)}${d.files.length}</span>`:''}</span></button>`};
+ return `${DOC_CSS}${nlHead('Documents',S.docs.length?`${S.docs.length} saved${soon?` · ${soon} need${soon===1?'s':''} renewing soon`:''}`:'Your licence, car, ID and other important papers, in one private place.',nlBtn('Add a document','docNew()','plus','primary'))}
+ ${safe}
+ ${S.docs.length?`${types.length>1?`<div class="dc-chips" role="group" aria-label="Show">${[['all','All'],...types.map(k=>[k,DOC_T[k].n])].map(([k,l])=>`<button class="nl-cat sm" aria-pressed="${f===k}" onclick="S.docFilter='${k}';render()">${esc(l)}</button>`).join('')}</div>`:''}
+  <div class="dc-grid">${list.map(card).join('')}</div>`
+ :`<section class="nl-card dc-empty" style="cursor:default"><span class="dc-ic big">${IC('folder',28)}</span><h2>Nothing saved yet</h2><p class="sub" style="margin:0">Save your driving licence, car registration, ID card, passport or insurance. WalletMV reminds you before each one runs out.</p><div class="dc-chips">${Object.entries(DOC_T).filter(([k])=>k!=='other').map(([k,t])=>`<button class="nl-btn" onclick="docNew('${k}')">${IC(t.ic,17)}${t.n}</button>`).join('')}</div></section>`}
+ ${onFree()?`<p class="sub" style="margin:14px 0 0;font-size:13px">${S.docs.length} of ${lim.docs} documents on ${esc(freePlan().name)}, the free package. Paid packages keep 30, with 4 photos each.</p>`:''}`}
+
 /* ---------- TO-DO LIST (Google Tasks style) ----------
    One list in four parts, most important first: Must do, Should do, Could do, Later.
    Tick the circle to finish a task. A repeating task moves on to its next day when ticked.
@@ -2486,7 +2630,8 @@ function Tasks(){if(S.aiOn===undefined)setTimeout(checkAi,0);const aiOn=S.aiOn&&
    read and write their own row) and kept on this device too, so the app opens fast and copes with a weak connection.
    The sample data people see before logging in (the public MVSHOP demo) is never saved to anyone's account. */
 if(!Array.isArray(S.tasks))S.tasks=[];
-const SAVE_KEYS=['subscription','pendingSubs','tasks','catBudgets','tx','accounts','transfers','goals','bills','budget','calNotes','groc','quick','cats','homeStock','cur','theme','notif','walletCard','shared','discounts','shopProfile','products','saleLines','shopTx','customers','suppliers','workers','loyalty','docCounters','chargePresets','defaultGst','inv'];
+if(!Array.isArray(S.docs))S.docs=[];
+const SAVE_KEYS=['subscription','pendingSubs','tasks','docs','catBudgets','tx','accounts','transfers','goals','bills','budget','calNotes','groc','quick','cats','homeStock','cur','theme','notif','walletCard','shared','discounts','shopProfile','products','saleLines','shopTx','customers','suppliers','workers','loyalty','docCounters','chargePresets','defaultGst','inv'];
 const DEMO_DATA=JSON.parse(JSON.stringify(Object.fromEntries(SAVE_KEYS.map(k=>[k,S[k]]))));
 var _dataUid=null,_saveT=null,_lastSaved='',_retryT=null;
 const LOCAL_KEY=uid=>'walletmv:data:'+uid;
@@ -2537,7 +2682,7 @@ addEventListener('walletmvapp',()=>{if(S.page==='money'&&S.mview==='settings')re
 async function changePassword(btn){const v=($('#pw2')||{}).value||'';if(v.length<8)return toast('Use at least 8 characters');if(!walletAuth)return toast('Sign-in couldn’t load. Refresh and try again.');
  btn.disabled=true;const {error}=await walletAuth.auth.updateUser({password:v});btn.disabled=false;if(error)return toast(auNice(error,'We couldn’t change your password'));$('#pw2').value='';toast('Password changed')}
 async function deleteMyAccount(btn){if(!walletAuth||!S.signed)return toast('Log in first');
- if(!window.confirm('Delete your WalletMV account?\n\nThis permanently deletes your transactions, accounts, budgets, goals, bills, grocery lists, shop records and settings, and closes your login. It can’t be undone.'))return;
+ if(!window.confirm('Delete your WalletMV account?\n\nThis permanently deletes your transactions, accounts, budgets, goals, bills, grocery lists, saved documents and photos, shop records and settings, and closes your login. It can’t be undone.'))return;
  btn.disabled=true;const label=btn.textContent;btn.textContent='Deleting…';
  let res;try{res=await walletAuth.functions.invoke('walletmv-delete-account',{body:{confirm:true}})}catch(e){res={error:e}}
  const data=res&&res.data;
@@ -3099,7 +3244,7 @@ function invApplyMember(id){const inv=S.inv,o=S.partners.find(x=>x.id===id);if(!
  if(o.type==='custom')return toast('Give the member "'+o.custom+'" at the counter');
  const sub=inv.items.reduce((a,i)=>a+i.qty*i.price,0);if(sub<o.minSpend)return toast('Needs a bill over '+money(o.minSpend)+' (now '+money(sub)+')');
  inv.charges.push({id:Date.now(),name:'WalletMV member offer ('+offerText(o)+')',type:o.type==='percent'?'percent':'fixed',value:-o.value,memberOffer:o.id});toast(offerText(o)+' member offer applied');render()}
-function MoneyView(){return ({today:MoneyToday,dash:MoneyToday,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,pdf:ImgPdf,settings:Settings})[S.mview]()}
+function MoneyView(){return ({today:MoneyToday,dash:MoneyToday,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,docs:DocsView,pdf:ImgPdf,settings:Settings})[S.mview]()}
 function accountBalance(id){const a=S.accounts.find(x=>x.id===id);if(!a)return 0;
  const txSum=S.tx.filter(t=>t.accId===id).reduce((s,t)=>s+(t.type==='income'?t.amt:-t.amt),0);
  const trSum=S.transfers.reduce((s,tr)=>s+(tr.to===id?tr.amt:0)-(tr.from===id?tr.amt:0),0);
