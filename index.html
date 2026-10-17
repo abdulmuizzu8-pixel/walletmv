@@ -367,7 +367,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
  repMode:'month',repFrom:'',repTo:'',shopRepMode:'month',shopRepFrom:'',shopRepTo:'',
  subscription:{plan:'plus',status:'active',requestedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),approvedAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),verified:true,startsAt:isoD(new Date(new Date().setDate(new Date().getDate()-8))),expiresAt:isoD(new Date(new Date().setDate(new Date().getDate()+22)))},
  plans:[
-  {id:'free',name:'Veli',meaning:'Sand — where every island starts',icon:'sun',tag:'Free for one person. Start here and move up when you need more.',best:'Free forever',price:0,days:30,members:1,scan:false,on:true,popular:false,free:true,features:['Safe-to-spend number every morning','Income & expense tracking','3 accounts','1 monthly budget','1 savings goal','Up to 5 bills','To-do list & reminders','Groceries lists','Member discount card','Reports for this month and last month']},
+  {id:'free',name:'Veli',meaning:'Sand — where every island starts',icon:'sun',tag:'Free for one person. Start here and move up when you need more.',best:'Free forever',price:0,days:30,members:1,scan:false,on:true,popular:false,free:true,features:['Safe-to-spend number every morning','Income & expense tracking','3 accounts','1 monthly budget','1 savings goal','Up to 5 bills','To-do list & reminders','Groceries lists','Image to PDF converter','Member discount card','Reports for this month and last month']},
   {id:'starter',name:'Boli',meaning:'Cowrie shell — the Maldives’ first money',icon:'wallet',tag:'For one person or a couple who want no limits.',best:'',price:49,days:30,members:2,scan:false,on:true,popular:false,features:['Everything in Veli, with no limits','Unlimited accounts, bills & goals','A budget for each category','Full reports & Excel export','25 currencies','Share with 1 more person']},
   {id:'plus',name:'Muraka',meaning:'Coral — strong, growing, beautiful',icon:'users',tag:'For couples and small households — snap bills instead of typing them.',best:'Most popular',price:99,days:30,members:3,scan:true,on:true,popular:true,features:['Everything in Boli','Scan receipts & bills','Home inventory from receipts','AI that plans your day','Shared wallet for the household','Priority support']},
   {id:'family',name:'Atholhu',meaning:'Atoll — a family of islands',icon:'heart',tag:'For the whole family — up to 9 people on one wallet.',best:'Best value per person',price:199,days:30,members:9,scan:true,on:true,popular:false,features:['Everything in Muraka','Everyone can scan bills','Shared family budget & bills','Everyone logs their own spending','See who spent what','Pocket-money goals for children','Shared groceries lists']},
@@ -481,7 +481,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
 };
 
 /* ============ routing ============ */
-const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do list'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
+const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do list'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['pdf','Image to PDF'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
@@ -525,8 +525,8 @@ function render(){
   if(S.bill)a.innerHTML+='<style>'+BILL_CSS+'</style>'+BillSheet();
   storeTidy();queueSave();
 }
-const MGROUP={today:'Overview',accounts:'Money',cards:'Rewards',budget:'Plan',people:'Account'};
-const MICON={today:'clock',dash:'chart',calendar:'cal',tasks:'task',accounts:'bank',tx:'receipt',addx:'down',addi:'up',groceries:'cart',cards:'card',budget:'target',goals:'shield',reports:'chart',package:'box',people:'users',settings:'gear'};
+const MGROUP={today:'Overview',accounts:'Money',cards:'Rewards',budget:'Plan',pdf:'Tools',people:'Account'};
+const MICON={today:'clock',dash:'chart',calendar:'cal',tasks:'task',accounts:'bank',tx:'receipt',addx:'down',addi:'up',groceries:'cart',cards:'card',budget:'target',goals:'shield',reports:'chart',pdf:'file',package:'box',people:'users',settings:'gear'};
 /* ============ NEW LOOK · app frame (from the design canvas, in the WalletMV gold brand) ============ */
 const NL_HIDE_NAV=['addx','addi'];
 const initials=n=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'W';
@@ -705,6 +705,7 @@ const SVC=[
   ['Monthly budget','Set a limit and get warned at 90%.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['A budget for each category','Food, transport, bills — each with its own limit.',{free:false,starter:true,plus:true,family:true,mvshop:true}],
   ['Savings goals','Umrah, a home, an island holiday — see how much to save each month.',{free:'1',starter:'Unlimited',plus:'Unlimited',family:'Unlimited',mvshop:'Unlimited'}],
+  ['Image to PDF','Turn photos of bills, receipts or documents into one PDF, right on your phone.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['Groceries lists','Save your weekly list and send it on WhatsApp or as Excel.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['To-do list','Must do, Should do, Could do and Later — with reminders.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['Reports & Excel export','Monthly and yearly charts, downloadable for your records.',{free:'2 months',starter:true,plus:true,family:true,mvshop:true}],
@@ -1242,14 +1243,14 @@ function saveWaNumber(){const v=$('#adwa').value.trim();if(v&&!/^\+?[\d\s-]{7,}$
 function AdminWaHTML(){return `<div class="card" style="margin-top:22px;${waNum()?'':'border:2px solid var(--gold)'}"><h3>WhatsApp orders</h3><p class="sub" style="margin:6px 0 10px">Customers can order, renew or upgrade a package by sending a WhatsApp message. Each order also appears in Pending review above — approve it once they've paid.</p>
  <div class="grid2" style="gap:10px"><div><label for="adwa" style="margin-top:0">Business WhatsApp number</label><input id="adwa" placeholder="+960 777 1234" value="${esc(S.ownerWhatsapp)}"></div><div><label for="advb" style="margin-top:0">Viber number (optional)</label><input id="advb" placeholder="+960 777 1234" value="${esc(S.ownerViber)}"></div></div>
  <div class="flex" style="gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center"><button class="btn sm" onclick="saveWaNumber()">Save number</button><small style="color:${waReady()?'var(--ok)':'var(--gold-d)'}">${waReady()?'✓ “Order on WhatsApp” is showing on packages and checkout':'Add your number to switch on WhatsApp ordering'}</small></div></div>`}
-const SICON={dashboard:'chart',inbox:'receipt',assistant:'chat',discounts:'card',calendar:'cal',invoice:'receipt',charges:'bill',customers:'users',inventory:'box',ledger:'receipt',reports:'chart',people:'users',package:'box',settings:'gear'};
-const SGROUP={dashboard:'Overview',invoice:'Selling',customers:'Customers & stock',reports:'Reports',people:'Account'};
+const SICON={dashboard:'chart',inbox:'receipt',assistant:'chat',discounts:'card',calendar:'cal',invoice:'receipt',charges:'bill',customers:'users',inventory:'box',ledger:'receipt',reports:'chart',pdf:'file',people:'users',package:'box',settings:'gear'};
+const SGROUP={dashboard:'Overview',invoice:'Selling',customers:'Customers & stock',reports:'Reports',pdf:'Tools',people:'Account'};
 function MobileBar(kind){const money=kind==='money',cur=money?S.mview:S.shopView,f=money?'mv':'sv';
  const prim=money?[['today','Home','home'],['tx','Activity','activity'],['+','Add','plus'],['goals','Goals','plane'],['more','More','more']]:[['dashboard','Home','chart'],['inbox','Bills in','receipt'],['invoice','New bill','plus'],['inventory','Stock','box'],['more','More','menu']];
  const inPrim=prim.some(p=>p[0]===cur);
  const bar=`<nav class="nl-tabs" aria-label="Sections">${prim.map(([k,l,ic])=>k==='+'?`<button class="nl-fab" aria-label="Add" onclick="S.sheet='add';render()">${IC('plus',26)}</button>`:`<button ${(k===cur||(k==='more'&&!inPrim))?'aria-current="page"':''} onclick="${k==='more'?`S.sheet='${kind}';render()`:`S.sheet=null;${f}('${k}')`}">${IC(ic,22)}<span>${l}</span></button>`).join('')}</nav>`;
  let sheet='';
- if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['tasks','Add a task','task'],['calendar','Add a bill','bill']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
+ if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['tasks','Add a task','task'],['calendar','Add a bill','bill'],['pdf','Photos to PDF','file']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
  else if(S.sheet===kind){const items=money?MNAV.map(i=>[i[0],i[1],MICON[i[0]]]):SHOPNAV.map(i=>[i[0],i[2],SICON[i[0]]]);const G=money?MGROUP:SGROUP;
   sheet=items.map(([k,l,ic])=>`${G[k]?`<div class="sgrp">${G[k]}</div>`:''}<button class="tile ${k===cur?'on':''}" onclick="S.sheet=null;${f}('${k}')">${ICB(ic||'box','rgba(11,26,44,.06)','var(--deep)',40)}${l}</button>`).join('')+(money?`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;go('shop')">${ICB('store','rgba(11,26,44,.06)','var(--deep)',40)}MVSHOP</button>`:`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;S.signed=true;go('money')">${ICB('wallet','rgba(11,26,44,.06)','var(--deep)',40)}Money app</button>`)+`<button class="tile" onclick="S.sheet=null;go('home')">${ICB('globe','rgba(11,26,44,.06)','var(--deep)',40)}Website</button>${isStandalone()?'':`<button class="tile" onclick="installApp()">${ICB('mobile','rgba(201,169,97,.16)','var(--gold-d)',40)}Install app</button>`}<button class="tile" onclick="reportProblem()">${ICB('chat','rgba(180,67,78,.1)','var(--rose)',40)}Report a problem</button>`}
  return bar+(sheet?`<div class="msheet" role="dialog" aria-label="${S.sheet==='add'?'Add':'All sections'}" onclick="if(event.target===this){S.sheet=null;render()}"><div class="pan"><div class="flex between" style="margin-bottom:6px"><b style="font:600 1.3rem var(--head)">${S.sheet==='add'?'Add something':'All sections'}</b><button class="btn ghost sm" onclick="S.sheet=null;render()">Close</button></div><div class="sgrid">${sheet}</div></div></div>`:'')}
@@ -1592,9 +1593,9 @@ function ShopChargesTab(){
  <div class="card" style="margin-top:18px"><h3>Extra charges &amp; service charge</h3><p class="sub" style="margin:6px 0 18px">Service charge, delivery fee, packaging — anything beyond the item price and ${taxName()}. Pick these on any bill, or type a one-off amount there, and choose whatever amount fits that customer.</p>
  <div class="scroll">${chargeRows()}</div>
  <div class="flex" style="margin-top:16px;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px"><input id="ncn" aria-label="New charge name" placeholder="Service charge" style="flex:1;min-width:140px"><select id="nct" aria-label="New charge type" style="width:120px"><option value="percent">Percent %</option><option value="fixed">Fixed (${S.cur})</option></select><input id="ncv" aria-label="New charge amount" type="number" min="0" placeholder="10" style="width:100px"><button class="btn" onclick="addCharge()">Add preset</button></div></div>`}
-const SHOPNAV=[['dashboard','📊','Dashboard'],['inbox','📥','Bill inbox'],['assistant','✨','AI assistant'],['discounts','🎟️','Discount cards'],['calendar','🗓️','Calendar'],['invoice','🧾','Create bill'],['charges','💰','Tax & charges'],['customers','📇','Contacts'],['inventory','📦','Products & services'],['ledger','📑','Sales & expenses'],['reports','📈','Reports'],['people','👥','Shared wallet'],['package','💳','My package'],['settings','⚙️','Settings']];
+const SHOPNAV=[['dashboard','📊','Dashboard'],['inbox','📥','Bill inbox'],['assistant','✨','AI assistant'],['discounts','🎟️','Discount cards'],['calendar','🗓️','Calendar'],['invoice','🧾','Create bill'],['charges','💰','Tax & charges'],['customers','📇','Contacts'],['inventory','📦','Products & services'],['ledger','📑','Sales & expenses'],['reports','📈','Reports'],['pdf','📄','Image to PDF'],['people','👥','Shared wallet'],['package','💳','My package'],['settings','⚙️','Settings']];
 const sv=k=>{S.shopView=k;S.armed=null;render();scrollTo(0,0)};
-function ShopView(){return ({dashboard:ShopDashTab,inbox:ShopInboxTab,assistant:ShopAssistantTab,discounts:ShopDiscountsTab,calendar:ShopCalendarTab,invoice:ShopInvoiceTab,charges:ShopChargesTab,customers:ShopCustomersTab,inventory:ShopInventoryTab,ledger:ShopLedgerTab,reports:ShopReportsTab,package:MyPackage,people:People,settings:ShopSettingsTab})[S.shopView]()}
+function ShopView(){return ({dashboard:ShopDashTab,inbox:ShopInboxTab,assistant:ShopAssistantTab,discounts:ShopDiscountsTab,calendar:ShopCalendarTab,invoice:ShopInvoiceTab,charges:ShopChargesTab,customers:ShopCustomersTab,inventory:ShopInventoryTab,ledger:ShopLedgerTab,reports:ShopReportsTab,pdf:ImgPdf,package:MyPackage,people:People,settings:ShopSettingsTab})[S.shopView]()}
 const AI_SUGGEST=['What sold best this month?','What should I reorder this week?','Which products are not selling?','How is my profit compared with last month?','Who owes me money?','Summarise my week in 3 points'];
 function shopContext(){const c=shopCalc();const prev=shopCalcMonth(lastMonths(2)[1]);const st=prodStats(30);
  const r=n=>Math.round(n*100)/100;
@@ -2208,6 +2209,106 @@ span.tl-txt{cursor:default}
 @media(max-width:980px){.tl-grid{grid-template-columns:1fr}}
 @media(max-width:640px){.tl-when{grid-template-columns:1fr 1fr}.tl-when .tl-fd{grid-column:1/-1}.tl-top .btn{flex:1;justify-content:center}.tl-menu{right:0}}
 </style>`;
+
+/* ---------- IMAGE TO PDF ----------
+   Pick photos (bills, receipts, documents), put them in order, turn them if needed, and make one PDF.
+   Everything happens on this device: the pictures are never uploaded. In every package, the free one too. */
+Object.assign(ICONS,{file:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',rotate:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',left:'<path d="M15 6l-6 6 6 6"/>',right:'<path d="M9 6l6 6-6 6"/>',share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"/>'});
+S.pdf={imgs:[],size:'a4',margin:'small',quality:'normal',name:'',busy:false,out:null};
+const PDF_MAX=30;
+const pdfLoad=url=>new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=url});
+function pdfAdd(files){const P=S.pdf,list=[...(files||[])].filter(f=>/^image\//.test(f.type||'')||/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(f.name||''));
+ if(!list.length)return toast('Pick photos or pictures (JPG or PNG)');
+ const room=PDF_MAX-P.imgs.length;if(room<=0)return toast('Up to '+PDF_MAX+' pictures in one PDF');
+ const take=list.slice(0,room);
+ Promise.all(take.map(f=>{const url=URL.createObjectURL(f);return pdfLoad(url).then(im=>({id:Date.now()+Math.random(),name:f.name||'photo',url,w:im.naturalWidth,h:im.naturalHeight,rot:0}),()=>{URL.revokeObjectURL(url);return null})})).then(r=>{
+  const ok=r.filter(Boolean),bad=r.length-ok.length;P.imgs.push(...ok);P.out=null;
+  toast(bad?(bad===1?'One picture couldn’t be opened. Try JPG or PNG.':bad+' pictures couldn’t be opened. Try JPG or PNG.'):list.length>room?'Added '+room+'. Up to '+PDF_MAX+' pictures in one PDF.':ok.length+' picture'+(ok.length===1?'':'s')+' added');render()})}
+function pdfMove(i,d){const a=S.pdf.imgs,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];S.pdf.out=null;render();const b=document.querySelector(`[data-pdfmv="${j}:${d}"]`);if(b)b.focus()}
+function pdfRot(i){const it=S.pdf.imgs[i];if(!it)return;it.rot=(it.rot+90)%360;S.pdf.out=null;render();const b=document.querySelector(`[data-pdfrot="${i}"]`);if(b)b.focus()}
+function pdfDel(i){const it=S.pdf.imgs[i];if(!it)return;try{URL.revokeObjectURL(it.url)}catch(e){}S.pdf.imgs.splice(i,1);S.pdf.out=null;render()}
+function pdfClear(){S.pdf.imgs.forEach(it=>{try{URL.revokeObjectURL(it.url)}catch(e){}});S.pdf.imgs=[];S.pdf.out=null;S.pdf.name='';render()}
+function pdfBuild(pages,size,margin){const enc=new TextEncoder(),parts=[],offs=[];let len=0;
+ const add=x=>{const b=typeof x==='string'?enc.encode(x):x;parts.push(b);len+=b.length},f=v=>String(Math.round(v*100)/100),n=pages.length;
+ add('%PDF-1.4\n%âãÏÓ\n');
+ offs[1]=len;add('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+ offs[2]=len;add(`2 0 obj\n<< /Type /Pages /Kids [${pages.map((_,k)=>(3+3*k)+' 0 R').join(' ')}] /Count ${n} >>\nendobj\n`);
+ pages.forEach((pg,k)=>{const pid=3+3*k,iid=pid+1,cid=pid+2;let W,H;
+  if(size==='fit'){W=pg.w*.75;H=pg.h*.75;const mx=Math.max(W,H);if(mx>1440){W*=1440/mx;H*=1440/mx}}
+  else{const [a,b]=size==='letter'?[612,792]:[595.28,841.89];[W,H]=pg.w>pg.h?[b,a]:[a,b]}
+  const m=size==='fit'?0:margin,sc=Math.min((W-2*m)/pg.w,(H-2*m)/pg.h),dw=pg.w*sc,dh=pg.h*sc,cs=`q ${f(dw)} 0 0 ${f(dh)} ${f((W-dw)/2)} ${f((H-dh)/2)} cm /Im${k} Do Q`;
+  offs[pid]=len;add(`${pid} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${f(W)} ${f(H)}] /Resources << /XObject << /Im${k} ${iid} 0 R >> /ProcSet [/PDF /ImageC] >> /Contents ${cid} 0 R >>\nendobj\n`);
+  offs[iid]=len;add(`${iid} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.jpg.length} >>\nstream\n`);add(pg.jpg);add('\nendstream\nendobj\n');
+  offs[cid]=len;add(`${cid} 0 obj\n<< /Length ${cs.length} >>\nstream\n${cs}\nendstream\nendobj\n`)});
+ const total=3+3*n,info=total;
+ offs[info]=len;add(`${info} 0 obj\n<< /Producer (WalletMV) /Title (WalletMV PDF) >>\nendobj\n`);
+ const xref=len;let x=`xref\n0 ${total+1}\n0000000000 65535 f \n`;for(let i=1;i<=total;i++)x+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+ add(x+`trailer\n<< /Size ${total+1} /Root 1 0 R /Info ${info} 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+ const out=new Uint8Array(len);let o=0;parts.forEach(p=>{out.set(p,o);o+=p.length});return out}
+async function pdfJpeg(c,q){const blob=await new Promise(r=>{try{c.toBlob(r,'image/jpeg',q)}catch(e){r(null)}});
+ if(blob)return new Uint8Array(await blob.arrayBuffer());const d=atob(c.toDataURL('image/jpeg',q).split(',')[1]),u=new Uint8Array(d.length);for(let i=0;i<d.length;i++)u[i]=d.charCodeAt(i);return u}
+async function pdfMake(){const P=S.pdf;if(!P.imgs.length)return toast('Add at least one picture');if(P.busy)return;P.busy=true;render();
+ try{const q=P.quality==='high'?.92:.8,maxSide=P.quality==='high'?2400:1600,pages=[];
+  for(const it of P.imgs){const im=await pdfLoad(it.url),r=((it.rot%360)+360)%360,sc=Math.min(1,maxSide/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.max(1,Math.round(im.naturalWidth*sc)),h=Math.max(1,Math.round(im.naturalHeight*sc)),swap=r===90||r===270;
+   const c=document.createElement('canvas');c.width=swap?h:w;c.height=swap?w:h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.translate(c.width/2,c.height/2);x.rotate(r*Math.PI/180);x.drawImage(im,-w/2,-h/2,w,h);
+   pages.push({w:c.width,h:c.height,jpg:await pdfJpeg(c,q)})}
+  const bytes=pdfBuild(pages,P.size,P.margin==='small'?28:0),name=(String(P.name||'').trim()||('walletmv-'+isoD(today))).replace(/[\\/:*?"<>|]+/g,'-').replace(/\.pdf$/i,'').slice(0,80)+'.pdf';
+  P.out={name,bytes,pages:pages.length,kb:Math.max(1,Math.round(bytes.length/1024))};P.busy=false;render();await saveFile(name,bytes,'application/pdf')}
+ catch(e){P.busy=false;toast('Couldn’t make the PDF. Try fewer or smaller pictures.');render()}}
+function pdfCanShare(){try{const o=S.pdf.out;return !!(o&&navigator.canShare&&navigator.share&&navigator.canShare({files:[new File([o.bytes],o.name,{type:'application/pdf'})]}))}catch(e){return false}}
+async function pdfShare(){const o=S.pdf.out;if(!o)return;try{await navigator.share({files:[new File([o.bytes],o.name,{type:'application/pdf'})],title:o.name})}catch(e){if(e&&e.name!=='AbortError')toast('Sharing didn’t work here. Use Save PDF instead.')}}
+const PDF_CSS=`<style>
+.ip{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+.ip-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;border:2px dashed color-mix(in srgb,var(--gold) 60%,transparent);border-radius:18px;padding:26px 16px;background:color-mix(in srgb,var(--gold) 6%,transparent);color:var(--ink)}
+.ip-drop.over{background:color-mix(in srgb,var(--gold) 16%,transparent)}
+.ip-drop b{font:600 1.15rem var(--head)}.ip-drop small{color:var(--ink2);font-size:13px}
+.ip-pick{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.ip .ip-pick label{width:auto;margin:0;min-height:44px;cursor:pointer}
+.ip-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.ip-file:focus-visible+label,.ip-pick label:focus-within{outline:2px solid var(--gold);outline-offset:2px}
+.ip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px;margin-top:16px}
+.ip-pg{margin:0;border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden;display:flex;flex-direction:column}
+.ip-th{position:relative;aspect-ratio:3/4;background:var(--bg);display:grid;place-items:center;overflow:hidden}
+.ip-th img{max-width:92%;max-height:92%;object-fit:contain;transition:transform .15s;box-shadow:0 2px 8px rgba(11,26,44,.15);background:#fff}
+.ip-th img.r90,.ip-th img.r270{max-width:68%;max-height:68%}
+.ip-n{position:absolute;z-index:2;top:6px;left:6px;min-width:24px;height:24px;border-radius:99px;background:var(--deep);color:#fff;font:600 12px var(--body);display:grid;place-items:center;padding:0 6px}
+.ip-act{display:flex;justify-content:space-between;border-top:1px solid var(--line)}
+.ip-act button{flex:1;min-height:40px;border:0;background:none;color:var(--ink2);cursor:pointer;display:grid;place-items:center;padding:0;margin:0}
+.ip-act button:hover:not(:disabled){background:var(--bg);color:var(--ink)}.ip-act button:disabled{opacity:.3;cursor:default}
+.ip-act button.del:hover{color:var(--rose)}
+.ip-opt label{margin:12px 0 4px;font-size:12px}.ip-opt select,.ip-opt input{width:100%}
+.ip-seg{display:flex;gap:6px;flex-wrap:wrap}
+.ip-seg button{min-height:38px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;background:none;font:600 13px var(--body);color:var(--ink);cursor:pointer;margin:0}
+.ip-seg button[aria-pressed="true"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.ip-make{width:100%;margin-top:18px;min-height:48px}
+.ip-out{margin-top:16px;padding:14px;border-radius:14px;background:rgba(31,122,92,.1)}
+.ip-out b{display:block;word-break:break-all}.ip-out small{color:var(--ink2)}
+.ip-out .flex{gap:8px;flex-wrap:wrap;margin-top:10px}
+.ip-note{font-size:12.5px;color:var(--ink2);margin:12px 0 0;display:flex;gap:6px;align-items:flex-start}
+@media(max-width:900px){.ip{grid-template-columns:1fr}}
+@media(max-width:400px){.ip-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+</style>`;
+function ImgPdf(){const P=S.pdf,n=P.imgs.length,seg=(k,v,l)=>`<button aria-pressed="${P[k]===v}" onclick="S.pdf.${k}='${v}';S.pdf.out=null;render()">${l}</button>`;
+ const tiles=P.imgs.map((it,i)=>`<figure class="ip-pg"><div class="ip-th"><span class="ip-n">${i+1}</span><img class="r${it.rot}" src="${it.url}" alt="Page ${i+1}: ${esc(it.name)}" style="transform:rotate(${it.rot}deg)"></div>
+  <div class="ip-act"><button data-pdfmv="${i}:-1" aria-label="Move page ${i+1} earlier" ${i===0?'disabled':''} onclick="pdfMove(${i},-1)">${IC('left',17)}</button><button data-pdfrot="${i}" aria-label="Turn page ${i+1}" onclick="pdfRot(${i})">${IC('rotate',17)}</button><button data-pdfmv="${i}:1" aria-label="Move page ${i+1} later" ${i===n-1?'disabled':''} onclick="pdfMove(${i},1)">${IC('right',17)}</button><button class="del" aria-label="Remove page ${i+1}" onclick="pdfDel(${i})">${IC('x',17)}</button></div></figure>`).join('');
+ const o=P.out;
+ return `${PDF_CSS}${Head('Image to PDF','Turn photos of bills, receipts or documents into one PDF.')}
+ <div class="ip"><div class="card">
+  <div class="ip-drop" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="event.preventDefault();this.classList.remove('over');pdfAdd(event.dataTransfer.files)">
+   ${ICB('file','rgba(212,178,106,.2)','var(--gold-d)',52)}<b>${n?`${n} page${n===1?'':'s'} so far`:'Add your pictures'}</b><small>${n?'Add more, put them in order, or turn any that are sideways.':'Pick photos from your phone or computer, or drag them here.'} Up to ${PDF_MAX}.</small>
+   <div class="ip-pick"><input id="ipf" class="ip-file" type="file" accept="image/*" multiple onchange="pdfAdd(this.files);this.value=''"><label for="ipf" class="nl-btn primary">${IC('plus',17)}Choose pictures</label>
+   <input id="ipc" class="ip-file" type="file" accept="image/*" capture="environment" onchange="pdfAdd(this.files);this.value=''"><label for="ipc" class="nl-btn">${IC('camera',17)}Take a photo</label></div></div>
+  ${n?`<div class="ip-grid" aria-label="Pages in your PDF">${tiles}</div><div style="margin-top:12px"><button class="btn ghost sm" onclick="arm('pdfclr',pdfClear)">${S.armed==='pdfclr'?'Tap again to remove all':'Remove all'}</button></div>`:''}
+ </div>
+ <div class="card ip-opt"><h3 style="margin:0 0 2px">Your PDF</h3>
+  <label id="ips-l">Page size</label><div class="ip-seg" role="group" aria-labelledby="ips-l">${seg('size','a4','A4')}${seg('size','letter','Letter')}${seg('size','fit','Same as photo')}</div>
+  ${P.size!=='fit'?`<label id="ipm-l">Edges</label><div class="ip-seg" role="group" aria-labelledby="ipm-l">${seg('margin','small','White border')}${seg('margin','none','No border')}</div>`:''}
+  <label id="ipq-l">Quality</label><div class="ip-seg" role="group" aria-labelledby="ipq-l">${seg('quality','normal','Smaller file')}${seg('quality','high','Sharper')}</div>
+  <label for="ipn">File name</label><input id="ipn" maxlength="80" placeholder="walletmv-${isoD(today)}" value="${esc(P.name)}" oninput="S.pdf.name=this.value">
+  <button class="btn ip-make" ${!n||P.busy?'disabled':''} onclick="pdfMake()">${P.busy?'Making your PDF…':IC('file',18)+(n?` Make PDF (${n} page${n===1?'':'s'})`:' Make PDF')}</button>
+  ${o?`<div class="ip-out" role="status"><b>${esc(o.name)}</b><small>${o.pages} page${o.pages===1?'':'s'} · ${o.kb>=1024?(Math.round(o.kb/102.4)/10)+' MB':o.kb+' KB'} · saved</small><div class="flex"><button class="btn sm" onclick="saveFile(S.pdf.out.name,S.pdf.out.bytes,'application/pdf')">${IC('down',16)} Save again</button>${pdfCanShare()?`<button class="btn ghost sm" onclick="pdfShare()">${IC('share',16)} Share</button>`:''}<button class="btn ghost sm" onclick="pdfClear()">Start a new PDF</button></div></div>`:''}
+  <p class="ip-note">${IC('lock',15)}<span>Your pictures stay on this device. WalletMV doesn’t upload them.</span></p>
+ </div></div>`}
 
 /* ---------- TO-DO LIST (Google Tasks style) ----------
    One list in four parts, most important first: Must do, Should do, Could do, Later.
@@ -2952,7 +3053,7 @@ function invApplyMember(id){const inv=S.inv,o=S.partners.find(x=>x.id===id);if(!
  if(o.type==='custom')return toast('Give the member "'+o.custom+'" at the counter');
  const sub=inv.items.reduce((a,i)=>a+i.qty*i.price,0);if(sub<o.minSpend)return toast('Needs a bill over '+money(o.minSpend)+' (now '+money(sub)+')');
  inv.charges.push({id:Date.now(),name:'WalletMV member offer ('+offerText(o)+')',type:o.type==='percent'?'percent':'fixed',value:-o.value,memberOffer:o.id});toast(offerText(o)+' member offer applied');render()}
-function MoneyView(){return ({today:MoneyToday,dash:MoneyToday,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,settings:Settings})[S.mview]()}
+function MoneyView(){return ({today:MoneyToday,dash:MoneyToday,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,pdf:ImgPdf,settings:Settings})[S.mview]()}
 function accountBalance(id){const a=S.accounts.find(x=>x.id===id);if(!a)return 0;
  const txSum=S.tx.filter(t=>t.accId===id).reduce((s,t)=>s+(t.type==='income'?t.amt:-t.amt),0);
  const trSum=S.transfers.reduce((s,tr)=>s+(tr.to===id?tr.amt:0)-(tr.from===id?tr.amt:0),0);
