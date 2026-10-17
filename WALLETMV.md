@@ -24,10 +24,19 @@ Everything is in rufiyaa (MVR) first. GST is **8%** (prices include GST unless t
 
 | Package | Meaning | Price / 30 days | Yearly (pay 10 months) | People | Scanning | Best for |
 |---|---|---|---|---|---|---|
-| **Boli** | Cowrie shell — the Maldives' first money | MVR 199 | MVR 1,990 | 2 | — | One person |
-| **Muraka** | Coral — strong, growing | MVR 399 | MVR 3,990 | 3 | ✓ | Couples, small homes (*Most popular*) |
-| **Atholhu** | Atoll — a family of islands | MVR 699 | MVR 6,990 | up to 9 | ✓ | Families (*Best value per person*) |
-| **Dhoni** | The trading boat | MVR 899 | MVR 8,990 | 4 staff | ✓ + Bill inbox | Shops (*Best for shops*) |
+| **Veli** | Sand — where every island starts | **Free** | Free | 1 | — | Trying WalletMV (*Free forever*) |
+| **Boli** | Cowrie shell — the Maldives' first money | MVR 49 | MVR 490 | 2 | — | One person or a couple, no limits |
+| **Muraka** | Coral — strong, growing | MVR 99 | MVR 990 | 3 | ✓ | Couples, small homes (*Most popular*) |
+| **Atholhu** | Atoll — a family of islands | MVR 199 | MVR 1,990 | up to 9 | ✓ | Families (*Best value per person*) |
+| **Dhoni** | The trading boat | MVR 349 | MVR 3,490 | 4 staff | ✓ + Bill inbox | Shops (*Best for shops*) |
+
+Prices include 8% GST. Set for the Maldives market in October 2026, aiming at 10,000 monthly users: free to start,
+paid packages below local POS apps (MVR 300–750 a month) and well under the price of a streaming subscription.
+
+**Veli (free) limits:** 3 accounts, 1 monthly budget (no category budgets), 1 savings goal, 5 bills, reports for this
+month and last month only, no Excel export, MVR only, no scanning, no AI planning, 1 person. Everything else
+(to-do list, groceries, member card, reminders) is included. Anyone without an active package is on Veli.
+The limits live in `FREE_LIM` and `onFree()` in `index.html`.
 
 Prices, names and features are editable in **Admin → Packages** (no code change needed).
 A free **all-access test account** exists for the owner — its login lives in the code and **must move to
