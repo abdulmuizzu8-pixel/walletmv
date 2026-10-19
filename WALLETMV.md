@@ -109,6 +109,8 @@ Inside `index.html` (search with **Ctrl+F**):
 | `INSTALLABLE APP` | Install button, offline, home-screen shortcuts |
 | `const FAQ=` | Website FAQ |
 
+**Also built in:** PIN app lock (Settings, this device only, `PinLockCard`), bill and morning reminders (`billsTick`, shown while the app is open), a "newer copy found" guard when two devices save (`newerCopy`), and Excel/scanner libraries that load only when used (`loadLib`).
+
 **How it works:** all data lives in one object `S`; every screen is a function that returns HTML; any change
 calls `render()` to redraw. Data is saved in the browser for now (see §8).
 

@@ -30,8 +30,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
 :root{
@@ -295,6 +293,12 @@ const SB_URL='https://stouchncgnyagrhcwaqr.supabase.co',SB_KEY='sb_publishable_3
 const walletAuth = window.supabase?.createClient(SB_URL,SB_KEY);
 /* ============ helpers ============ */
 const $=s=>document.querySelector(s);
+/* ---------- Heavy libraries load only when needed (Excel export, receipt scanning) ---------- */
+const LIBS={xlsx:['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',()=>typeof XLSX!=='undefined'],ocr:['https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',()=>typeof Tesseract!=='undefined']},_libP={};
+function loadLib(k){const L=LIBS[k];if(!L)return Promise.resolve(false);if(L[1]())return Promise.resolve(true);if(_libP[k])return _libP[k];
+ return _libP[k]=new Promise(res=>{const el=document.createElement('script');el.src=L[0];el.async=true;el.onload=()=>res(L[1]());el.onerror=()=>{delete _libP[k];res(false)};document.head.appendChild(el)})}
+function needLib(k,fn){toast(k==='xlsx'?'Getting your Excel file ready…':'Getting the scanner ready…');loadLib(k).then(ok=>ok?fn():toast(k==='xlsx'?'Excel export didn’t load — check your internet and try again':'Scanning didn’t load — check your connection and try again'))}
+function ocrRecognize(f){return loadLib('ocr').then(ok=>{if(!ok)throw new Error('scanner not loaded');return Tesseract.recognize(f,'eng')})}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const CURRENCIES=[['MVR','Maldivian rufiyaa','MVR '],['USD','US dollar','$'],['EUR','Euro','€'],['GBP','British pound','£'],['INR','Indian rupee','₹'],['LKR','Sri Lankan rupee','LKR '],['PKR','Pakistani rupee','PKR '],['BDT','Bangladeshi taka','৳'],['AED','UAE dirham','AED '],['SAR','Saudi riyal','SAR '],['QAR','Qatari riyal','QAR '],['MYR','Malaysian ringgit','RM '],['SGD','Singapore dollar','S$'],['IDR','Indonesian rupiah','Rp '],['THB','Thai baht','฿'],['CNY','Chinese yuan','CN¥'],['JPY','Japanese yen','¥'],['AUD','Australian dollar','A$'],['NZD','New Zealand dollar','NZ$'],['CAD','Canadian dollar','C$'],['CHF','Swiss franc','CHF '],['ZAR','South African rand','R '],['NGN','Nigerian naira','₦'],['KES','Kenyan shilling','KSh '],['TRY','Turkish lira','₺'],['AFN','Afghan afghani','AFN '],['ALL','Albanian lek','ALL '],['AMD','Armenian dram','AMD '],['AOA','Angolan kwanza','AOA '],['ARS','Argentine peso','AR$'],['AWG','Aruban florin','AWG '],['AZN','Azerbaijani manat','₼'],['BAM','Bosnia-Herzegovina convertible mark','KM '],['BBD','Barbadian dollar','BBD '],['BHD','Bahraini dinar','BHD '],['BIF','Burundian franc','BIF '],['BMD','Bermudian dollar','BMD '],['BND','Brunei dollar','BND '],['BOB','Bolivian boliviano','Bs '],['BRL','Brazilian real','R$'],['BSD','Bahamian dollar','BSD '],['BTN','Bhutanese ngultrum','BTN '],['BWP','Botswana pula','P '],['BYN','Belarusian ruble','BYN '],['BZD','Belize dollar','BZD '],['CDF','Congolese franc','CDF '],['CLP','Chilean peso','CLP '],['COP','Colombian peso','COP '],['CRC','Costa Rican colón','₡'],['CUP','Cuban peso','CUP '],['CVE','Cape Verdean escudo','CVE '],['CZK','Czech koruna','Kč '],['DJF','Djiboutian franc','DJF '],['DKK','Danish krone','kr '],['DOP','Dominican peso','RD$'],['DZD','Algerian dinar','DZD '],['EGP','Egyptian pound','E£ '],['ERN','Eritrean nakfa','ERN '],['ETB','Ethiopian birr','ETB '],['FJD','Fijian dollar','FJ$'],['FKP','Falkland Islands pound','FKP '],['GEL','Georgian lari','₾'],['GHS','Ghanaian cedi','GH₵ '],['GIP','Gibraltar pound','GIP '],['GMD','Gambian dalasi','GMD '],['GNF','Guinean franc','GNF '],['GTQ','Guatemalan quetzal','Q '],['GYD','Guyanese dollar','GYD '],['HKD','Hong Kong dollar','HK$'],['HNL','Honduran lempira','L '],['HTG','Haitian gourde','HTG '],['HUF','Hungarian forint','Ft '],['ILS','Israeli new shekel','₪'],['IQD','Iraqi dinar','IQD '],['IRR','Iranian rial','IRR '],['ISK','Icelandic króna','ISK '],['JMD','Jamaican dollar','J$'],['JOD','Jordanian dinar','JOD '],['KGS','Kyrgyzstani som','KGS '],['KHR','Cambodian riel','៛'],['KMF','Comorian franc','KMF '],['KPW','North Korean won','KPW '],['KRW','South Korean won','₩'],['KWD','Kuwaiti dinar','KWD '],['KYD','Cayman Islands dollar','KYD '],['KZT','Kazakhstani tenge','₸'],['LAK','Lao kip','₭'],['LBP','Lebanese pound','LBP '],['LRD','Liberian dollar','LRD '],['LSL','Lesotho loti','LSL '],['LYD','Libyan dinar','LYD '],['MAD','Moroccan dirham','MAD '],['MDL','Moldovan leu','MDL '],['MGA','Malagasy ariary','MGA '],['MKD','Macedonian denar','MKD '],['MMK','Myanmar kyat','MMK '],['MNT','Mongolian tögrög','₮'],['MOP','Macanese pataca','MOP '],['MRU','Mauritanian ouguiya','MRU '],['MUR','Mauritian rupee','MUR '],['MWK','Malawian kwacha','MWK '],['MXN','Mexican peso','MX$'],['MZN','Mozambican metical','MZN '],['NAD','Namibian dollar','N$'],['NIO','Nicaraguan córdoba','C$ '],['NOK','Norwegian krone','kr '],['NPR','Nepalese rupee','NPR '],['OMR','Omani rial','OMR '],['PAB','Panamanian balboa','PAB '],['PEN','Peruvian sol','S/ '],['PGK','Papua New Guinean kina','PGK '],['PHP','Philippine peso','₱'],['PLN','Polish złoty','zł '],['PYG','Paraguayan guaraní','₲'],['RON','Romanian leu','lei '],['RSD','Serbian dinar','RSD '],['RUB','Russian ruble','₽'],['RWF','Rwandan franc','RWF '],['SBD','Solomon Islands dollar','SBD '],['SCR','Seychellois rupee','SCR '],['SDG','Sudanese pound','SDG '],['SEK','Swedish krona','kr '],['SHP','Saint Helena pound','SHP '],['SLE','Sierra Leonean leone','SLE '],['SOS','Somali shilling','SOS '],['SRD','Surinamese dollar','SRD '],['SSP','South Sudanese pound','SSP '],['STN','São Tomé and Príncipe dobra','STN '],['SYP','Syrian pound','SYP '],['SZL','Swazi lilangeni','SZL '],['TJS','Tajikistani somoni','TJS '],['TMT','Turkmenistani manat','TMT '],['TND','Tunisian dinar','TND '],['TOP','Tongan paʻanga','T$'],['TTD','Trinidad and Tobago dollar','TT$'],['TWD','New Taiwan dollar','NT$'],['TZS','Tanzanian shilling','TSh '],['UAH','Ukrainian hryvnia','₴'],['UGX','Ugandan shilling','USh '],['UYU','Uruguayan peso','UYU '],['UZS','Uzbekistani som','UZS '],['VES','Venezuelan bolívar','VES '],['VND','Vietnamese đồng','₫'],['VUV','Vanuatu vatu','VUV '],['WST','Samoan tala','WST '],['XAF','Central African CFA franc','FCFA '],['XCD','East Caribbean dollar','EC$'],['XCG','Caribbean guilder','XCG '],['XOF','West African CFA franc','CFA '],['XPF','CFP franc','XPF '],['YER','Yemeni rial','YER '],['ZMW','Zambian kwacha','ZMW '],['ZWG','Zimbabwe Gold','ZWG ']];
 const SYM=Object.fromEntries(CURRENCIES.map(c=>[c[0],c[2]]));
@@ -1275,8 +1279,8 @@ const scanSum=r=>Math.round(r.items.filter(i=>i.on&&i.qty>0).reduce((a,i)=>a+i.q
 function scanItems(file,target){if(!file)return;if(!canScan())return toast('Scanning comes with Muraka, Atholhu and Dhoni');
  const base={target,items:[],rec:target==='inv'?'bought':'expense',cat:'Groceries',acc:S.addAcc||(S.accounts[0]||{}).id||null,who:'',total:0,date:isoD(today),gst:false};
  S.scanDone=null;S.scanReview={...base,status:'reading'};render();
- if(typeof Tesseract==='undefined'){S.scanReview={...base,status:'failed'};render();return}
- Tesseract.recognize(file,'eng').then(({data:{text}})=>{const items=parseReceipt(text),m=receiptMeta(text);S.scanReview={...base,...m,status:items.length?'ready':'empty',items};if(!S.scanReview.total)S.scanReview.total=scanSum(S.scanReview);render()})
+ if(!navigator.onLine&&typeof Tesseract==='undefined'){S.scanReview={...base,status:'failed'};render();return}
+ ocrRecognize(file).then(({data:{text}})=>{const items=parseReceipt(text),m=receiptMeta(text);S.scanReview={...base,...m,status:items.length?'ready':'empty',items};if(!S.scanReview.total)S.scanReview.total=scanSum(S.scanReview);render()})
   .catch(()=>{S.scanReview={...base,status:'failed'};render()})}
 function scanEdit(k,f,v){const r=S.scanReview,it=r&&r.items[k];if(!it)return;const before=scanSum(r);it[f]=f==='name'?v:f==='on'?v:Math.max(0,+v||0);
  if(f!=='name'){if(!r.totalSet&&Math.abs((r.total||0)-before)<0.01){r.total=scanSum(r);const t=$('#scTot');if(t)t.value=r.total}const btn=$('#scGo');if(btn)btn.textContent=scanGoLabel(r);const sm=$('#scSum');if(sm)sm.textContent=scanSumText(r)}}
@@ -1338,8 +1342,8 @@ function HomeStockCard(){const out=S.homeStock.filter(h=>h.qty<=0);
  ${out.length?`<p class="sub" style="font-size:13px;margin:10px 0 0">${out.length} item${out.length===1?'':'s'} run out — tap “Add to list” to buy more.</p>`:''}</div>`}
 function xScanNote(){const x=S.xScan;if(!x)return '';const n=x.items.length;return `<small style="color:var(--ok)">Read the receipt — check the amount, then save.</small>${n?`<label class="nl-scaninv" style="display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;letter-spacing:0"><input type="checkbox" id="xInv" ${x.inv?'checked':''} style="width:18px;height:18px;margin:0;flex:none" onchange="S.xScan.inv=this.checked"> Also add the ${n} item${n===1?'':'s'} to home inventory</label>`:''}`}
 function scanExpense(file){if(!file)return;if(!canScan())return;S.xScan=null;const st=$('#xScanStatus');if(st)st.innerHTML='<small style="color:var(--ink2)">Reading the receipt…</small>';
- if(typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter it by hand.</small>';return}
- Tesseract.recognize(file,'eng').then(({data:{text}})=>{const tm=text.match(/total[^\d]*(\d[\d,]*(?:\.\d{1,2})?)/i);const nums=[...text.matchAll(/\d[\d,]*\.\d{2}/g)].map(m=>parseFloat(m[0].replace(/,/g,''))).filter(n=>n>0&&n<1000000);
+ if(!navigator.onLine&&typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter it by hand.</small>';return}
+ ocrRecognize(file).then(({data:{text}})=>{const tm=text.match(/total[^\d]*(\d[\d,]*(?:\.\d{1,2})?)/i);const nums=[...text.matchAll(/\d[\d,]*\.\d{2}/g)].map(m=>parseFloat(m[0].replace(/,/g,''))).filter(n=>n>0&&n<1000000);
   const amt=tm?parseFloat(tm[1].replace(/,/g,'')):(nums.length?Math.max(...nums):null);const shop=(text.split('\n').map(l=>l.trim()).find(l=>l.length>2&&/[a-z]{3}/i.test(l))||'').slice(0,40);
   if($('#a1')&&amt)$('#a1').value=amt;if($('#a3')&&shop)$('#a3').value=shop;const items=parseReceipt(text);S.xScan={items,inv:items.length>0};const s2=$('#xScanStatus');if(s2)s2.innerHTML=xScanNote();try{addHint()}catch(e){}})
  .catch(()=>{const s2=$('#xScanStatus');if(s2)s2.innerHTML='<small class="err" style="margin:0">Couldn\'t read that photo — enter it by hand.</small>'})}
@@ -1488,10 +1492,10 @@ function billSet(id,f,v){const b=S.inbox.find(x=>x.id===id);if(!b||b.status==='d
 function approveBill(id){const b=S.inbox.find(x=>x.id===id);if(!b||b.status==='done')return;if(!(b.total>0))return toast('Enter the bill total first');if(b.type==='stock'&&!b.items.length)return toast('No items on this stock bill — change it to Expense or add items');applyBill(b);toast(b.ref+' added');render()}
 function delBill(id){const b=S.inbox.find(x=>x.id===id);if(b&&b.status==='done')undoBill(id);S.inbox=S.inbox.filter(x=>x.id!==id);render()}
 function inboxFiles(files){files=[...(files||[])];if(!files.length)return;if(!canScan())return toast('The bill inbox comes with Muraka, Atholhu and Dhoni');
- if(typeof Tesseract==='undefined')return toast('Scanning didn\'t load — check your connection and try again');
+ if(!navigator.onLine&&typeof Tesseract==='undefined')return toast('Scanning didn\'t load — check your connection and try again');
  files.forEach(f=>{const id=Date.now()+Math.floor(Math.random()*100000);const b={id,ref:'B-'+String(id).slice(-5),name:f.name||'bill photo',at:isoD(today),status:'reading',source:S.inboxSource||'Upload'};S.inbox.unshift(b);S.inboxBusy++;
   try{const r=new FileReader();r.onload=()=>{b.thumb=r.result;render()};r.readAsDataURL(f)}catch(e){}
-  Tesseract.recognize(f,'eng').then(({data:{text}})=>{Object.assign(b,readBill(text));b.raw=String(text).slice(0,600);
+  ocrRecognize(f).then(({data:{text}})=>{Object.assign(b,readBill(text));b.raw=String(text).slice(0,600);
    if(b.conf==='ok'&&S.inboxAuto!==false)applyBill(b);else b.status='review'})
   .catch(()=>{b.status='failed'}).finally(()=>{S.inboxBusy--;render()})});
  toast(files.length+' bill'+(files.length===1?'':'s')+' added — reading now');render()}
@@ -1964,7 +1968,7 @@ function ShopLedgerTab(){const c=shopCalc();const recent=[...S.shopTx].sort((a,b
  <button class="btn" style="width:100%" onclick="shopAddTx()">${S.shopType==='income'?'Log sale':'Log expense'}</button></div></div>
  <div class="scroll" style="margin-top:20px">${shopTxRows(recent)}</div></div>`}
 function exportGstMira(){
- if(typeof XLSX==='undefined')return toast('Excel export didn\'t load — try again in a moment');
+ if(typeof XLSX==='undefined')return needLib('xlsx',()=>exportGstMira());
  const p=S.shopProfile;const month=curMk();
  const cM=S.shopTx.filter(t=>mk(t.date)===month);
  const outRows=cM.filter(t=>t.type==='income'&&t.gst);
@@ -2025,7 +2029,7 @@ function ShopTaxTab(){const c=shopCalc();const pct2=Math.min(100,c.rolling/10000
   </div></div>
  <div class="card" style="margin-top:18px"><div class="flex" style="gap:16px;align-items:center"><span style="font-size:28px">🧾</span><div style="flex:1"><b>Filing reminders</b><p class="sub" style="margin:4px 0 0">File and pay GST returns through your preferred tax filing channel if registered, and remember the annual Income Tax Return (Form annual income tax return) is due every year regardless of profit.</p></div></div></div>`}
 function exportShopXLS(){
- if(typeof XLSX==='undefined')return toast('Excel export didn\'t load — try again in a moment');
+ if(typeof XLSX==='undefined')return needLib('xlsx',()=>exportShopXLS());
  const range=(S.repView==='sales'||S.repView==='invoices')&&S.shopRepMode==='range'&&S.shopRepFrom&&S.shopRepTo;
  const rows=S.shopTx.filter(t=>range?(t.date>=S.shopRepFrom&&t.date<=S.shopRepTo):(mk(t.date)===curMk())).sort((a,b)=>a.date.localeCompare(b.date));
  const c=range?shopCalcRange(S.shopRepFrom,S.shopRepTo):shopCalc();
@@ -2717,7 +2721,7 @@ if(!Array.isArray(S.tasks))S.tasks=[];
 if(!Array.isArray(S.docs))S.docs=[];
 const SAVE_KEYS=['subscription','pendingSubs','tasks','docs','catBudgets','tx','accounts','transfers','goals','bills','budget','calNotes','groc','quick','cats','homeStock','cur','theme','notif','walletCard','shared','discounts','shopProfile','products','saleLines','shopTx','customers','suppliers','workers','loyalty','docCounters','chargePresets','defaultGst','inv'];
 const DEMO_DATA=JSON.parse(JSON.stringify(Object.fromEntries(SAVE_KEYS.map(k=>[k,S[k]]))));
-var _dataUid=null,_saveT=null,_lastSaved='',_retryT=null;
+var _dataUid=null,_saveT=null,_lastSaved='',_retryT=null,_cloudAt=null;
 const LOCAL_KEY=uid=>'walletmv:data:'+uid;
 function myData(){const d={};SAVE_KEYS.forEach(k=>d[k]=S[k]);return d}
 function applyData(d){const base=blankData();SAVE_KEYS.forEach(k=>{S[k]=d&&Object.prototype.hasOwnProperty.call(d,k)?d[k]:base[k]});try{document.documentElement.setAttribute('data-theme',S.theme||'light')}catch(e){}}
@@ -2738,16 +2742,29 @@ async function loadMyData(user){if(!walletAuth||!user||_dataUid===user.id)return
  if(res&&res.error){if(!local)applyData(blankData());S.syncErr=true}
  else if(cloud&&(!local||!local.at||new Date(row.updated_at)>=new Date(local.at))){applyData(cloud);_lastSaved=JSON.stringify(myData());S.syncErr=false}
  else if(!local&&!cloud){applyData(blankData())}
- S.dataReady=true;render();loadMyPayments(true)}
+ if(row&&row.updated_at)_cloudAt=row.updated_at;S.dataReady=true;render();loadMyPayments(true)}
 function queueSave(){if(!S.signed||!_dataUid||!S.dataReady||!walletAuth)return;const j=JSON.stringify(myData());if(j===_lastSaved)return;clearTimeout(_saveT);_saveT=setTimeout(()=>saveNow(j),1200)}
-async function saveNow(j){if(!_dataUid||!walletAuth||!S.dataReady)return;j=j||JSON.stringify(myData());if(j===_lastSaved)return;
+async function saveNow(j){if(!_dataUid||!walletAuth||!S.dataReady||S.conflict)return;j=j||JSON.stringify(myData());if(j===_lastSaved)return;
+ if(_cloudAt&&await newerCopy(true))return;
  const uid=_dataUid,at=new Date().toISOString(),d=JSON.parse(j);
  try{localStorage.setItem(LOCAL_KEY(uid),JSON.stringify({at,d}))}catch(e){}
  let error=null;try{({error}=await walletAuth.from('walletmv_app_state').upsert({user_id:uid,state:{v:1,d},updated_at:at},{onConflict:'user_id'}))}catch(e){error=e}
- if(error){S.syncErr=true;clearTimeout(_retryT);_retryT=setTimeout(()=>saveNow(),15000)}else{if(uid===_dataUid)_lastSaved=j;S.syncErr=false}}
-function clearMyData(keepLocal){const uid=_dataUid;clearTimeout(_saveT);clearTimeout(_retryT);_dataUid=null;_lastSaved='';S.dataReady=false;S.syncErr=false;
+ if(error){S.syncErr=true;clearTimeout(_retryT);_retryT=setTimeout(()=>saveNow(),15000)}else{if(uid===_dataUid){_lastSaved=j;_cloudAt=at}S.syncErr=false}}
+/* ---------- Two devices at once: never overwrite a newer copy without asking ---------- */
+async function newerCopy(fromSave){if(!walletAuth||!_dataUid||!_cloudAt)return false;const uid=_dataUid;
+ let res;try{res=await walletAuth.from('walletmv_app_state').select('state,updated_at').eq('user_id',uid).maybeSingle()}catch(e){return false}
+ const row=res&&res.data;if(uid!==_dataUid||!row||!row.updated_at||!(new Date(row.updated_at)>new Date(_cloudAt)))return false;
+ const cloud=row.state&&row.state.d;if(!cloud)return false;
+ if(!fromSave&&JSON.stringify(myData())===_lastSaved){applyData(cloud);_lastSaved=JSON.stringify(myData());_cloudAt=row.updated_at;render();toast('Updated with your latest changes from another device');return true}
+ S.conflict={d:cloud,at:row.updated_at};clearTimeout(_saveT);clearTimeout(_retryT);showConflict();return true}
+function showConflict(){let b=$('#cfbar');if(!b){b=document.createElement('div');b.id='cfbar';b.setAttribute('role','alertdialog');b.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;background:#0B1A2C;color:#fff;border:1px solid #D4B26A;border-radius:14px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:520px;margin:0 auto;font-size:14px;line-height:1.45';document.body.appendChild(b)}
+ b.innerHTML='<b style="color:#D4B26A">A newer copy was saved on another device.</b><br>To protect your records, we paused saving. Which do you want to keep?<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" onclick="useCloudCopy()" style="min-height:44px">Use the newer copy</button><button class="btn ghost sm" onclick="keepThisCopy()" style="min-height:44px;color:#fff;border-color:#D4B26A">Keep this device’s copy</button></div>'}
+function hideConflict(){const b=$('#cfbar');if(b)b.remove()}
+function useCloudCopy(){const c=S.conflict;if(!c)return;applyData(c.d);_lastSaved=JSON.stringify(myData());_cloudAt=c.at;S.conflict=null;hideConflict();render();toast('Loaded the newer copy')}
+function keepThisCopy(){const c=S.conflict;if(!c)return;_cloudAt=c.at;S.conflict=null;hideConflict();_lastSaved='';saveNow();toast('Saved this device’s copy')}
+function clearMyData(keepLocal){const uid=_dataUid;S.conflict=null;_cloudAt=null;try{hideConflict()}catch(e){}clearTimeout(_saveT);clearTimeout(_retryT);_dataUid=null;_lastSaved='';S.dataReady=false;S.syncErr=false;
  if(uid&&!keepLocal){try{localStorage.removeItem(LOCAL_KEY(uid))}catch(e){}}applyData(DEMO_DATA)}
-addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(_saveT);saveNow()}});
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(_saveT);saveNow()}else if(!S.conflict&&S.dataReady)newerCopy(false)});
 addEventListener('pagehide',()=>{clearTimeout(_saveT);saveNow()});
 function syncNote(){if(!S.signed)return'';return S.syncErr?`<p class="sub" style="margin:10px 0 0;font-size:13px;color:var(--rose)">Not saved to your account yet. Check your internet; we’ll keep trying.</p>`:(S.dataReady?`<p class="sub" style="margin:10px 0 0;font-size:13px;color:var(--ok)">✓ Saved to your account</p>`:'')}
 
@@ -2761,6 +2778,60 @@ function AppLockCard(){const a=window.WalletMVApp;if(!a||!a.canLock)return'';con
  return `<div class="card" style="margin-top:18px"><div class="flex between" style="flex-wrap:wrap;gap:10px;align-items:center"><div style="flex:1;min-width:200px"><h3>App lock</h3><p class="sub" style="margin:4px 0 0">Open WalletMV with ${name}, so only you can see your money.</p></div><button class="btn ${on?'ghost':''} sm" role="switch" aria-checked="${on}" onclick="appLock(${!on})">${on?'Turn off':'Turn on'}</button></div></div>`}
 function appLock(on){try{window.ReactNativeWebView.postMessage(JSON.stringify({type:'lock',on}));window.WalletMVApp.lock=on}catch(e){}toast(on?'App lock is on':'App lock is off');render()}
 addEventListener('walletmvapp',()=>{if(S.page==='money'&&S.mview==='settings')render()});
+
+/* ---------- Bill and morning reminders (shown while WalletMV is open; phone/computer notification when allowed) ---------- */
+const remOn=k=>{try{return localStorage.getItem('walletmv:rem:'+k)!=='off'}catch(e){return true}};
+function setRem(k,on){try{localStorage.setItem('walletmv:rem:'+k,on?'on':'off')}catch(e){}toast(on?'Reminder turned on':'Reminder turned off');render()}
+function pushNote(title,body,tag){try{if(!STORE_APP&&'Notification' in window&&Notification.permission==='granted'){const n=new Notification(title,{body,icon:'/icons/icon-192.png',tag});n.onclick=()=>{try{window.focus()}catch(e){}S.page='money';S.mview='today';render()}}}catch(e){}toast('🔔 '+body)}
+function billDaysLeft(b){const d=new Date(),dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();return Math.min(+b.due||1,dim)-d.getDate()}
+function billsTick(){if(!S.signed||!S.dataReady||_locked())return;const now=new Date(),iso=isoD(now),h=now.getHours();let sent=[];
+ try{sent=JSON.parse(localStorage.getItem('walletmv:billrem:'+iso)||'[]')}catch(e){}
+ if(remOn('morning')&&h>=7&&h<12&&!sent.includes('am')&&S.budget&&S.budget.limit>0){sent.push('am');const s=safeToSpend();pushNote('Good morning',s.per>0?'You can safely spend '+money(Math.floor(s.per))+' today.':'Your budget is used up for this month.','wmv-morning')}
+ if(remOn('bill')&&h>=8){const hit=[];(S.bills||[]).filter(b=>!b.paidThisMonth).forEach(b=>{const k='b'+b.id,n=billDaysLeft(b);if(n>=0&&n<=2&&!sent.includes(k)){sent.push(k);hit.push(b.name+' ('+money(b.amt)+') '+(n===0?'today':n===1?'tomorrow':'in 2 days'))}});
+  if(hit.length)pushNote('Bill due soon',hit.length===1?'Bill due '+hit[0]:hit.length+' bills due soon: '+hit.join(', '),'wmv-bills')}
+ try{localStorage.setItem('walletmv:billrem:'+iso,JSON.stringify(sent))}catch(e){}}
+setInterval(billsTick,60000);setTimeout(billsTick,7000);
+function ReminderCard(){const sw=(k,t)=>`<label style="display:flex;gap:10px;align-items:center;margin-top:12px;color:var(--ink);min-height:44px"><input type="checkbox" ${remOn(k)?'checked':''} onchange="setRem('${k}',this.checked)"> ${t}</label>`;
+ return `<div class="card" style="margin-top:18px"><h3>Reminders</h3><p class="sub" style="margin:4px 0 0">Stay on top of your money without opening every screen.</p>${sw('bill','Tell me when a bill is due in 2 days')}${sw('morning','Show my safe-to-spend number every morning')}<div style="margin-top:12px">${ReminderNote()}</div></div>`}
+
+/* ---------- App lock with a PIN (this device only) ---------- */
+const PIN_KEY='walletmv_pin_v1';
+const pinOK=()=>!!(window.crypto&&crypto.subtle&&window.TextEncoder);
+function pinData(){try{return JSON.parse(localStorage.getItem(PIN_KEY)||'null')}catch(e){return null}}
+async function pinHash(pin,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveBits']);
+ const b=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',iterations:100000,salt:new TextEncoder().encode(salt)},k,256);return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+var _unlocked=false,_hiddenAt=0,_pinFails=0,_pinUntil=0;
+const _locked=()=>!!pinData()&&!_unlocked;
+function PinLockCard(){if(!pinOK()||(window.WalletMVApp&&window.WalletMVApp.canLock))return'';const on=!!pinData();
+ const f=(id,l)=>`<div class="nl-field" style="margin-top:10px"><label for="${id}">${l}</label><input id="${id}" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" placeholder="4 to 6 numbers"></div>`;
+ return `<div class="card" style="margin-top:18px"><h3>App lock (PIN)</h3><p class="sub" style="margin:4px 0 0">Ask for a PIN when WalletMV opens on this phone or computer, so only you can see your money. It locks again after a minute away.</p>
+ ${on?`<p class="sub" style="margin:10px 0 0;color:var(--ok)">✓ App lock is on for this device.</p>${f('pinold','Current PIN')}${f('pin1','New PIN (to change it)')}<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="changePin()" style="min-height:44px">Change PIN</button><button class="btn ghost sm" onclick="removePin()" style="min-height:44px">Turn off</button></div>`
+ :`${f('pin1','Choose a PIN')}${f('pin2','Type it again')}<button class="btn sm" style="margin-top:12px;min-height:44px" onclick="setPin()">Turn on app lock</button>`}<div id="pinerr" role="alert"></div></div>`}
+const pinErr=m=>{const e=$('#pinerr');if(e)e.innerHTML=m?`<p class="err">${esc(m)}</p>`:''};
+const pinGood=v=>/^\d{4,6}$/.test(v||'');
+async function setPin(){const a=$('#pin1').value,b=$('#pin2').value;if(!pinGood(a))return pinErr('Use 4 to 6 numbers.');if(a!==b)return pinErr('The two PINs don’t match.');
+ const salt=crypto.getRandomValues(new Uint8Array(12)).join('-');try{localStorage.setItem(PIN_KEY,JSON.stringify({salt,hash:await pinHash(a,salt)}))}catch(e){return pinErr('This browser won’t let us save the lock.')}
+ _unlocked=true;toast('App lock is on');render()}
+async function pinCheck(v){const d=pinData();return !!d&&pinGood(v)&&(await pinHash(v,d.salt))===d.hash}
+async function changePin(){if(!(await pinCheck($('#pinold').value)))return pinErr('Current PIN is not right.');const n=$('#pin1').value;if(!pinGood(n))return pinErr('New PIN: use 4 to 6 numbers.');
+ const salt=crypto.getRandomValues(new Uint8Array(12)).join('-');try{localStorage.setItem(PIN_KEY,JSON.stringify({salt,hash:await pinHash(n,salt)}))}catch(e){}toast('PIN changed');render()}
+async function removePin(){if(!(await pinCheck($('#pinold').value)))return pinErr('Enter your current PIN to turn it off.');try{localStorage.removeItem(PIN_KEY)}catch(e){}toast('App lock is off');render()}
+function lockShow(){let o=$('#lockov');if(!o){o=document.createElement('div');o.id='lockov';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');o.setAttribute('aria-label','WalletMV is locked');
+ o.style.cssText='position:fixed;inset:0;z-index:10000;background:#0B1A2C;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px';document.body.appendChild(o)}
+ o.innerHTML=`<div style="width:100%;max-width:340px;text-align:center"><div style="width:64px;height:64px;border-radius:50%;margin:0 auto 14px;border:2px solid #D4B26A;color:#D4B26A;display:flex;align-items:center;justify-content:center;font:600 34px 'Cormorant Garamond',serif">W</div>
+ <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;margin:0 0 6px;color:#fff">WalletMV is locked</h2><p style="margin:0 0 16px;color:#cfd6df;font-size:15px">Enter your PIN to open.</p>
+ <input id="lockpin" type="password" inputmode="numeric" autocomplete="off" maxlength="6" pattern="[0-9]*" aria-label="PIN" onkeydown="if(event.key==='Enter')lockTry()" style="width:100%;box-sizing:border-box;text-align:center;font-size:26px;letter-spacing:8px;padding:12px;border-radius:12px;border:1px solid #D4B26A;background:#12263c;color:#fff;min-height:52px">
+ <div id="lockerr" role="alert" style="min-height:22px;margin:8px 0;color:#ff9aa8;font-size:14px"></div>
+ <button class="btn" onclick="lockTry()" style="width:100%;min-height:48px">Unlock</button>
+ <button onclick="lockForgot()" style="margin-top:14px;background:none;border:0;color:#D4B26A;text-decoration:underline;font-size:14px;min-height:44px;cursor:pointer">Forgot PIN? Log out</button></div>`;
+ setTimeout(()=>{const i=$('#lockpin');if(i)i.focus()},50)}
+async function lockTry(){const i=$('#lockpin'),e=$('#lockerr');if(!i)return;const left=Math.ceil((_pinUntil-Date.now())/1000);if(left>0){e.textContent='Too many tries. Wait '+left+' seconds.';return}
+ if(await pinCheck(i.value)){_unlocked=true;_pinFails=0;const o=$('#lockov');if(o)o.remove();render();return}
+ _pinFails++;i.value='';if(_pinFails>=5){_pinFails=0;_pinUntil=Date.now()+30000;e.textContent='Too many tries. Wait 30 seconds.'}else e.textContent='That PIN is not right.'}
+async function lockForgot(){if(!window.confirm('Log out and turn off the app lock on this device? You can log in again with your email or Google.'))return;
+ try{localStorage.removeItem(PIN_KEY)}catch(e){}_unlocked=true;const o=$('#lockov');if(o)o.remove();if(S.signed)await logoutUser();else render()}
+function lockInit(){if(_locked())lockShow()}
+addEventListener('visibilitychange',()=>{if(!pinData())return;if(document.visibilityState==='hidden')_hiddenAt=Date.now();else if(_hiddenAt&&Date.now()-_hiddenAt>60000){_unlocked=false;lockShow()}});
 
 /* ---------- Account: change password, delete account ---------- */
 async function changePassword(btn){const v=($('#pw2')||{}).value||'';if(v.length<8)return toast('Use at least 8 characters');if(!walletAuth)return toast('Sign-in couldn’t load. Refresh and try again.');
@@ -3093,7 +3164,7 @@ function grocWorkbook(src){const cur=S.cur;const wb=XLSX.utils.book_new();
 const grocFileName=n=>(n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'grocery-list')+'.xlsx';
 async function grocSendXLS(id){const src=grocListSource(id);if(!src)return;
  if(!src.items.length)return toast('This list is empty');
- if(typeof XLSX==='undefined')return toast('Excel export didn\'t load — try again in a moment');
+ if(typeof XLSX==='undefined')return needLib('xlsx',()=>grocSendXLS(id));
  const wb=grocWorkbook(src),fname=grocFileName(src.name);
  try{if(typeof navigator!=='undefined'&&navigator.share&&navigator.canShare&&typeof File!=='undefined'){
   const data=XLSX.write(wb,{bookType:'xlsx',type:'array'});
@@ -3421,8 +3492,8 @@ function scanBill(file){
  if(!file)return;
  const st=$('#scanStatus');
  if(st)st.innerHTML='<small style="color:var(--ink2)">Reading the image…</small>';
- if(typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter the bill by hand.</small>';return}
- Tesseract.recognize(file,'eng').then(({data:{text}})=>{
+ if(!navigator.onLine&&typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter the bill by hand.</small>';return}
+ ocrRecognize(file).then(({data:{text}})=>{
   const nums=[...text.matchAll(/\d[\d,]*\.\d{2}|\d{3,}/g)].map(m=>parseFloat(m[0].replace(/,/g,''))).filter(n=>n>0&&n<1000000);
   const amt=nums.length?Math.max(...nums):null;
   const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>2&&/[a-zA-Z]/.test(l)&&!/total|amount|due|invoice|bill|receipt/i.test(l));
@@ -3440,8 +3511,8 @@ function scanShopBill(file){
  S.shopType='expense';render();
  const st=$('#shopScanStatus');
  if(st)st.innerHTML='<small style="color:var(--ink2)">Reading the image…</small>';
- if(typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter it by hand.</small>';return}
- Tesseract.recognize(file,'eng').then(({data:{text}})=>{
+ if(!navigator.onLine&&typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter it by hand.</small>';return}
+ ocrRecognize(file).then(({data:{text}})=>{
   const nums=[...text.matchAll(/\d[\d,]*\.\d{2}|\d{3,}/g)].map(m=>parseFloat(m[0].replace(/,/g,''))).filter(n=>n>0&&n<1000000);
   const amt=nums.length?Math.max(...nums):null;
   const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>2&&/[a-zA-Z]/.test(l)&&!/total|amount|due|invoice|bill|receipt/i.test(l));
@@ -3456,8 +3527,8 @@ function scanInvoiceBill(file){
  if(!file)return;
  const st=$('#invScanStatus');
  if(st)st.innerHTML='<small style="color:var(--ink2)">Reading the image…</small>';
- if(typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter it by hand.</small>';return}
- Tesseract.recognize(file,'eng').then(({data:{text}})=>{
+ if(!navigator.onLine&&typeof Tesseract==='undefined'){if(st)st.innerHTML='<small class="err" style="margin:0">Scanning didn\'t load — enter it by hand.</small>';return}
+ ocrRecognize(file).then(({data:{text}})=>{
   const nums=[...text.matchAll(/\d[\d,]*\.\d{2}|\d{3,}/g)].map(m=>parseFloat(m[0].replace(/,/g,''))).filter(n=>n>0&&n<1000000);
   const amt=nums.length?Math.max(...nums):0;
   const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>2&&/[a-zA-Z]/.test(l)&&!/total|amount|due|invoice|bill|receipt/i.test(l));
@@ -3843,7 +3914,7 @@ function saveGoal(id){const g=S.goals.find(x=>x.id===id),n=$('#gn'+id).value.tri
 function addGoal(){const n=$('#g1').value.trim(),t=+$('#g2').value;if(!n||!(t>0)){$('#gerr').innerHTML='<p class="err" role="alert">Name your goal and set a target above zero.</p>';return}if(onFree()&&S.goals.length>=FREE_LIM.goals)return freeStop('More than '+FREE_LIM.goals+' savings goal');S.goals.push({id:Date.now(),name:n,target:t,saved:0});toast('Goal added');render()}
 function exportMoneyXLS(){
  if(onFree())return freeStop('Excel export');
- if(typeof XLSX==='undefined')return toast('Excel export didn\'t load — try again in a moment');
+ if(typeof XLSX==='undefined')return needLib('xlsx',()=>exportMoneyXLS());
  const range=S.repMode==='range'&&S.repFrom&&S.repTo;
  const rows=S.tx.filter(t=>range?(t.date>=S.repFrom&&t.date<=S.repTo):(mk(t.date)===S.repMonth)).sort((a,b)=>a.date.localeCompare(b.date));
  const m=range?calcRange(S.repFrom,S.repTo):calc(S.repMonth);
@@ -3902,7 +3973,7 @@ function Settings(){return `${Head('Settings','Your package, profile and prefere
  <div class="card"><h3>Profile</h3><label for="s1">Full name</label><input id="s1" value="${esc(S.name)}"><label>Email</label><p style="margin:0;color:var(--ink2)">${S.email}</p>
  <label for="s5">Appearance</label><select id="s5" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select>
  <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--ink)"><input id="s3" type="checkbox" ${S.notif?'checked':''}> Notify me at 90% of my budget</label>
- <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>${AppLockCard()}
+ <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>${ReminderCard()}${PinLockCard()}${AppLockCard()}
  <div class="card"><h3>Quick add presets</h3><p class="sub" style="margin:6px 0 14px">The one-tap chips on Today and Add expense.</p>
  <ul class="list">${S.quick.map(q=>{const ed=S.editQuick===q.id;return ed?`<li><div class="flex" style="gap:8px;width:100%"><input id="qi${q.id}" aria-label="Icon" value="${q.ic}" style="width:56px;text-align:center"><input id="qn${q.id}" aria-label="Name" value="${esc(q.n)}" style="flex:1;min-width:100px"><select id="qc${q.id}" aria-label="Category" style="width:150px">${S.cats.filter(c=>c.t==='expense').map(c=>`<option ${q.cat===c.n?'selected':''}>${esc(c.n)}</option>`).join('')}</select><input id="qa${q.id}" aria-label="Amount" type="number" min="0" value="${q.amt}" style="width:100px"><button class="btn sm" onclick="saveQuick(${q.id})">Save</button><button class="btn ghost sm" onclick="S.editQuick=null;render()">Cancel</button></div></li>`
  :`<li><span><span style="font-size:18px;margin-right:8px">${q.ic}</span><b>${esc(q.n)}</b> <small style="color:var(--ink2)">· ${esc(q.cat)} · ${money(q.amt)}</small></span><span class="flex" style="gap:6px"><button class="btn ghost sm" onclick="S.editQuick=${q.id};render()">Edit</button><button class="btn ghost sm" onclick="arm('q${q.id}',()=>{S.quick=S.quick.filter(x=>x.id!==${q.id});toast('Preset removed');render()})">${S.armed==='q'+q.id?'Confirm':'Remove'}</button></span></li>`}).join('')||'<p class="sub">No presets yet — add one below.</p>'}</ul>
@@ -4055,7 +4126,7 @@ if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()
 
 /* ============ STUDIO ============ */
 if(walletAuth)loadPublicConfig();
-render();
+render();lockInit();
 </script>
 </body>
 </html>
