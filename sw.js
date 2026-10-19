@@ -1,6 +1,6 @@
 // WalletMV service worker — lets the installed app open fast and work on a weak connection.
 // Bump VERSION whenever you publish a change you want everyone to get straight away.
-const VERSION = 'walletmv-v34';
+const VERSION = 'walletmv-v35';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/favicon.svg'];
 const CDN = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
