@@ -509,7 +509,7 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v44';
+const APP_BUILD='walletmv-v45';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -1358,17 +1358,44 @@ function MyPackage(){const i=subInfo();
  <div class="flex" style="gap:10px;margin-top:20px;flex-wrap:wrap"><button class="btn" onclick="requestUpgrade('${i.p.id}')">${ex?'Renew now':'Renew early'}</button><button class="btn ghost" onclick="go('packages')">Upgrade package</button><button class="btn ghost" onclick="mv('people')">${IC('users',16)} Invite people</button>${waReady()?`<button class="btn ghost" onclick="waOrder('${i.p.id}','renew')">${IC('chat',16)} Renew on WhatsApp</button>`:''}</div></div>
  <div class="card" style="margin-top:18px"><h3>Package features</h3><ul class="pkchk" style="grid-template-columns:repeat(auto-fill,minmax(230px,1fr));margin:14px 0 0"><li>${IC('users',18)}Up to ${i.p.members||1} people · <a href="#people" onclick="event.preventDefault();mv('people')" style="color:var(--gold-d);font-weight:600">manage</a></li>${i.p.features.map(f=>`<li>${IC('check',18)}${esc(f)}</li>`).join('')}</ul></div>${hist}`}
 const ROLE_L={owner:'Owner',edit:'Can add & view',view:'View only'};
+/* ---------- People & staff rights: the owner picks a role, then can switch each right on or off ---------- */
+const PERMS=[
+ {g:'Money',k:'addTx',l:'Add spending and income'},{g:'Money',k:'seeBalance',l:'See balances and reports'},{g:'Money',k:'editBudget',l:'Change budgets, goals and bills'},{g:'Money',k:'groceries',l:'Use grocery lists'},
+ {g:'Shop',k:'sell',l:'Sell at the till and make bills',biz:1},{g:'Shop',k:'discount',l:'Give discounts',biz:1},{g:'Shop',k:'refund',l:'Cancel or refund a sale',biz:1},{g:'Shop',k:'stockView',l:'See stock',biz:1},{g:'Shop',k:'stockEdit',l:'Change stock and prices',biz:1},{g:'Shop',k:'customers',l:'Manage customers and suppliers',biz:1},{g:'Shop',k:'expenses',l:'Add bills and shop expenses',biz:1},{g:'Shop',k:'shopReports',l:'See sales and GST reports',biz:1},
+ {g:'Tax',k:'tax',l:'Tax dashboard and filing pack',tax:1},
+ {g:'Team',k:'invite',l:'Invite or remove people (not the owner)'}];
+const ROLE_SETS={
+ family:{l:'Family member',d:'Adds spending, sees the budget and uses grocery lists',p:['addTx','seeBalance','groceries']},
+ viewer:{l:'View only',d:'Sees balances and reports, can’t change anything',p:['seeBalance']},
+ cashier:{l:'Cashier',d:'Sells at the till and sees stock',p:['sell','stockView','customers'],biz:1},
+ manager:{l:'Shop manager',d:'Runs the shop day to day',p:['addTx','seeBalance','sell','discount','refund','stockView','stockEdit','customers','expenses','shopReports','invite'],biz:1},
+ accountant:{l:'Accountant',d:'Sees reports, bills and tax, can’t sell',p:['seeBalance','expenses','shopReports','stockView','tax'],biz:1},
+ custom:{l:'Custom',d:'You choose each right'}};
+const isBizPlan=()=>{try{const i=subInfo();return i.free||(i.p&&(i.p.id==='all'||kindOf(i.p)==='business'))}catch(e){return false}};
+const isTaxPlan=()=>{try{const i=subInfo();return i.free||(i.p&&['mvtax','all'].includes(i.p.id))}catch(e){return false}};
+const permList=()=>PERMS.filter(x=>(!x.biz||isBizPlan())&&(!x.tax||isTaxPlan()));
+const roleOpts=sel=>Object.entries(ROLE_SETS).filter(([k,r])=>!r.biz||isBizPlan()).map(([k,r])=>`<option value="${k}" ${k===sel?'selected':''}>${esc(r.l)}</option>`).join('');
+function memberRole(m){if(m.preset)return m.preset;return m.role==='view'?'viewer':'family'}
+function memberPerms(m){if(Array.isArray(m.perms))return m.perms;const r=ROLE_SETS[memberRole(m)];return r?r.p.slice():[]}
+function setPreset(id,k){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner'||!ROLE_SETS[k])return;m.preset=k;if(k!=='custom')m.perms=ROLE_SETS[k].p.slice();else m.perms=memberPerms(m);m.role=m.perms.some(x=>x!=='seeBalance')?'edit':'view';toast(m.name+': '+ROLE_SETS[k].l);render()}
+function togglePerm(id,k,on){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner'||!PERMS.some(x=>x.k===k))return;const L=new Set(memberPerms(m));on?L.add(k):L.delete(k);m.perms=[...L];
+ const hit=Object.entries(ROLE_SETS).find(([key,r])=>key!=='custom'&&r.p.length===m.perms.length&&r.p.every(x=>L.has(x)));m.preset=hit?hit[0]:'custom';m.role=m.perms.some(x=>x!=='seeBalance')?'edit':'view';queueSave();render()}
+function RightsEditor(m){const L=new Set(memberPerms(m)),list=permList(),groups=[...new Set(list.map(x=>x.g))];
+ return `<div style="flex-basis:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0 0 52px;background:rgba(201,169,97,.06)"><b style="font-size:14px">What ${esc(m.name.split(' ')[0])} can do</b>
+  ${groups.map(g=>`<p style="font-size:12px;letter-spacing:.06em;color:var(--ink2);margin:12px 0 4px">${g.toUpperCase()}</p>${list.filter(x=>x.g===g).map(x=>`<label style="display:flex;gap:10px;align-items:center;margin:0;padding:7px 0;color:var(--ink);font-size:14.5px;cursor:pointer;min-height:36px"><input type="checkbox" style="width:auto;min-width:20px;height:20px" ${L.has(x.k)?'checked':''} onchange="togglePerm(${m.id},'${x.k}',this.checked)"> ${esc(x.l)}</label>`).join('')}`).join('')}
+  <p class="sub" style="font-size:12.5px;margin:10px 0 0">Only you, the owner, can change the package, payments and other people’s rights.</p>
+  <button class="btn ghost sm" style="margin-top:10px" onclick="S.rightsOpen=null;render()">Done</button></div>`}
 function seatLimit(){const i=subInfo();return i.state==='active'?(i.p.members||1):1}
 function inviteLink(m){return 'https://walletmv.com/join/'+String(m.code||m.id).toUpperCase()}
 function inviteMsg(m){return `${S.name} invited you to share their WalletMV. Join here: ${inviteLink(m)}`}
-function sendInvite(){const name=$('#ivName').value.trim(),contact=$('#ivContact').value.trim(),role=$('#ivRole').value||'edit';
+function sendInvite(){const name=$('#ivName').value.trim(),contact=$('#ivContact').value.trim(),preset=ROLE_SETS[$('#ivRole').value]?$('#ivRole').value:'family',perms=ROLE_SETS[preset].p.slice(),role=perms.some(x=>x!=='seeBalance')?'edit':'view';
  const i=subInfo();if(i.state!=='active')return toast('Activate a package first to invite people');
  if(!name)return toast('Add the person\'s name');
  if(!contact)return toast('Add a phone number or email');
  if(!/^\+?[\d\s-]{7,}$/.test(contact)&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact))return toast('Enter a valid phone number or email');
  if(S.shared.some(m=>m.contact.replace(/\s/g,'').toLowerCase()===contact.replace(/\s/g,'').toLowerCase()))return toast('That person is already on your wallet');
  if(S.shared.length>=seatLimit())return toast(`Your ${i.p.short} package allows up to ${seatLimit()} people — upgrade to add more`);
- const m={id:Date.now(),code:Math.random().toString(36).slice(2,8),name,contact,role,status:'invited',since:isoD(today)};S.shared.push(m);S.sharedOpen=m.id;
+ const m={id:Date.now(),code:Math.random().toString(36).slice(2,8),name,contact,role,preset,perms,status:'invited',since:isoD(today)};S.shared.push(m);S.sharedOpen=m.id;
  toast('Invite ready for '+name+' — share the link');render()}
 function acceptInvite(id){const m=S.shared.find(x=>x.id===id);if(!m)return;m.status='joined';m.since=isoD(today);toast(m.name+' joined your wallet');render()}
 function removeMember(id){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner')return;S.shared=S.shared.filter(x=>x.id!==id);toast(m.name+(m.status==='invited'?' — invite cancelled':' removed from your wallet'));render()}
@@ -1382,10 +1409,10 @@ function People(){const i=subInfo(),lim=seatLimit(),used=S.shared.length,left=Ma
  const wa=m=>{const n=m.contact.replace(/[^\d]/g,'');return 'https://wa.me/'+(/@/.test(m.contact)?'':n)+'?text='+encodeURIComponent(inviteMsg(m))};
  const row=m=>`<div class="lrow" style="flex-wrap:wrap">${ICB(m.role==='owner'?'shield':'users',m.status==='joined'?'rgba(31,122,92,.12)':'rgba(201,169,97,.2)',m.status==='joined'?'var(--ok)':'var(--gold-d)',40)}
   <span class="t" style="flex:1 1 180px"><b>${esc(m.name)}${m.role==='owner'?' (you)':''}</b><small>${esc(m.contact)} · ${m.status==='joined'?'Joined '+ld(m.since):'Invited '+ld(m.since)}</small></span>
-  ${m.role==='owner'?'<span class="badge" style="background:rgba(11,26,44,.08)">Owner</span>':`<div style="flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap;padding-left:52px"><select aria-label="Access for ${esc(m.name)}" style="width:auto;margin:0;padding:8px 10px" onchange="setRole(${m.id},this.value)"><option value="edit" ${m.role==='edit'?'selected':''}>Can add &amp; view</option><option value="view" ${m.role==='view'?'selected':''}>View only</option></select>`}
-  ${m.role==='owner'?'':`<span class="flex" style="gap:6px;flex-wrap:wrap">${m.status==='invited'?`<a class="btn ghost sm" style="text-decoration:none" href="${esc(wa(m))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost sm" onclick="shareInvite(${m.id})">Share link</button><button class="btn ghost sm" onclick="acceptInvite(${m.id})" title="Prototype: mark as joined">Mark joined</button>`:''}<button class="btn ghost sm" style="color:var(--rose)" onclick="arm('rm${m.id}',()=>removeMember(${m.id}))">${S.armed==='rm'+m.id?'Confirm':m.status==='invited'?'Cancel invite':'Remove'}</button></span></div>`}</div>`;
+  ${m.role==='owner'?'<span class="badge" style="background:rgba(11,26,44,.08)">Owner</span>':`<div style="flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap;padding-left:52px"><select aria-label="Role for ${esc(m.name)}" style="width:auto;margin:0;padding:8px 10px" onchange="setPreset(${m.id},this.value)">${roleOpts(memberRole(m))}</select><button class="btn ghost sm" onclick="S.rightsOpen=S.rightsOpen===${m.id}?null:${m.id};render()">${S.rightsOpen===m.id?'Hide rights':'Change rights'}</button><small style="flex-basis:100%;color:var(--ink2)">${memberPerms(m).filter(k=>permList().some(x=>x.k===k)).length} of ${permList().length} rights on</small>`}
+  ${m.role==='owner'?'':`<span class="flex" style="gap:6px;flex-wrap:wrap">${m.status==='invited'?`<a class="btn ghost sm" style="text-decoration:none" href="${esc(wa(m))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost sm" onclick="shareInvite(${m.id})">Share link</button><button class="btn ghost sm" onclick="acceptInvite(${m.id})" title="Prototype: mark as joined">Mark joined</button>`:''}<button class="btn ghost sm" style="color:var(--rose)" onclick="arm('rm${m.id}',()=>removeMember(${m.id}))">${S.armed==='rm'+m.id?'Confirm':m.status==='invited'?'Cancel invite':'Remove'}</button></span></div>${S.rightsOpen===m.id?RightsEditor(m):''}`}</div>`;
  const fresh=S.shared.find(m=>m.id===S.sharedOpen&&m.status==='invited');
- return `${Head('Shared wallet','Invite family, a partner or your team to use this wallet with you.')}
+ return `${Head(isBizPlan()?'People & staff':'Shared wallet',isBizPlan()?'Add your staff or family, then choose exactly what each person can do.':'Invite family, a partner or your team to use this wallet with you.')}
  <div class="card"><div class="flex between" style="flex-wrap:wrap;gap:16px"><div><small style="color:var(--ink2)">${i.state==='active'?esc(i.p.short)+' package':'No active package'}</small><div style="font:600 2rem var(--head);color:var(--deep)">${used} of ${lim} people</div><small style="color:${over?'var(--rose)':'var(--ink2)'}">${over?'You have more people than your package allows — remove someone or upgrade.':left?left+' place'+(left===1?'':'s')+' left':'Your wallet is full'}</small></div>
  <div class="flex" style="gap:6px">${Array.from({length:lim},(_,k)=>`<span style="width:22px;height:22px;border-radius:50%;background:${k<used?'var(--gold)':'var(--line)'}"></span>`).join('')}</div></div>
  ${(!left||i.state!=='active')?`<div class="pkgnote" style="background:rgba(201,169,97,.14);margin:16px 0 0">${IC('users',18)}<span style="flex:1">${i.state!=='active'?'Activate a package to share your wallet.':'Need more places? Atholhu lets up to 9 people share one wallet.'}</span><button class="btn sm" onclick="go('packages')">See packages</button></div>`:''}</div>
@@ -1395,7 +1422,7 @@ function People(){const i=subInfo(),lim=seatLimit(),used=S.shared.length,left=Ma
  <div class="card"><h3>Invite someone</h3><p class="sub" style="margin:6px 0 4px">They'll get a link to join. You choose what they can do.</p>
  <label for="ivName">Name</label><input id="ivName" placeholder="e.g. Mariyam">
  <label for="ivContact">Phone or email</label><input id="ivContact" placeholder="+960 7xx xxxx or name@email.com">
- <label for="ivRole">Access</label><select id="ivRole"><option value="edit">Can add &amp; view — log spending, see the budget</option><option value="view">View only — see balances and reports</option></select>
+ <label for="ivRole">Role</label><select id="ivRole" onchange="const r=ROLE_SETS[this.value];const e=document.getElementById('ivRoleD');if(e&&r)e.textContent=r.d">${roleOpts(isBizPlan()?'cashier':'family')}</select><small id="ivRoleD" style="display:block;color:var(--ink2);margin-top:4px">${esc(ROLE_SETS[isBizPlan()?'cashier':'family'].d)}</small><small style="display:block;color:var(--ink2);margin-top:4px">You can change each right after you send the invite.</small>
  <button class="btn" style="margin-top:16px;width:100%" ${(!left||i.state!=='active')?'disabled':''} onclick="sendInvite()">${IC('plus',16)} Send invite</button>
  <p class="sub" style="font-size:12.5px;margin:10px 0 0">Only you (the owner) can invite or remove people and manage the package.</p></div></div>`}
 function canScan(){const i=subInfo();return i.state==='active'&&!!i.p.scan}
