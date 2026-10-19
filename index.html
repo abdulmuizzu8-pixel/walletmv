@@ -509,7 +509,7 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v40';
+const APP_BUILD='walletmv-v41';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -1244,6 +1244,8 @@ async function adminDecide(id,ok,btn){const P=S.adminPay||{},row=(P.list||[]).fi
 async function adminSlip(path){if(!walletAuth||!walletAuth.storage)return;try{const {data,error}=await walletAuth.storage.from('walletmv-slips').createSignedUrl(path,300);if(error||!data)return toast('Couldn’t open the slip');window.open(data.signedUrl,'_blank','noopener')}catch(e){toast('Couldn’t open the slip')}}
 function loginProvider(em){em=String(em||'').toLowerCase();const u=S.recentLogins&&S.recentLogins.list&&S.recentLogins.list.find(x=>String(x.email||'').toLowerCase()===em);return u?u.provider:(/@gmail\.com$/.test(em)?'gmail':'')}
 function loginBadge(em){const p=loginProvider(em);return p==='google'||p==='gmail'?` <span class="badge" style="background:rgba(66,133,244,.14);color:#1a5fd0">Gmail</span>`:''}
+function StaffJump(){const j=(id,t)=>`<button class="btn ghost sm" style="min-height:42px" onclick="const e=document.getElementById('${id}');if(e)e.scrollIntoView({block:'start'})">${t}</button>`;
+ return `<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:18px">${j('admin-pays','💰 Approve payments')}${j('admin-logins','👤 Gmail customers')}${j('admin-paymethods','💳 Payment methods')}${j('admin-issues','⚠️ Problems')}</div>`}
 function AdminPayHTML(){if(!S.recentLogins)setTimeout(loadRecentLogins,0);const P=S.adminPay||{filter:'pending'};if(!P.list&&!P.busy)setTimeout(loadAdminPays,0);
  const list=P.list||[],f=P.filter||'pending',n=k=>list.filter(x=>x.status===k).length,show=list.filter(x=>f==='all'||x.status===f);
  const row=x=>{const pl=planInfo(x.plan),st=x.status;return `<div class="today-row" style="align-items:flex-start;flex-wrap:wrap;gap:10px"><span class="dot" style="margin-top:6px;background:var(--${st==='approved'?'ok':st==='rejected'?'rose':'gold'})"></span>
@@ -1561,7 +1563,7 @@ function IssueSheet(){const o=S.issueOpen;if(!o)return'';
 function issueStatus(id,st){const x=S.issues.find(i=>i.id===id);if(!x)return;x.status=st;if(x.dbId&&walletAuth&&S.isOwner){try{walletAuth.from('walletmv_problem_reports').update({status:st,resolved_at:st==='resolved'?new Date().toISOString():null}).eq('id',x.dbId).then(()=>{},()=>{})}catch(e){}}toast(x.ref+(st==='resolved'?' marked resolved':' reopened'));render()}
 function saveSupportNumber(){const v=$('#adsup').value.trim();if(!/^\+?[\d\s-]{7,}$/.test(v))return toast('Enter a valid WhatsApp number, e.g. +960 798 7770');S.supportWhatsapp=v;toast('Problem reports now go to '+v);render()}
 function AdminIssuesHTML(){if(!S.issuesLoaded)setTimeout(loadAdminIssues,0);const open=S.issues.filter(i=>i.status==='open');
- return `<div class="card" style="margin-top:22px;${open.length?'border:2px solid var(--rose)':''}"><div class="flex between" style="flex-wrap:wrap;gap:8px"><h3>Problem reports ${open.length?'('+open.length+' open)':''}</h3></div>
+ return `<div class="card" id="admin-issues" style="margin-top:22px;${open.length?'border:2px solid var(--rose)':''}"><div class="flex between" style="flex-wrap:wrap;gap:8px"><h3>Problem reports ${open.length?'('+open.length+' open)':''}</h3></div>
  <p class="sub" style="margin:6px 0 10px">Every report is sent to your WhatsApp and kept here so you can follow it up.</p>
  <div class="flex" style="gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px"><div><label for="adsup" style="margin-top:0">Send problem reports to (WhatsApp)</label><input id="adsup" value="${esc(S.supportWhatsapp)}" style="width:220px"></div><button class="btn ghost sm" onclick="saveSupportNumber()">Save</button></div>
  ${S.issues.length?S.issues.map(x=>`<div class="today-row" style="flex-wrap:wrap"><span class="dot" style="background:${x.status==='open'?'var(--rose)':'var(--ok)'}"></span><span style="flex:1;min-width:200px"><b>${esc(x.ref)} · ${esc(x.cat)}</b><br><small style="color:var(--ink2)">${esc(x.text)}</small><br><small style="color:var(--ink2)">${ld(x.date)} · ${esc(x.page)} · ${esc(x.by)} (${esc(x.email)})${x.detail?' · error: '+esc(x.detail):''}</small>${x.diag?`<br><small style="color:var(--ink2)">${esc(x.diag.app||'')} · ${esc(x.diag.installed?'installed app':'browser')} · ${esc(x.diag.screen||'')} · ${esc(x.diag.online===false?'offline':'online')} · package ${esc(x.diag.package||'-')} · waiting payment: ${esc(x.diag.waitingPayment||'none')}<br>${esc(x.diag.device||'')}${x.diag.errors&&x.diag.errors.length?'<br>Recent errors: '+esc(x.diag.errors.join(' | ')):''}</small>`:''}</span><button class="btn ghost sm" onclick="issueStatus(${x.id},'${x.status==='open'?'resolved':'open'}')">${x.status==='open'?'Mark resolved':'Reopen'}</button></div>`).join(''):'<p class="sub">No problems reported yet.</p>'}</div>`}
@@ -1742,6 +1744,7 @@ function AdminPanel(){
  return `${PageHeader('packages',false)}
  <div class="wrap" style="padding:24px 24px 90px">
  <div class="eyebrow" style="color:var(--gold-d)">Staff only</div><h1 style="margin-top:10px;font-size:clamp(2.2rem,5vw,3rem)">Package &amp; payment approvals</h1><p class="sub" style="margin-top:10px;max-width:56ch">${S.autoActivate?'Packages switch on as soon as a customer submits a transfer reference and slip. Check each one against your bank statement, then confirm it or switch it off.':'Every upgrade request lands here first — check the payment reference against what actually came in, then approve or decline. Nothing activates on its own.'}</p>
+ ${StaffJump()}
  ${AdminPayHTML()}
  <h3 style="margin:28px 0 0">Requests made from this account</h3>
  <div class="grid3" style="margin-top:12px"><div class="card stat"><small>To check with your bank</small><b class="${(pending.length+autoList.length)?'neg':''}">${pending.length+autoList.length}</b></div><div class="card stat"><small>Approved (all time)</small><b class="pos">${approved.length}</b></div><div class="card stat"><small>Recognised MRR</small><b>${money(mrr)}</b></div></div>
@@ -1757,7 +1760,7 @@ function AdminPanel(){
  ${AdminWaHTML()}
  ${AdminPlansHTML()}
  ${AdminPartnersHTML()}
- <div class="card" style="margin-top:22px"><h3>Payment methods</h3><p class="sub" style="margin:6px 0 10px">Choose which methods customers see at checkout, and the details they use to pay you. Add your own for anything not listed.</p>
+ <div class="card" style="margin-top:22px" id="admin-paymethods"><h3>Payment methods</h3><p class="sub" style="margin:6px 0 10px">Choose which methods customers see at checkout, and the details they use to pay you. Add your own for anything not listed.</p>
  ${S.payMethods.map(m=>`<div class="today-row" style="flex-wrap:wrap;align-items:flex-start">
   <label style="display:flex;gap:8px;align-items:center;margin:0;min-width:220px;flex:1;color:var(--ink);font-size:15px"><input type="checkbox" ${m.on?'checked':''} style="width:auto" onchange="togglePayMethod('${m.id}')"> <b>${esc(m.name)}</b></label>
   <span class="badge" style="background:${m.region==='MV'?'rgba(212,178,106,.18)':'rgba(47,143,107,.15)'};color:${m.region==='MV'?'var(--gold-d)':'var(--ok)'}">${m.region==='MV'?'Maldives':'Worldwide'}${m.custom?' · custom':''}</span>
@@ -2287,7 +2290,7 @@ function AdminLoginsHTML(){if(!S.isOwner)return'';const r=S.acctInfo,em=S.acctEm
  const res=!r?'':!r.exists?`<p class="sub" style="margin:14px 0 0">No WalletMV login uses <b>${esc(r.email||em)}</b>. Ask the customer to create an account first.</p>`
  :`<div class="today-row" style="margin-top:14px"><span class="dot" style="background:var(--${r.confirmed?'ok':'gold'})"></span><span style="flex:1;min-width:0"><b style="word-break:break-all">${esc(r.name||r.email)}</b><br><small style="color:var(--ink2)">${esc(r.email)} · ${r.confirmed?'Email confirmed':'Email not confirmed yet'} · joined ${fmt(r.createdAt)} · last log in ${fmt(r.lastSignIn)}</small></span></div>
  <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px">${r.confirmed?'':`<button class="btn sm" onclick="adminConfirmEmail(this)">Confirm email now</button><button class="btn ghost sm" onclick="adminSendEmail(this,'confirm')">Resend confirmation email</button>`}<button class="btn ${r.confirmed?'':'ghost'} sm" onclick="adminSendEmail(this,'reset')">Send password reset email</button></div>`;
- return `<div class="card" style="margin-top:22px"><h3>Customer logins</h3><p class="sub" style="margin:6px 0 12px">Help someone who can’t log in. Look up their email, then confirm it for them or send a password reset email. You never see or set their password.</p>
+ return `<div class="card" style="margin-top:22px" id="admin-logins"><h3>Customer logins</h3><p class="sub" style="margin:6px 0 12px">Help someone who can’t log in. Look up their email, then confirm it for them or send a password reset email. You never see or set their password.</p>
  <div class="flex" style="gap:8px;flex-wrap:wrap"><label for="acct-em" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Customer email</label><input id="acct-em" type="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="customer@gmail.com" value="${esc(em)}" style="flex:1;min-width:200px"><button class="btn sm" onclick="adminLookup(this)">Look up</button></div>${res}${RecentLoginsHTML()}</div>`}
 /* ---------- Admin: free forever access ---------- */
 async function loadFreeList(){if(!walletAuth||!S.isOwner)return;const {data,error}=await walletAuth.from('walletmv_comp_access').select('email,plan,note,created_at,expires_on').order('created_at',{ascending:false});if(error)return toast(error.message);S.freeList=data||[];render()}
@@ -3343,11 +3346,12 @@ function shopNum(v){const d=String(v||'').replace(/\D/g,'');return d.length===7?
 function grocMsg(src){const d=src.del||grocDel(),addr=[d.addr,d.area].filter(Boolean).join(', ');
  let m='🛒 '+src.name+'\n'+src.items.map(i=>'☐ '+i.name+(i.qty?' — '+i.qty:'')).join('\n')+'\n\nAbout '+money(grocTotal(src.items));
  if(addr||d.phone||d.name||d.loc)m+='\n\n📍 Deliver to'+(d.name?': '+d.name:'')+(addr?'\n'+addr:'')+(d.phone?'\n📞 '+d.phone:'')+(d.loc?'\n🗺️ Google Maps: '+d.loc:'')+(d.note?'\n📝 '+d.note:'');
+ const b=boatOf(d.boatId);if(b)m+='\n\n🚤 Please send by boat: '+b.name+(b.arrive?'\nArrives: '+boatTime(b.arrive):'')+(b.days?' ('+b.days+')':'')+(b.route?'\nRoute: '+b.route:'')+(b.phone?'\nBoat contact: '+b.phone:'')+(b.note?'\n'+b.note:'');
  return m}
 function grocSaveDel(){const v=id=>(($('#'+id)||{}).value||'').trim().slice(0,200);
- S.groc.deliver={name:v('gdname'),phone:v('gdphone'),area:v('gdarea'),addr:v('gdaddr'),note:v('gdnote'),to:v('gdto'),vb:v('gdvb'),shopId:(($('#gdshop')||{}).value||''),loc:cleanMapUrl((($('#gdloc')||{}).value||'').trim())||''}}
+ S.groc.deliver={name:v('gdname'),phone:v('gdphone'),area:v('gdarea'),addr:v('gdaddr'),note:v('gdnote'),to:v('gdto'),vb:v('gdvb'),shopId:(($('#gdshop')||{}).value||''),boatId:(($('#gdboat')||{}).value||''),loc:cleanMapUrl((($('#gdloc')||{}).value||'').trim())||''}}
 function grocReady(){grocSaveDel();const src=grocListSource(null);if(!src.items.length){toast('Add some items to the list first');return null}
- const d=grocDel();if(!d.phone||!(d.addr||d.loc)){toast('Add your phone number and a delivery address or map location first');return null}return src}
+ const d=grocDel();if(!d.phone||!(d.addr||d.loc||boatOf(d.boatId))){toast('Add your phone number and a delivery address, map location or boat first');return null}return src}
 function grocSendWA(){const src=grocReady();if(!src)return;window.open(grocWaHref(null),'_blank','noopener')}
 async function grocCopy(){const src=grocReady();if(!src)return;const m=grocMsg(src);
  try{if(navigator.share&&/Mobi|Android|iPhone/i.test(navigator.userAgent)){await navigator.share({title:src.name,text:m});return}}catch(e){if(e&&e.name==='AbortError')return}
@@ -3360,7 +3364,7 @@ function GrocSavedCard(g){const n=g.saved.length;
 function grocSavedRow(l){if(_grocEdit===l.id)return grocEditor(l);const d=l.del||grocDel();
  return `<div style="border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px"><b style="font-size:16px">📋 ${esc(l.name)}</b>
   <div style="color:var(--ink2);font-size:13px;margin-top:2px">${l.items.length} item${l.items.length===1?'':'s'} · about ${money(grocTotal(l.items))}</div>
-  <div style="font-size:13px;margin-top:6px;color:var(--ink)">${esc(grocDelLine(d))}${d.loc?' · 🗺️ Map attached':''}${shopOf(d.shopId)?' · 🏪 '+esc(shopOf(d.shopId).name):(d.to?' · Shop '+esc(d.to):'')}</div>
+  <div style="font-size:13px;margin-top:6px;color:var(--ink)">${esc(grocDelLine(d))}${d.loc?' · 🗺️ Map attached':''}${shopOf(d.shopId)?' · 🏪 '+esc(shopOf(d.shopId).name):(d.to?' · Shop '+esc(d.to):'')}${boatOf(d.boatId)?' · 🚤 '+esc(boatOf(d.boatId).name)+(boatOf(d.boatId).arrive?' ('+esc(boatTime(boatOf(d.boatId).arrive))+')':''):''}</div>
   <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" style="min-height:44px;flex:1;min-width:130px" onclick="grocSendSaved(${l.id})">📲 WhatsApp</button><button class="btn ghost" style="min-height:44px" onclick="grocSendVb(${l.id})">💜 Viber</button><button class="btn ghost" style="min-height:44px" onclick="grocEdit(${l.id})">✏️ Edit</button><button class="btn ghost" style="min-height:44px" onclick="grocLoadSaved(${l.id})">Use now</button></div>
   <div class="flex" style="gap:8px;margin-top:8px"><button class="btn ghost xs" onclick="grocSendXLS(${l.id})">📤 Excel</button><button class="btn ghost xs" style="color:var(--rose)" onclick="arm('gl${l.id}',()=>grocDelSaved(${l.id}))">${S.armed==='gl'+l.id?'Confirm delete':'✕ Delete'}</button></div></div>`}
 function grocEditor(l){const d=l.del||grocDel();
@@ -3371,7 +3375,7 @@ function grocEditor(l){const d=l.del||grocDel();
   <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:14px 0 0">ITEMS</p>${rows||'<p class="sub" style="margin:6px 0">No items yet.</p>'}
   <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px"><input id="ge-an" aria-label="New item" placeholder="Add another item" style="width:100%;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><div class="flex" style="gap:6px;margin-top:6px"><input id="ge-aq" aria-label="Quantity" placeholder="Quantity" style="flex:1;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><input id="ge-ap" type="number" min="0" step="0.01" aria-label="Price" placeholder="Price" style="width:110px;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><button class="btn sm" style="min-height:44px" onclick="grocEditAdd(${l.id})">+ Add</button></div></div>
   <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:16px 0 0">DELIVERY</p>
-  ${fi('name','Name','Who is receiving it')}${fi('phone','Phone number','e.g. 798 7770','tel')}${fi('area','Island / area','e.g. Hulhumalé Phase 2')}${fi('addr','Delivery address','House name, road, ward, landmark')}${fi('loc','Google Maps location (optional)','Paste a Google Maps link','url')}${locBtns(l.id)}${fi('note','Note for the shop (optional)','e.g. Call at the gate')}<div class="nl-field" style="margin-top:8px"><label for="ge-shop">Send to shop</label><select id="ge-shop" onchange="grocPickShop(this.value,${l.id})">${shopOpts(d.shopId)}</select></div>${fi('to','Shop’s WhatsApp number','e.g. 777 1234','tel')}${fi('vb','Shop’s Viber number (optional)','e.g. 777 1234','tel')}
+  ${fi('name','Name','Who is receiving it')}${fi('phone','Phone number','e.g. 798 7770','tel')}${fi('area','Island / area','e.g. Hulhumalé Phase 2')}${fi('addr','Delivery address','House name, road, ward, landmark')}${fi('loc','Google Maps location (optional)','Paste a Google Maps link','url')}${locBtns(l.id)}${fi('note','Note for the shop (optional)','e.g. Call at the gate')}${boatSel('ge-boat',d.boatId,'grocPickBoat(this.value,'+l.id+')')}<div class="nl-field" style="margin-top:8px"><label for="ge-shop">Send to shop</label><select id="ge-shop" onchange="grocPickShop(this.value,${l.id})">${shopOpts(d.shopId)}</select></div>${fi('to','Shop’s WhatsApp number','e.g. 777 1234','tel')}${fi('vb','Shop’s Viber number (optional)','e.g. 777 1234','tel')}
   <div class="flex" style="gap:8px;margin-top:14px"><button class="btn" style="flex:1;min-height:46px" onclick="grocEditDone()">✓ Done</button><button class="btn ghost" style="min-height:46px" onclick="grocSendSaved(${l.id})">📲 WhatsApp</button><button class="btn ghost" style="min-height:46px" onclick="grocSendVb(${l.id})">💜 Viber</button></div></div>`}
 const grocL=id=>S.groc.saved.find(x=>x.id===id);
 function grocEdit(id){_grocEdit=id;render();setTimeout(()=>{const e=$('#ge-name');if(e)e.scrollIntoView({behavior:'smooth',block:'center'})},60)}
@@ -3381,6 +3385,32 @@ function grocEditDel(id,k,v){const l=grocL(id);if(!l)return;l.del=l.del||{...gro
 function grocEditItem(id,i,k,v){const l=grocL(id);if(!l||!l.items[i])return;l.items[i][k]=k==='price'?(+v||0):String(v||'').trim().slice(0,80);if(k==='name'&&!l.items[i].name)l.items[i].name='Item';queueSave()}
 function grocEditRemove(id,i){const l=grocL(id);if(!l)return;l.items.splice(i,1);render()}
 function grocEditAdd(id){const l=grocL(id),n=(($('#ge-an')||{}).value||'').trim();if(!l||!n)return toast('Type the item name first');l.items.push({name:n.slice(0,80),qty:($('#ge-aq').value||'').trim().slice(0,40),price:+$('#ge-ap').value||0});render();setTimeout(()=>{const e=$('#ge-an');if(e)e.focus()},50)}
+/* ---------- My boats (up to 20): supply boats / ferries that bring the shopping to your island ---------- */
+const BOAT_MAX=20;var _boatEdit=null;
+const grocBoats=()=>(S.groc.boats=S.groc.boats||[]);
+const boatOf=id=>id?grocBoats().find(x=>String(x.id)===String(id)):null;
+function boatTime(t){const m=String(t||'').match(/^(\d{1,2}):(\d{2})$/);if(!m)return String(t||'');let h=+m[1];const ap=h>=12?'pm':'am';h=h%12||12;return h+':'+m[2]+' '+ap}
+function boatLine(b){return [b.arrive?'arrives '+boatTime(b.arrive):'',b.days||'',b.route||''].filter(Boolean).join(' · ')}
+const boatOpts=sel=>'<option value="">No boat — deliver to the address</option>'+grocBoats().map(x=>`<option value="${x.id}" ${String(x.id)===String(sel)?'selected':''}>🚤 ${esc(x.name)}${x.arrive?' · arrives '+esc(boatTime(x.arrive)):''}</option>`).join('');
+function grocPickBoat(v,id){const b=boatOf(v);
+ if(id==null){grocSaveDel();S.groc.deliver.boatId=b?b.id:''}
+ else{const l=grocL(id);if(!l)return;l.del=l.del||{...grocDel()};l.del.boatId=b?b.id:'';queueSave()}
+ render()}
+function boatFields(x,p,on){const f=(k,l,ph,ty,ex)=>`<div class="nl-field" style="margin-top:8px"><label for="${p}-${k}">${l}</label><input id="${p}-${k}" data-k="${k}" ${ty?'type="'+ty+'" ':''}${ex||''} value="${esc(x[k]||'')}" placeholder="${ph}" ${on}></div>`;
+ return f('name','Boat name','e.g. Dharumavantha supply boat')+f('arrive','Arriving time','','time')+f('phone','Contact number','e.g. 777 1234','tel','inputmode="tel"')+f('route','Route (optional)','e.g. Malé → Thinadhoo, jetty 3')+f('days','Days (optional)','e.g. Sun, Tue, Thu')+f('note','Note (optional)','e.g. Pick up at the harbour')}
+function GrocBoatsCard(g){const L=grocBoats(),n=L.length;
+ const row=x=>_boatEdit===x.id?`<div style="border:2px solid var(--gold);border-radius:14px;padding:12px;margin-top:10px">${boatFields(x,'be'+x.id,`onchange="grocBoatSet(${x.id},this.dataset.k,this.value)"`)}<button class="btn" style="width:100%;margin-top:12px;min-height:46px" onclick="_boatEdit=null;toast('Boat updated');render()">✓ Done</button></div>`
+  :`<div style="border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px"><b>🚤 ${esc(x.name)}</b><div style="color:var(--ink2);font-size:13px;margin-top:3px">${esc(boatLine(x))||'No time yet'}${x.phone?' · 📞 '+esc(x.phone):''}</div>${x.note?`<div style="color:var(--ink2);font-size:13px">${esc(x.note)}</div>`:''}<div class="flex" style="gap:8px;margin-top:10px;flex-wrap:wrap">${x.phone?`<a class="btn ghost xs" style="min-height:40px" href="tel:+${shopNum(x.phone)}">📞 Call</a>`:''}<button class="btn ghost xs" style="min-height:40px" onclick="_boatEdit=${x.id};render()">✏️ Edit</button><button class="btn ghost xs" style="min-height:40px;color:var(--rose)" onclick="arm('bt${x.id}',()=>grocBoatDel(${x.id}))">${S.armed==='bt'+x.id?'Confirm delete':'✕ Delete'}</button></div></div>`;
+ return `<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:8px"><h3>My boats</h3><small style="color:var(--ink2);font-weight:600">${n} of ${BOAT_MAX}</small></div><p class="sub" style="margin:4px 0 4px;font-size:13px">Living on another island? Save the boats that bring your shopping, with the arriving time and contact number. Pick one when you send a list and the shop knows which boat to load.</p>
+  ${L.map(row).join('')||'<p class="sub" style="padding:8px 0">No boats yet. Add your first one below.</p>'}
+  ${n<BOAT_MAX?`<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:4px"><b style="display:block;margin-top:10px">Add a boat</b>${boatFields({},'nb','')}<button class="btn" style="width:100%;margin-top:12px;min-height:46px" onclick="grocBoatAdd()">＋ Add boat</button></div>`:`<p class="sub" style="margin-top:10px">You have ${BOAT_MAX} boats. Delete one to add another.</p>`}</div>`}
+function grocBoatAdd(){const v=k=>(($('#nb-'+k)||{}).value||'').trim().slice(0,100);const name=v('name');if(!name)return toast('Type the boat name first');
+ if(!v('arrive'))return toast('Add the time the boat arrives');if(!v('phone'))return toast('Add the boat’s contact number');
+ if(grocBoats().length>=BOAT_MAX)return toast('You can keep up to '+BOAT_MAX+' boats. Delete one first.');
+ grocBoats().push({id:Date.now(),name,arrive:v('arrive'),phone:v('phone'),route:v('route'),days:v('days'),note:v('note')});toast(name+' added to My boats');render()}
+function grocBoatSet(id,k,v){const x=boatOf(id);if(!x||!['name','arrive','phone','route','days','note'].includes(k))return;v=String(v||'').trim().slice(0,100);if(k==='name'&&!v)return;x[k]=v;queueSave()}
+function grocBoatDel(id){const x=boatOf(id);S.groc.boats=grocBoats().filter(y=>y.id!==id);[S.groc.deliver,...S.groc.saved.map(l=>l.del)].forEach(d=>{if(d&&String(d.boatId)===String(id))d.boatId=''});if(x)toast(x.name+' removed');render()}
+const boatSel=(id,sel,on)=>`<div class="nl-field" style="margin-top:10px"><label for="${id}">Send by boat (optional)</label><select id="${id}" onchange="${on}">${boatOpts(sel)}</select>${grocBoats().length?'':`<small style="color:var(--ink2);display:block;margin-top:4px">Add your boats in My boats below.</small>`}</div>`;
 /* ---------- My shops (up to 20) and sending on Viber ---------- */
 const SHOP_MAX=20;var _shopEdit=null;
 const grocShops=()=>(S.groc.shops=S.groc.shops||[]);
@@ -3411,7 +3441,7 @@ async function viberGo(src){const d=src.del||grocDel(),m=grocMsg(src),n=shopNum(
  else window.open('viber://forward?text='+encodeURIComponent(m),'_self')}
 function grocSendVb(id){const src=id==null?grocReady():grocSavedReady(id);if(src)viberGo(src)}
 function grocSavedReady(id){const l=grocL(id);if(!l)return null;if(!l.items.length){toast('This list is empty — add some items first');return null}
- const d=l.del||grocDel();if(!d.phone||!(d.addr||d.loc)){toast('Add the phone number and a delivery address or map location first');if(_grocEdit!==id)grocEdit(id);return null}return grocListSource(id)}
+ const d=l.del||grocDel();if(!d.phone||!(d.addr||d.loc||boatOf(d.boatId))){toast('Add the phone number and a delivery address, map location or boat first');if(_grocEdit!==id)grocEdit(id);return null}return grocListSource(id)}
 function grocSendSaved(id){if(grocSavedReady(id))window.open(grocWaHref(id),'_blank','noopener')}
 /* ---------- Google Maps location for a delivery ---------- */
 function cleanMapUrl(v){v=String(v||'').trim();if(!v)return '';
@@ -3428,7 +3458,7 @@ function grocFindMap(id){const g=k=>((id==null?$('#gd'+k):$('#ge-'+k))||{}).valu
 const locBtns=id=>`<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn ghost sm" style="min-height:44px" onclick="grocUseLoc(${id})">📍 Use my location</button><button type="button" class="btn ghost sm" style="min-height:44px" onclick="grocFindMap(${id})">🗺️ Find on Google Maps</button></div>`;
 function GrocSendCard(g){const d=g.deliver||{};const f=(id,l,v,ph,ty,extra)=>`<div class="nl-field" style="margin-top:10px"><label for="${id}">${l}</label><input id="${id}" ${ty?'type="'+ty+'" ':''}value="${esc(v||'')}" placeholder="${ph}" ${extra||''} onchange="${id==='gdloc'?'grocLocOk(this);':''}grocSaveDel()"></div>`;
  return `<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px"><h3 style="margin-top:12px">Send this list for delivery</h3><p class="sub" style="margin:4px 0 0;font-size:13px">Fill in the delivery details once. They’re saved and go out with every list you send.</p>
-  ${f('gdname','Name',d.name,'Who is receiving it')}${f('gdphone','Phone number',d.phone,'e.g. 798 7770','tel','inputmode="tel" autocomplete="tel"')}${f('gdarea','Island / area',d.area,'e.g. Hulhumalé Phase 2')}${f('gdaddr','Delivery address',d.addr,'House name, road, ward, landmark')}${f('gdloc','Google Maps location (optional)',d.loc,'Paste a Google Maps link','url','inputmode="url" autocomplete="off"')}${locBtns('null')}${f('gdnote','Note for the shop (optional)',d.note,'e.g. Call when you arrive')}<div class="nl-field" style="margin-top:10px"><label for="gdshop">Send to shop</label><select id="gdshop" onchange="grocPickShop(this.value,null)">${shopOpts(d.shopId)}</select></div>${f('gdto','Shop’s WhatsApp number (optional)',d.to,'Or pick one in WhatsApp','tel','inputmode="tel"')}${f('gdvb','Shop’s Viber number (optional)',d.vb,'e.g. 777 1234','tel','inputmode="tel"')}
+  ${f('gdname','Name',d.name,'Who is receiving it')}${f('gdphone','Phone number',d.phone,'e.g. 798 7770','tel','inputmode="tel" autocomplete="tel"')}${f('gdarea','Island / area',d.area,'e.g. Hulhumalé Phase 2')}${f('gdaddr','Delivery address',d.addr,'House name, road, ward, landmark')}${f('gdloc','Google Maps location (optional)',d.loc,'Paste a Google Maps link','url','inputmode="url" autocomplete="off"')}${locBtns('null')}${f('gdnote','Note for the shop (optional)',d.note,'e.g. Call when you arrive')}${boatSel('gdboat',d.boatId,'grocPickBoat(this.value,null)')}<div class="nl-field" style="margin-top:10px"><label for="gdshop">Send to shop</label><select id="gdshop" onchange="grocPickShop(this.value,null)">${shopOpts(d.shopId)}</select></div>${f('gdto','Shop’s WhatsApp number (optional)',d.to,'Or pick one in WhatsApp','tel','inputmode="tel"')}${f('gdvb','Shop’s Viber number (optional)',d.vb,'e.g. 777 1234','tel','inputmode="tel"')}
   <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" style="flex:1;min-width:170px;min-height:46px" onclick="grocSendWA()">📲 Send on WhatsApp</button><button class="btn ghost" style="min-height:46px" onclick="grocSendVb(null)">💜 Send on Viber</button><button class="btn ghost" style="min-height:46px" onclick="grocCopy()">📋 Share / copy</button></div></div>`}
 function grocWaHref(id){const src=grocListSource(id);if(!src||!src.items.length)return null;
  return 'https://wa.me/'+shopNum((src.del||grocDel()).to)+'?text='+encodeURIComponent(grocMsg(src))}
@@ -3479,7 +3509,7 @@ function Groceries(){grocAutoDaily();const g=S.groc;
   ${GrocSendCard(g)}
  </div>
  <div>
- ${GrocSavedCard(g)}${GrocShopsCard(g)}
+ ${GrocSavedCard(g)}${GrocShopsCard(g)}${GrocBoatsCard(g)}
  <div class="card" style="margin-top:18px"><h3>Everyday items</h3><p class="sub" style="margin:4px 0 12px;font-size:13px">The groceries you buy again and again. Tap one to put it on today's list.</p>
   <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:0 0 8px">EVERY DAY</p><div class="flex">${daily.map(chip).join('')||'<span class="sub">None yet</span>'}</div>
   <button class="btn ghost sm" style="margin-top:10px" onclick="grocAddAll('daily')">+ Add all daily items</button>
