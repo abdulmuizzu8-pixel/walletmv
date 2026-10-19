@@ -497,7 +497,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
 const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do list'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['docs','Documents'],['pdf','Image to PDF'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
-const APP_BUILD='walletmv-v36';
+const APP_BUILD='walletmv-v37';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -1711,7 +1711,7 @@ function AdminLogin(){return `${PageHeader('packages',false)}
  <button class="btn ghost sm" style="margin-top:22px" onclick="go('money')">← Back to the app</button>
  </div>`}
 function AdminPanel(){
- if(!S.isOwner)return AdminLogin();
+ if(!S.isOwner){setTimeout(()=>{if(S.page==='admin'&&!S.isOwner)go(S.signed?'money':'home')},0);return ''}
  const all=S.pendingSubs;
  const pending=all.filter(s=>s.status==='pending');
  const autoList=all.filter(s=>s.status==='auto');
