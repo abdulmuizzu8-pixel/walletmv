@@ -1,4 +1,4 @@
--- WalletMV problem reports (NOT yet applied — needs the owner's approval).
+-- WalletMV problem reports (applied 19 Oct 2026 with the owner's approval).
 -- A signed-in customer can add their own report; only WalletMV admins (public.walletmv_is_admin()) can read everyone's and mark them resolved.
 create table if not exists public.walletmv_problem_reports (
   id uuid primary key default gen_random_uuid(),
@@ -12,7 +12,8 @@ create table if not exists public.walletmv_problem_reports (
   diagnostics jsonb not null default '{}'::jsonb check (pg_column_size(diagnostics) < 8000),
   status text not null default 'open' check (status in ('open','resolved')),
   created_at timestamptz not null default now(),
-  resolved_at timestamptz
+  resolved_at timestamptz,
+  notified_at timestamptz
 );
 create index if not exists walletmv_problem_reports_status_idx on public.walletmv_problem_reports (status, created_at desc);
 alter table public.walletmv_problem_reports enable row level security;
