@@ -1,6 +1,6 @@
 // WalletMV admin: help customers who can't log in (Admin panel → Customer logins).
 // Owner only: the caller must be signed in with an email listed in walletmv_admins.
-// Actions: "lookup" (does a login exist, is the email confirmed) and "confirm" (mark the email as confirmed).
+// Actions: "list" (newest logins with the email and how they signed in, e.g. Google/Gmail), "lookup" (does a login exist, is the email confirmed) and "confirm" (mark the email as confirmed).
 // Password reset emails are sent from the website with the normal Supabase reset, not from here.
 // Runs with the project's built-in service role key; no secrets are stored in this file.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -23,7 +23,7 @@ function headersFor(origin: string | null): Record<string, string> {
   };
 }
 
-type AuthUser = { id: string; email?: string; email_confirmed_at?: string | null; created_at?: string; last_sign_in_at?: string | null; user_metadata?: Record<string, unknown> };
+type AuthUser = { id: string; app_metadata?: { provider?: string; providers?: string[] }; email?: string; email_confirmed_at?: string | null; created_at?: string; last_sign_in_at?: string | null; user_metadata?: Record<string, unknown> };
 const info = (u: AuthUser) => ({
   exists: true,
   email: u.email,
@@ -53,6 +53,15 @@ Deno.serve(async (req: Request) => {
   let body: { action?: string; email?: string } = {};
   try { body = await req.json(); } catch { /* empty body */ }
   const action = String(body.action || "");
+  if (action === "list") {
+    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+    if (error) return reply({ ok: false, error: "Could not load logins" }, 500);
+    const users = (data.users as AuthUser[])
+      .sort((a, b) => String(b.last_sign_in_at || b.created_at || "").localeCompare(String(a.last_sign_in_at || a.created_at || "")))
+      .slice(0, 100)
+      .map((u) => ({ ...info(u), provider: u.app_metadata?.provider || (u.app_metadata?.providers || [])[0] || "email" }));
+    return reply({ ok: true, users });
+  }
   const email = String(body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return reply({ ok: false, error: "Enter a valid email" }, 400);
 
