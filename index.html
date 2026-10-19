@@ -579,13 +579,13 @@ const faqA=a=>typeof a==='function'?a():a;
 /* ---------- Front page: how to use each feature (pictures + a little fun) ---------- */
 const HW_CSS=`<style>
 .hw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start;margin-top:30px}
-.hw{background:#fff;border:1px solid var(--line);border-top:5px solid #C8102E;border-radius:22px;overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
-.hw:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(11,26,44,.12)}
+.hw{background:#fff;border:1px solid var(--line);border-top:4px solid #C8102E;box-shadow:0 1px 3px rgba(11,26,44,.06);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+.hw:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(11,26,44,.10)}
 .hw-img{background:linear-gradient(160deg,#FFFFFF 0%,#E3F4E9 100%);padding:22px 22px 0;height:300px;overflow:hidden;position:relative}
 .hw-img img{display:block;width:100%;max-width:230px;margin:0 auto;border-radius:22px 22px 0 0;border:5px solid #0B1A2C;border-bottom:0;box-shadow:0 12px 30px rgba(11,26,44,.35);background:#fff}
 .hw-em{position:absolute;right:14px;top:12px;font-size:34px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.2));transform:rotate(8deg)}
 .hw-body{padding:18px 20px 20px}
-.hw-body h3{font-size:1.5rem;margin:0 0 6px;line-height:1.15}
+.hw-body h3{font-size:1.4rem;margin:0 0 6px;line-height:1.15}
 .hw-body p{margin:0 0 12px;color:var(--ink2);font-size:15px;line-height:1.5}
 .hw-body .tag{display:inline-block;margin:0 0 10px;padding:3px 10px;border-radius:99px;background:#FDECEE;color:#C8102E;font-size:12px;font-weight:600}
 .hw details{border-top:1px solid var(--line);padding-top:4px}
@@ -601,23 +601,24 @@ const HW_CSS=`<style>
 @media(max-width:1000px){.hw-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.hw-grid{grid-template-columns:1fr}.hw-img{height:270px}}
 @media(prefers-reduced-motion:reduce){.hw{transition:none}.hw:hover{transform:none}}
+#guides .kick{color:#C8102E}
 </style>`;
 const HOWTO=[
- ['🎯','Your daily “can I buy it?” number','One number tells you how much you can spend today.','today',['Add your salary.','Add your bills.','Open WalletMV each morning.','Look at the big number. That is your money for today!'],''],
- ['⏰','Bills that never surprise you','We remind you before a bill is due.','bills',['Tap Bills.','Add the bill name, amount and day.','Go to Settings and switch on Reminders.','Paid it? Tap Mark paid. Reminders show when the app is open.'],''],
- ['🛒','Your grocery list, saved forever','Make your shopping list once. Use it again and again. 🐟','groceries',['Tap Groceries.','Add what you need, like rice or fish.','Tap Save list. You can keep 7 lists.','Next time, tap Use now. Easy!'],''],
- ['💬','Order from your couch','Send your list and address to the shop in one tap. 🔮','send',['Open your saved list.','Type your name, phone and address.','Tap Use my location so the shop finds you.','Pick a shop, then tap Send on WhatsApp or Viber.'],''],
- ['🌴','Goals with a finish line','Saving for something special? Watch your bar fill up.','goals',['Tap Goals.','Name your dream, like a new phone.','Say how much it costs and by when.','Add money. Watch the bar grow! 🎉'],''],
- ['🌍','Any currency you like','Pick MVR, USD or 150 more.','currency',['Tap Settings, then Currency.','Type the name, like USD.','Tap it. Done!','Note: this changes how money looks. It does not change old amounts.'],''],
- ['🔒','A secret PIN, just for you','Keep your money private from curious eyes.','lock',['Tap Settings, then App lock.','Choose 4 to 6 numbers you will remember.','Type them again to be sure.','Now WalletMV asks for your PIN each time. The PIN stays on this phone.'],''],
- ['📸','Snap it, don’t type it','Take a photo of your receipt. WalletMV does the typing.','scan',['Tap Add expense.','Tap the camera and take a clear photo.','Check the amount.','Tap Save. (Muraka, Atholhu and Dhoni packages)'],''],
- ['📱','Put it on your phone like an app','No store needed. It takes 10 seconds. ✨','install',['Android: open walletmv.com in Chrome.','Tap Get the app, then Install.','iPhone: open walletmv.com in Safari.','Tap Share, then Add to Home Screen.'],''],
- ['🏪','Shop owners, this one is for you','Bills, stock and GST in one place. 💐','shop',['Tap New bill and add your items.','WalletMV adds the 8% GST for you.','Watch your stock and reorder in time.','Make GST reports for MIRA.'],'Dhoni package']];
+ ['','Know what you can spend today','One clear number every morning, based on your income, bills and budget.','today',['Add your salary.','Add your regular bills.','Open WalletMV each morning.','Check the “Safe to spend today” number.'],''],
+ ['','Never miss a bill','Get a reminder before each bill is due.','bills',['Tap Bills.','Add the bill name, amount and due day.','Go to Settings and switch on Reminders.','After paying, tap Mark paid. Reminders show while the app is open.'],''],
+ ['','Save your grocery lists','Build a list once and reuse it every week.','groceries',['Tap Groceries.','Add the items you need.','Tap Save list. You can keep up to 7 lists.','Next time, tap Use now.'],''],
+ ['','Order from your phone','Send your list, address and map location to the shop in one tap.','send',['Open your saved list.','Enter your name, phone number and address.','Tap Use my location, so the shop can find you.','Choose a shop, then tap Send on WhatsApp or Viber.'],''],
+ ['','Reach your savings goals','Set a target and track your progress.','goals',['Tap Goals.','Name your goal.','Enter the amount and the date.','Add money and watch your progress grow.'],''],
+ ['','Choose your currency','Use MVR, USD or any of 150+ other currencies.','currency',['Go to Settings, then Currency.','Search by name or code, like USD.','Tap to select it.','Note: this changes how amounts are shown. It does not change amounts you saved earlier.'],''],
+ ['','Protect your money with a PIN','Keep your financial details private on your phone.','lock',['Go to Settings, then App lock.','Choose a PIN of 4 to 6 numbers.','Enter it again to confirm.','WalletMV will ask for the PIN each time you open it. The PIN stays on this phone.'],''],
+ ['','Scan a receipt','Take a photo and let WalletMV fill in the details.','scan',['Tap Add expense.','Tap the camera and take a clear photo.','Check the amount.','Tap Save. Included in Muraka, Atholhu and Dhoni.'],''],
+ ['','Install on your phone','Use WalletMV like an app, with no app store needed.','install',['Android: open walletmv.com in Chrome.','Tap Get the app, then Install.','iPhone: open walletmv.com in Safari.','Tap Share, then Add to Home Screen.'],''],
+ ['','Run your shop','Bills, stock and GST reports in one place.','shop',['Tap New bill and add your items.','WalletMV adds the 8% GST for you.','Track your stock and reorder in time.','Prepare GST reports for MIRA.'],'Dhoni package']];
 const GI=()=>(location.protocol==='file:'?'':'/')+'images/guides/';
 function HowToUse(){const wa='https://wa.me/'+String(S.supportWhatsapp||'+960 798 7770').replace(/\D/g,'');
- return `${HW_CSS}<section class="sec wrap" id="guides" aria-labelledby="guidesh" style="padding-top:0"><span class="kick">Meet your wallet’s new best friend</span><h2 id="guidesh">Money, but make it fun.</h2><p class="intro">Ten easy things you can do. Tap “Show me how” and follow the numbers 1, 2, 3. ☕</p>
- <div class="hw-grid">${HOWTO.map(([em,t,quip,img,steps,tag])=>`<article class="hw"><div class="hw-img"><span class="hw-em" aria-hidden="true">${em}</span><img src="${GI()}${img}.webp" alt="WalletMV screen: ${esc(t)}" width="480" height="867" loading="lazy" decoding="async"></div><div class="hw-body">${tag?`<span class="tag">${tag}</span>`:''}<h3>${t}</h3><p>${quip}</p><details><summary>Show me how</summary><ol>${steps.map(x=>`<li>${x}</li>`).join('')}</ol></details></div></article>`).join('')}</div>
- <div class="hw-end"><h3>Ready to feel in control? 🎉</h3><p>Start free and let your wallet do the worrying.</p><div class="flex" style="gap:12px;flex-wrap:wrap;justify-content:center"><button class="btn" onclick="go('packages')">Start free</button><a class="btn ghost" style="text-decoration:none;background:#fff" href="${esc(wa)}" target="_blank" rel="noopener">Need help? WhatsApp us</a></div></div></section>`}
+ return `${HW_CSS}<section class="sec wrap" id="guides" aria-labelledby="guidesh" style="padding-top:0"><span class="kick">How it works</span><h2 id="guidesh">Get started in minutes</h2><p class="intro">Simple step-by-step guides for the main features. Select “View steps” on any card.</p>
+ <div class="hw-grid">${HOWTO.map(([em,t,quip,img,steps,tag])=>`<article class="hw"><div class="hw-img"><img src="${GI()}${img}.webp" alt="WalletMV screen: ${esc(t)}" width="480" height="867" loading="lazy" decoding="async"></div><div class="hw-body">${tag?`<span class="tag">${tag}</span>`:''}<h3>${t}</h3><p>${quip}</p><details><summary>View steps</summary><ol>${steps.map(x=>`<li>${x}</li>`).join('')}</ol></details></div></article>`).join('')}</div>
+ <div class="hw-end"><h3>Ready to take control of your money?</h3><p>Create your free account today.</p><div class="flex" style="gap:12px;flex-wrap:wrap;justify-content:center"><button class="btn" onclick="go('packages')">Start free</button><a class="btn ghost" style="text-decoration:none;background:#fff" href="${esc(wa)}" target="_blank" rel="noopener">Need help? WhatsApp us</a></div></div></section>`}
 function Home(){const plans=S.plans.filter(p=>p.on),from=(cheapest()||{price:0}).price,hasFree=plans.some(isVeli);
  const B=[['target','One number, every morning','WalletMV looks at your income, bills and goals, then tells you exactly how much is safe to spend today. No maths, no guessing.'],
   ['bill','Never miss a bill again','STELCO, rent, internet, school fees — snap a photo of the bill to add it, and get a reminder before each one is due.'],
