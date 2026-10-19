@@ -3142,21 +3142,24 @@ function grocSetPrice(id,v){const it=S.groc.list.find(i=>i.id===id);if(!it)retur
 function grocRemove(id){S.groc.list=S.groc.list.filter(i=>i.id!==id);render()}
 /* saved lists + sharing */
 const grocTotal=items=>items.reduce((a,i)=>a+(+i.price||0),0);
+const GROC_MAX=7;var _grocEdit=null;
 function grocSaveList(){const name=($('#gsname').value.trim())||('Shopping list '+sd(isoD(today)));const items=S.groc.list.map(i=>({name:i.name,qty:i.qty||'',price:+i.price||0}));
  if(!items.length)return toast('Add some items to the list first');
-  const ex=S.groc.saved.find(l=>l.name.toLowerCase()===name.toLowerCase());
- if(ex){ex.items=items;toast('"'+ex.name+'" updated with '+items.length+' items')}
- else{S.groc.saved.unshift({id:Date.now(),name,items});toast('"'+name+'" saved — load it any time')}
+ try{grocSaveDel()}catch(e){}const del={...grocDel()};
+ const ex=S.groc.saved.find(l=>l.name.toLowerCase()===name.toLowerCase());
+ if(ex){ex.items=items;ex.del=del;toast('"'+ex.name+'" updated with '+items.length+' items and your delivery details')}
+ else{if(S.groc.saved.length>=GROC_MAX)return toast('You can keep up to '+GROC_MAX+' lists. Delete one, or save with the name of an existing list to update it.');
+  S.groc.saved.unshift({id:Date.now(),name,items,del});toast('"'+name+'" saved with its delivery address')}
  render()}
-function grocLoadSaved(id){const l=S.groc.saved.find(x=>x.id===id);if(!l)return;let n=0;
+function grocLoadSaved(id){const l=S.groc.saved.find(x=>x.id===id);if(!l)return;let n=0;if(l.del&&(l.del.addr||l.del.phone))S.groc.deliver={...l.del};
  l.items.forEach(it=>{if(S.groc.list.some(i=>!i.done&&i.name.toLowerCase()===it.name.toLowerCase()))return;
   const st=S.groc.staples.find(x=>x.name.toLowerCase()===it.name.toLowerCase());
   S.groc.list.push({id:Date.now()+Math.random(),name:it.name,qty:it.qty,price:it.price,done:false,stapleId:st?st.id:null});n++});
  toast(n?n+' item'+(n===1?'':'s')+' added from "'+l.name+'"':'Everything in "'+l.name+'" is already on your list');render()}
 function grocDelSaved(id){const l=S.groc.saved.find(x=>x.id===id);S.groc.saved=S.groc.saved.filter(x=>x.id!==id);if(l)toast('"'+l.name+'" deleted');render()}
-function grocListSource(id){if(id==null)return{name:'Grocery list '+sd(isoD(today)),items:S.groc.list};const l=S.groc.saved.find(x=>x.id===id);return l?{name:l.name,items:l.items}:null}
+function grocListSource(id){if(id==null)return{name:'Grocery list '+sd(isoD(today)),items:S.groc.list};const l=S.groc.saved.find(x=>x.id===id);return l?{name:l.name,items:l.items,del:l.del}:null}
 function grocWorkbook(src){const cur=S.cur;const wb=XLSX.utils.book_new();
- const d=grocDel(),dl=[d.name&&['','Deliver to',d.name],d.phone&&['','Phone',d.phone],(d.addr||d.area)&&['','Address',[d.addr,d.area].filter(Boolean).join(', ')],d.note&&['','Note',d.note]].filter(Boolean);
+ const d=src.del||grocDel(),dl=[d.name&&['','Deliver to',d.name],d.phone&&['','Phone',d.phone],(d.addr||d.area)&&['','Address',[d.addr,d.area].filter(Boolean).join(', ')],d.note&&['','Note',d.note]].filter(Boolean);
  const rows=[[src.name],['From '+(S.name||'WalletMV')+' · '+sd(isoD(today))],[],['✓','Item','Quantity','Price ('+cur+')'],
   ...src.items.map(i=>[i.done?'✓':'☐',i.name,i.qty||'',+i.price||0]),[],['','Estimated total','',grocTotal(src.items)],...(dl.length?[[],...dl]:[])];
  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:4},{wch:28},{wch:14},{wch:14}];
@@ -3175,7 +3178,7 @@ async function grocSendXLS(id){const src=grocListSource(id);if(!src)return;
 /* ---------- Send the list to a shop or customer with a delivery address ---------- */
 const grocDel=()=>(S.groc&&S.groc.deliver)||{};
 function shopNum(v){const d=String(v||'').replace(/\D/g,'');return d.length===7?'960'+d:d}
-function grocMsg(src){const d=grocDel(),addr=[d.addr,d.area].filter(Boolean).join(', ');
+function grocMsg(src){const d=src.del||grocDel(),addr=[d.addr,d.area].filter(Boolean).join(', ');
  let m='🛒 '+src.name+'\n'+src.items.map(i=>'☐ '+i.name+(i.qty?' — '+i.qty:'')).join('\n')+'\n\nAbout '+money(grocTotal(src.items));
  if(addr||d.phone||d.name)m+='\n\n📍 Deliver to'+(d.name?': '+d.name:'')+(addr?'\n'+addr:'')+(d.phone?'\n📞 '+d.phone:'')+(d.note?'\n📝 '+d.note:'');
  return m}
@@ -3187,12 +3190,44 @@ function grocSendWA(){const src=grocReady();if(!src)return;window.open(grocWaHre
 async function grocCopy(){const src=grocReady();if(!src)return;const m=grocMsg(src);
  try{if(navigator.share&&/Mobi|Android|iPhone/i.test(navigator.userAgent)){await navigator.share({title:src.name,text:m});return}}catch(e){if(e&&e.name==='AbortError')return}
  try{await navigator.clipboard.writeText(m);toast('Copied — paste it in Viber, SMS or email')}catch(e){toast('Couldn’t copy. Use WhatsApp or Excel instead.')}}
+/* ---------- My saved lists: up to 7, each with its own delivery address, editable, sendable to a shop ---------- */
+function grocDelLine(d){const a=[d.addr,d.area].filter(Boolean).join(', ');return a?'📍 '+a:'📍 No delivery address yet'}
+function GrocSavedCard(g){const n=g.saved.length;
+ return `<div class="card"><div class="flex between" style="align-items:center;gap:8px"><h3>My saved lists</h3><small style="color:var(--ink2);font-weight:600">${n} of ${GROC_MAX}</small></div><p class="sub" style="margin:4px 0 4px;font-size:13px">Keep up to ${GROC_MAX} lists, each with its own delivery address. Tap Send to message the shop straight away.</p>
+  ${n?g.saved.map(grocSavedRow).join(''):'<p class="sub" style="padding:8px 0">No saved lists yet. Build a list, fill in the delivery details, then tap Save list.</p>'}</div>`}
+function grocSavedRow(l){if(_grocEdit===l.id)return grocEditor(l);const d=l.del||grocDel();
+ return `<div style="border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px"><b style="font-size:16px">📋 ${esc(l.name)}</b>
+  <div style="color:var(--ink2);font-size:13px;margin-top:2px">${l.items.length} item${l.items.length===1?'':'s'} · about ${money(grocTotal(l.items))}</div>
+  <div style="font-size:13px;margin-top:6px;color:var(--ink)">${esc(grocDelLine(d))}${d.to?' · Shop '+esc(d.to):''}</div>
+  <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" style="min-height:44px;flex:1;min-width:130px" onclick="grocSendSaved(${l.id})">📲 Send to shop</button><button class="btn ghost" style="min-height:44px" onclick="grocEdit(${l.id})">✏️ Edit</button><button class="btn ghost" style="min-height:44px" onclick="grocLoadSaved(${l.id})">Use now</button></div>
+  <div class="flex" style="gap:8px;margin-top:8px"><button class="btn ghost xs" onclick="grocSendXLS(${l.id})">📤 Excel</button><button class="btn ghost xs" style="color:var(--rose)" onclick="arm('gl${l.id}',()=>grocDelSaved(${l.id}))">${S.armed==='gl'+l.id?'Confirm delete':'✕ Delete'}</button></div></div>`}
+function grocEditor(l){const d=l.del||grocDel();
+ const fi=(k,lab,ph,ty)=>`<div class="nl-field" style="margin-top:8px"><label for="ge-${k}">${lab}</label><input id="ge-${k}" ${ty?'type="'+ty+'" inputmode="tel" ':''}value="${esc(d[k]||'')}" placeholder="${ph}" onchange="grocEditDel(${l.id},'${k}',this.value)"></div>`;
+ const rows=l.items.map((it,i)=>`<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px"><div class="flex" style="gap:6px;align-items:center"><input aria-label="Item" value="${esc(it.name)}" style="flex:1;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0" onchange="grocEditItem(${l.id},${i},'name',this.value)"><button class="btn ghost xs" style="min-height:44px;min-width:44px" aria-label="Remove ${esc(it.name)}" onclick="grocEditRemove(${l.id},${i})">✕</button></div><div class="flex" style="gap:6px;margin-top:6px"><input aria-label="Quantity" value="${esc(it.qty||'')}" placeholder="Quantity (e.g. 1 kg)" style="flex:1;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0" onchange="grocEditItem(${l.id},${i},'qty',this.value)"><input type="number" min="0" step="0.01" aria-label="Price" value="${it.price||''}" placeholder="Price" style="width:110px;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0" onchange="grocEditItem(${l.id},${i},'price',this.value)"></div></div>`).join('');
+ return `<div style="border:2px solid var(--gold);border-radius:14px;padding:14px;margin-top:10px"><b>Edit this list</b>
+  <div class="nl-field" style="margin-top:8px"><label for="ge-name">List name</label><input id="ge-name" value="${esc(l.name)}" onchange="grocEditName(${l.id},this.value)"></div>
+  <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:14px 0 0">ITEMS</p>${rows||'<p class="sub" style="margin:6px 0">No items yet.</p>'}
+  <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px"><input id="ge-an" aria-label="New item" placeholder="Add another item" style="width:100%;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><div class="flex" style="gap:6px;margin-top:6px"><input id="ge-aq" aria-label="Quantity" placeholder="Quantity" style="flex:1;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><input id="ge-ap" type="number" min="0" step="0.01" aria-label="Price" placeholder="Price" style="width:110px;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><button class="btn sm" style="min-height:44px" onclick="grocEditAdd(${l.id})">+ Add</button></div></div>
+  <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:16px 0 0">DELIVERY</p>
+  ${fi('name','Name','Who is receiving it')}${fi('phone','Phone number','e.g. 798 7770','tel')}${fi('area','Island / area','e.g. Hulhumalé Phase 2')}${fi('addr','Delivery address','House name, road, ward, landmark')}${fi('note','Note for the shop (optional)','e.g. Call at the gate')}${fi('to','Shop’s WhatsApp number','e.g. 777 1234','tel')}
+  <div class="flex" style="gap:8px;margin-top:14px"><button class="btn" style="flex:1;min-height:46px" onclick="grocEditDone()">✓ Done</button><button class="btn ghost" style="min-height:46px" onclick="grocSendSaved(${l.id})">📲 Send</button></div></div>`}
+const grocL=id=>S.groc.saved.find(x=>x.id===id);
+function grocEdit(id){_grocEdit=id;render();setTimeout(()=>{const e=$('#ge-name');if(e)e.scrollIntoView({behavior:'smooth',block:'center'})},60)}
+function grocEditDone(){_grocEdit=null;toast('List updated');render()}
+function grocEditName(id,v){const l=grocL(id);if(l&&v.trim()){l.name=v.trim().slice(0,60);queueSave()}}
+function grocEditDel(id,k,v){const l=grocL(id);if(!l)return;l.del=l.del||{...grocDel()};l.del[k]=String(v||'').trim().slice(0,200);queueSave()}
+function grocEditItem(id,i,k,v){const l=grocL(id);if(!l||!l.items[i])return;l.items[i][k]=k==='price'?(+v||0):String(v||'').trim().slice(0,80);if(k==='name'&&!l.items[i].name)l.items[i].name='Item';queueSave()}
+function grocEditRemove(id,i){const l=grocL(id);if(!l)return;l.items.splice(i,1);render()}
+function grocEditAdd(id){const l=grocL(id),n=(($('#ge-an')||{}).value||'').trim();if(!l||!n)return toast('Type the item name first');l.items.push({name:n.slice(0,80),qty:($('#ge-aq').value||'').trim().slice(0,40),price:+$('#ge-ap').value||0});render();setTimeout(()=>{const e=$('#ge-an');if(e)e.focus()},50)}
+function grocSendSaved(id){const l=grocL(id);if(!l)return;if(!l.items.length)return toast('This list is empty — add some items first');
+ const d=l.del||grocDel();if(!d.phone||!d.addr){toast('Add the phone number and delivery address first');if(_grocEdit!==id)grocEdit(id);return}
+ window.open(grocWaHref(id),'_blank','noopener')}
 function GrocSendCard(g){const d=g.deliver||{};const f=(id,l,v,ph,ty,extra)=>`<div class="nl-field" style="margin-top:10px"><label for="${id}">${l}</label><input id="${id}" ${ty?'type="'+ty+'" ':''}value="${esc(v||'')}" placeholder="${ph}" ${extra||''} onchange="grocSaveDel()"></div>`;
  return `<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px"><h3 style="margin-top:12px">Send this list for delivery</h3><p class="sub" style="margin:4px 0 0;font-size:13px">Fill in the delivery details once. They’re saved and go out with every list you send.</p>
   ${f('gdname','Name',d.name,'Who is receiving it')}${f('gdphone','Phone number',d.phone,'e.g. 798 7770','tel','inputmode="tel" autocomplete="tel"')}${f('gdarea','Island / area',d.area,'e.g. Hulhumalé Phase 2')}${f('gdaddr','Delivery address',d.addr,'House name, road, ward, landmark')}${f('gdnote','Note for the shop (optional)',d.note,'e.g. Call when you arrive')}${f('gdto','Shop’s WhatsApp number (optional)',d.to,'Or pick one in WhatsApp','tel','inputmode="tel"')}
   <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" style="flex:1;min-width:170px;min-height:46px" onclick="grocSendWA()">📲 Send on WhatsApp</button><button class="btn ghost" style="min-height:46px" onclick="grocCopy()">📋 Share / copy</button></div></div>`}
 function grocWaHref(id){const src=grocListSource(id);if(!src||!src.items.length)return null;
- return 'https://wa.me/'+shopNum(grocDel().to)+'?text='+encodeURIComponent(grocMsg(src))}
+ return 'https://wa.me/'+shopNum((src.del||grocDel()).to)+'?text='+encodeURIComponent(grocMsg(src))}
 function grocClearBought(){const n=S.groc.list.filter(i=>i.done).length;S.groc.list=S.groc.list.filter(i=>!i.done);toast(n+' ticked item'+(n===1?'':'s')+' cleared');render()}
 function grocLog(){const bought=S.groc.list.filter(i=>i.done);
  if(!bought.length)return toast('Tick the items you bought first');
@@ -3236,14 +3271,11 @@ function Groceries(){grocAutoDaily();const g=S.groc;
   <div class="flex" style="gap:8px;margin-top:8px"><input id="gqty" placeholder="Qty (e.g. 1 kg)" aria-label="Quantity" style="flex:1"><input id="gprice" type="number" min="0" step="0.01" placeholder="Price (${S.cur})" aria-label="Price" style="flex:1"></div>
   <label for="gkeep" style="margin-top:10px">Buy this regularly?</label><select id="gkeep"><option value="none">Just this once</option><option value="daily">Every day — save as an everyday item</option><option value="weekly">Every week — save as an everyday item</option></select>
   <button class="btn" style="margin-top:14px;width:100%" onclick="grocAddItem()">Add to list</button></div>
-  ${g.list.length?`<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px"><label for="gsname">Save this list to use again</label><div class="flex" style="gap:8px"><input id="gsname" placeholder="Name (optional)" style="flex:1"><button class="btn" style="min-height:44px" onclick="grocSaveList()">💾 Save list</button></div><p class="sub" style="margin:6px 0 0;font-size:12px">No name needed. Saving with the name of an existing list updates it.</p></div>`:''}
+  ${g.list.length?`<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px"><label for="gsname">Save this list to use again</label><div class="flex" style="gap:8px"><input id="gsname" placeholder="Name (optional)" style="flex:1"><button class="btn" style="min-height:44px" onclick="grocSaveList()">💾 Save list</button></div><p class="sub" style="margin:6px 0 0;font-size:12px">No name needed. Your delivery details are saved with the list (up to 7 lists). Saving with an existing name updates it.</p></div>`:''}
   ${GrocSendCard(g)}
  </div>
  <div>
- <div class="card"><h3>My saved lists</h3><p class="sub" style="margin:4px 0 8px;font-size:13px">Tap a list to put its items on your shopping list. Send any list as an Excel file.</p>
-  ${g.saved.length?g.saved.map(l=>`<div class="today-row" style="flex-wrap:wrap;gap:8px"><button class="qchip" style="flex:1;min-width:170px;align-items:flex-start;text-align:left;padding:12px 14px" onclick="grocLoadSaved(${l.id})"><b>📋 ${esc(l.name)}</b><span style="color:var(--ink2);font-size:12px">${l.items.length} item${l.items.length===1?'':'s'} · about ${money(grocTotal(l.items))} · tap to use</span></button>
-   <span class="flex" style="gap:6px"><button class="btn ghost xs" onclick="grocSendXLS(${l.id})">📤 Excel</button><a class="btn ghost xs" style="text-decoration:none" href="${esc(grocWaHref(l.id)||'#')}" target="_blank" rel="noopener" aria-label="Send ${esc(l.name)} on WhatsApp" title="Send on WhatsApp">💬</a><button class="btn ghost xs" style="color:var(--rose)" onclick="arm('gl${l.id}',()=>grocDelSaved(${l.id}))">${S.armed==='gl'+l.id?'Confirm':'✕'}</button></span></div>`).join(''):'<p class="sub" style="padding:8px 0">No saved lists yet. Build a list on the left, then save it with a name.</p>'}
- </div>
+ ${GrocSavedCard(g)}
  <div class="card" style="margin-top:18px"><h3>Everyday items</h3><p class="sub" style="margin:4px 0 12px;font-size:13px">The groceries you buy again and again. Tap one to put it on today's list.</p>
   <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:0 0 8px">EVERY DAY</p><div class="flex">${daily.map(chip).join('')||'<span class="sub">None yet</span>'}</div>
   <button class="btn ghost sm" style="margin-top:10px" onclick="grocAddAll('daily')">+ Add all daily items</button>
