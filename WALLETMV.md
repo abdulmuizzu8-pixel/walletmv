@@ -35,8 +35,8 @@ MVR 499), aiming at 10,000 monthly users: 3 free months of Veli to start, and Dh
 (MVR 300–750 a month).
 
 **Veli limits:** 3 accounts, 1 monthly budget (no category budgets), 1 savings goal, 5 bills, reports for this
-month and last month only, no Excel export, MVR only, no scanning, no AI planning, 1 person. Everything else
-(to-do list, groceries, member card, reminders, image to PDF, 3 documents) is included.
+month and last month only, no Excel export, no scanning, no AI planning, 1 person. Everything else
+(any currency, to-do list, groceries, member card, reminders, image to PDF, 3 documents) is included.
 
 **Veli's 3 free months:** every new account gets Veli free from the day it was made. After that Veli is MVR 88
 every 30 days. If nothing is paid when the free months (or any paid package) end, the app shows a

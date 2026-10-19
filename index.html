@@ -367,8 +367,8 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
  repMode:'month',repFrom:'',repTo:'',shopRepMode:'month',shopRepFrom:'',shopRepTo:'',
  subscription:{plan:'',status:'none',requestedAt:null,approvedAt:null,verified:false,startsAt:null,expiresAt:null},
  plans:[
-  {id:'veli',name:'Veli',meaning:'Sand — where every island starts',icon:'sun',tag:'For one person. Your first 3 months are free, then it’s the lowest price.',best:'3 months free',price:88,days:30,trial:90,members:1,scan:false,on:true,popular:false,entry:true,features:['Safe-to-spend number every morning','Income & expense tracking','3 accounts','1 monthly budget','1 savings goal','Up to 5 bills','To-do list & reminders','Groceries lists','Image to PDF converter','Document box (3 documents)','Member discount card','Reports for this month and last month']},
-  {id:'starter',name:'Boli',meaning:'Cowrie shell — the Maldives’ first money',icon:'wallet',tag:'For one person or a couple who want no limits.',best:'',price:99,days:30,members:2,scan:false,on:true,popular:false,features:['Everything in Veli, with no limits','Unlimited accounts, bills & goals','A budget for each category','Full reports & Excel export','Every world currency','Document box (30 documents)','Share with 1 more person']},
+  {id:'veli',name:'Veli',meaning:'Sand — where every island starts',icon:'sun',tag:'For one person. Your first 3 months are free, then it’s the lowest price.',best:'3 months free',price:88,days:30,trial:90,members:1,scan:false,on:true,popular:false,entry:true,features:['Safe-to-spend number every morning','Income & expense tracking','3 accounts','1 monthly budget','1 savings goal','Up to 5 bills','To-do list & reminders','Groceries lists','Image to PDF converter','Document box (3 documents)','Member discount card','Pick any currency','Reports for this month and last month']},
+  {id:'starter',name:'Boli',meaning:'Cowrie shell — the Maldives’ first money',icon:'wallet',tag:'For one person or a couple who want no limits.',best:'',price:99,days:30,members:2,scan:false,on:true,popular:false,features:['Everything in Veli, with no limits','Unlimited accounts, bills & goals','A budget for each category','Full reports & Excel export','Document box (30 documents)','Share with 1 more person']},
   {id:'plus',name:'Muraka',meaning:'Coral — strong, growing, beautiful',icon:'users',tag:'For couples and small households — snap bills instead of typing them.',best:'Most popular',price:199,days:30,members:3,scan:true,on:true,popular:true,features:['Everything in Boli','Scan receipts & bills','Home inventory from receipts','AI that plans your day','Shared wallet for the household','Priority support']},
   {id:'family',name:'Atholhu',meaning:'Atoll — a family of islands',icon:'heart',tag:'For the whole family — up to 9 people on one wallet.',best:'Best value per person',price:299,days:30,members:9,scan:true,on:true,popular:false,features:['Everything in Muraka','Everyone can scan bills','Shared family budget & bills','Everyone logs their own spending','See who spent what','Pocket-money goals for children','Shared groceries lists']},
   {id:'mvshop',name:'Dhoni',meaning:'The trading boat — built for business',icon:'store',tag:'For shops and small businesses — sell, stock and GST in one place.',best:'Best for shops',price:499,days:30,members:4,scan:true,on:true,popular:false,features:['Everything in Muraka for the owner','MVSHOP sales, POS & invoices','Bill inbox — bills sort themselves','Stock & smart reordering','GST return tools','AI shop assistant','Loyalty & discount cards for your customers']}],
@@ -675,7 +675,7 @@ function LegalPage(which){
 }
 function ServicesOld(){
  const M=['Income, expenses and a clear balance','A "safe to spend today" figure that updates as you go','Recurring bills tracked with due dates, marked paid in one tap','A monthly budget that warns you at 90%','Savings goals for Umrah, a home or an island escape'];
- const PLUS=['Everything in Boli','Unlimited savings goals','Unlimited recurring bills','Multi-currency (every world currency)','Full yearly reports & CSV export','Shared household account','Priority support'];
+ const PLUS=['Everything in Boli','Unlimited savings goals','Unlimited recurring bills','Full yearly reports & CSV export','Shared household account','Priority support'];
  const SHOPF=['AI shop assistant: ask about sales, stock and profit in plain words','Send discounts straight to customers\' WalletMV cards','Best-seller, profit and slow-mover reports','Smart reorder suggestions from real sales speed','Customer loyalty points','Product & stock inventory with one-tap POS selling','Invoice & receipt generator with GST','Income & expense dashboard for the shop','GST-threshold tax dashboard','Filing reminders linking to tax filing'];
  const P=[['In rufiyaa','Every figure is MVR by default. No conversions, no guesswork.'],['Built for every day','A single number tells you what is safe to spend today, not just this month.'],['One tap, logged','Quick-add chips for the expenses you make every day: ferry, coffee, lunch, groceries.'],['Bills, remembered','Recurring bills sit on your Today board with due dates, so nothing sneaks past you.'],['Private by design','Row-level security keeps your records visible to you alone.'],['Beautiful on a phone','Everything fits a small screen, with thumb-friendly navigation.']];
  return `<div style="background:var(--pat),linear-gradient(180deg,var(--deep),var(--deep2) 60%,#1C4266);padding-bottom:56px;color:#FFFFFF">${PageHeader('services',true)}
@@ -710,7 +710,7 @@ const SVC=[
   ['Groceries lists','Save your weekly list and send it on WhatsApp or as Excel.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['To-do list','Must do, Should do, Could do and Later — with reminders.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['Reports & Excel export','Monthly and yearly charts, downloadable for your records.',{free:'2 months',starter:true,plus:true,family:true,mvshop:true}],
-  ['Every world currency','Track money in MVR, USD or any other currency.',{free:false,starter:true,plus:true,family:true,mvshop:true}],
+  ['Pick any currency','Track money in MVR, USD or any other of 150+ currencies.',{free:true,starter:true,plus:true,family:true,mvshop:true}],
   ['AI that plans your day','Suggests tasks from your bills, budget and goals.',{free:false,starter:false,plus:true,family:true,mvshop:true}]]},
  {g:'Scanning',ic:'receipt',items:[
   ['Scan receipts & bills','Snap a photo — the total, shop and date fill themselves in.',{free:false,starter:false,plus:true,family:true,mvshop:true}],
@@ -3871,17 +3871,38 @@ function resetAppData(){
  toast('Personal app data reset. Your account and package were kept.');
  S.page='money';S.mview='today';render();
 }
+/* ---------- Currency: every customer, every package, can pick any currency ---------- */
+function setCurrency(code){const c=CURRENCIES.find(x=>x[0]===code);if(!c)return;
+ const y=window.scrollY,l=$('#curlist'),lt=l?l.scrollTop:0,q=$('#curq')?$('#curq').value:'';
+ S.cur=code;toast('Currency set to '+code+' — '+c[1]);render();
+ const l2=$('#curlist');if(l2)l2.scrollTop=lt;const q2=$('#curq');if(q2&&q){q2.value=q;filterCur(q)}window.scrollTo(0,y)}
+function filterCur(q){q=(q||'').trim().toLowerCase();let n=0;
+ document.querySelectorAll('#curlist .curopt').forEach(b=>{const hit=!q||b.dataset.s.includes(q);b.hidden=!hit;if(hit)n++});
+ const e=$('#curnone');if(e)e.hidden=n>0}
+function CurrencyCard(){const cur=CURRENCIES.find(c=>c[0]===S.cur)||[S.cur,S.cur,S.cur+' '];
+ return `<div class="card" id="curcard"><style>
+ .curlist{display:grid;gap:6px;max-height:280px;overflow-y:auto;margin-top:12px;padding-right:2px;-webkit-overflow-scrolling:touch}
+ .curopt{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+ .curopt b{min-width:44px;font-weight:600}.curopt span{flex:1;color:var(--ink2);font-size:.92em}
+ .curopt.on{border-color:var(--gold);background:rgba(212,178,106,.14)}.curopt i{font-style:normal;color:var(--ok);font-weight:700}
+ .curopt[hidden]{display:none}</style>
+ <h3>Currency</h3>
+ <p class="sub" style="margin:6px 0 12px">Showing amounts in <b>${esc(cur[1])} (${esc(cur[0])})</b>. Every package can choose any of ${CURRENCIES.length} currencies. This changes how amounts are shown. It doesn’t convert amounts you already saved.</p>
+ <label for="curq" style="margin-top:0">Find your currency</label>
+ <input id="curq" type="search" autocomplete="off" placeholder="Type a country or code, e.g. Kuwait or KWD" oninput="filterCur(this.value)">
+ <div id="curlist" class="curlist" role="group" aria-label="Currencies">${CURRENCIES.map(c=>`<button type="button" class="curopt${c[0]===S.cur?' on':''}" aria-pressed="${c[0]===S.cur}" data-s="${esc((c[0]+' '+c[1]).toLowerCase())}" onclick="setCurrency('${c[0]}')"><b>${c[0]}</b><span>${esc(c[1])}</span>${c[0]===S.cur?'<i aria-hidden="true">✓</i>':''}</button>`).join('')}</div>
+ <p id="curnone" class="sub" hidden>No match. Try the currency’s code, like USD.</p></div>`}
 function Settings(){return `${Head('Settings','Your package, profile and preferences.')}
  <div class="nl-set"><div class="nl-col"><div class="card"><h3>Billing &amp; package</h3>
  <p class="sub" style="margin:6px 0 14px">Current plan: ${(()=>{const i=subInfo();if(i.state==='none')return '<b>No package yet</b>';const st={active:['Active','rgba(47,143,107,.18)'],pending:['Waiting for payment confirmation','rgba(227,168,87,.25)'],expired:['Ended','rgba(180,67,78,.14)']}[i.state]||['','transparent'];return `<b>${esc(i.p.short||i.p.name)}</b> — <span class="badge" style="background:${st[1]}">${st[0]}</span>`})()}</p>
  <span class="flex" style="gap:8px;flex-wrap:wrap">${S.subscription.status==='pending_approval'?`<button class="btn ghost sm" onclick="go('checkout')">Review request</button>`:`<button class="btn ghost sm" onclick="go('packages')">Change package</button>`}${S.isOwner?`<button class="btn ghost sm" onclick="go('admin')">Open admin panel</button>`:''}</span>
  ${S.pendingSubs.length?`<div class="store-hide" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><p class="sub" style="font-size:13px;margin-bottom:8px">Request history</p>${S.pendingSubs.map(s=>`<div class="today-row"><span class="dot" style="background:var(--${s.status==='approved'?'ok':s.status==='rejected'?'rose':'gold'})"></span><span style="flex:1"><b>${esc(planInfo(s.plan).name)} — ${money(s.price)}/mo</b><br><small style="color:var(--ink2)">${sd(s.requestedAt)} · ${esc(s.method)} · ref ${esc(s.ref)} · ${s.status}</small></span></div>`).join('')}</div>`:''}
  </div>
+ ${CurrencyCard()}
  <div class="card"><h3>Profile</h3><label for="s1">Full name</label><input id="s1" value="${esc(S.name)}"><label>Email</label><p style="margin:0;color:var(--ink2)">${S.email}</p>
- <label for="s2">Currency</label><select id="s2">${curOptions()}</select>
  <label for="s5">Appearance</label><select id="s5" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select>
  <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--ink)"><input id="s3" type="checkbox" ${S.notif?'checked':''}> Notify me at 90% of my budget</label>
- <button class="btn" style="margin-top:18px" onclick="if(onFree()&&$('#s2').value!=='MVR'&&$('#s2').value!==S.cur){$('#s2').value=S.cur;return freeStop('Other currencies')}S.name=$('#s1').value.trim()||S.name;S.cur=$('#s2').value;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>${AppLockCard()}
+ <button class="btn" style="margin-top:18px" onclick="S.name=$('#s1').value.trim()||S.name;S.notif=$('#s3').checked;toast('Settings saved');render()">Save changes</button>${syncNote()}</div>${AppLockCard()}
  <div class="card"><h3>Quick add presets</h3><p class="sub" style="margin:6px 0 14px">The one-tap chips on Today and Add expense.</p>
  <ul class="list">${S.quick.map(q=>{const ed=S.editQuick===q.id;return ed?`<li><div class="flex" style="gap:8px;width:100%"><input id="qi${q.id}" aria-label="Icon" value="${q.ic}" style="width:56px;text-align:center"><input id="qn${q.id}" aria-label="Name" value="${esc(q.n)}" style="flex:1;min-width:100px"><select id="qc${q.id}" aria-label="Category" style="width:150px">${S.cats.filter(c=>c.t==='expense').map(c=>`<option ${q.cat===c.n?'selected':''}>${esc(c.n)}</option>`).join('')}</select><input id="qa${q.id}" aria-label="Amount" type="number" min="0" value="${q.amt}" style="width:100px"><button class="btn sm" onclick="saveQuick(${q.id})">Save</button><button class="btn ghost sm" onclick="S.editQuick=null;render()">Cancel</button></div></li>`
  :`<li><span><span style="font-size:18px;margin-right:8px">${q.ic}</span><b>${esc(q.n)}</b> <small style="color:var(--ink2)">· ${esc(q.cat)} · ${money(q.amt)}</small></span><span class="flex" style="gap:6px"><button class="btn ghost sm" onclick="S.editQuick=${q.id};render()">Edit</button><button class="btn ghost sm" onclick="arm('q${q.id}',()=>{S.quick=S.quick.filter(x=>x.id!==${q.id});toast('Preset removed');render()})">${S.armed==='q'+q.id?'Confirm':'Remove'}</button></span></li>`}).join('')||'<p class="sub">No presets yet — add one below.</p>'}</ul>
