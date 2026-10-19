@@ -509,12 +509,12 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v45';
+const APP_BUILD='walletmv-v46';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
 const TEST_PAY=(()=>{try{const h=location.hostname;return h==='localhost'||h==='127.0.0.1'||/\.vercel\.app$/.test(h)}catch(e){return false}})();
-const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
+const go=p=>{if(STORE_APP&&STORE_HIDE.includes(p))p='money';if(WS&&['checkout','packages'].includes(p)){toast('Packages are managed by the owner of this wallet');return}if(p==='checkout'&&S.checkoutStep==='done')S.checkoutStep='pay';S.page=p;S.armed=null;render();scrollTo(0,0)};
 const mv=k=>{S.mview=k;S.upsell=null;if(k==='addx'||k==='addi')S.xScan=null;if(k==='docs'){S.docOpen=null;S.docShow=null;S.docZoom=null;if(S.docEd&&!S.docEd.busy)docCancel()}if(k==='addx'){S.addType='expense';S.edit=null;S.saved=null}if(k==='addi'){S.addType='income';S.edit=null;S.saved=null}S.armed=null;render();scrollTo(0,0)};
 const arm=(key,fn)=>{if(S.armed===key){S.armed=null;fn()}else{S.armed=key;render();toast('Tap again to confirm')}};
 const toggleTheme=()=>{S.theme=S.theme==='light'?'noir':'light';document.documentElement.setAttribute('data-theme',S.theme);toast(S.theme==='noir'?'Noir theme on':'Light theme on');render()};
@@ -558,12 +558,12 @@ const NL_HIDE_NAV=['addx','addi'];
 const initials=n=>String(n||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'W';
 function planLabel(){try{const i=subInfo();if(i.free)return 'Free · '+(i.p.short||'All packages');if(i.trial&&i.state==='active')return (i.p.short||i.p.name)+' · free until '+new Date(i.end+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});if(needPkg())return 'Choose a package';if(i.state==='active')return (i.p.short||i.p.name)+' package';if(i.state==='pending')return 'Package waiting for approval';return veliPlan().name+' · free'}catch(e){return ''}}
 function Shell(items,cur,body){
-  const snav=items.filter(i=>!NL_HIDE_NAV.includes(i[0])).map(i=>`${MGROUP[i[0]]?`<div class="g">${MGROUP[i[0]]}</div>`:''}<button ${cur===i[0]?'aria-current="page"':''} onclick="mv('${i[0]}')">${IC(MICON[i[0]]||'box',19)}${i[1]}</button>`).join('');
+  const snav=items.filter(i=>!NL_HIDE_NAV.includes(i[0])&&navOk(MNAV_RIGHT,i[0])).map(i=>`${MGROUP[i[0]]?`<div class="g">${MGROUP[i[0]]}</div>`:''}<button ${cur===i[0]?'aria-current="page"':''} onclick="mv('${i[0]}')">${IC(MICON[i[0]]||'box',19)}${i[1]}</button>`).join('');
   const dark=S.theme==='noir';
   return `<div class="nl-shell${['addx','addi'].includes(cur)?' is-add':''}"><aside class="nl-side" aria-label="Menu">
    <button class="nl-brand" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>WalletMV</span></button>
-   <button class="nl-primary" onclick="mv('addx')">${IC('plus',18)}Add expense</button>
-   <button class="nl-income" onclick="mv('addi')">${IC('up',15)}Add income</button>
+   ${wsCan('addTx')?`<button class="nl-primary" onclick="mv('addx')">${IC('plus',18)}Add expense</button>
+   <button class="nl-income" onclick="mv('addi')">${IC('up',15)}Add income</button>`:''}
    <nav class="nl-nav" aria-label="Money">${snav}</nav>
    <button class="nl-shop" onclick="go('shop')">${IC('store',19)}Open MVSHOP</button>
    <div class="nl-me">
@@ -572,7 +572,7 @@ function Shell(items,cur,body){
    </div>
   </aside>
   <header class="nl-top${cur==='today'?' hide':''}"><button class="nl-brand sm" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>WalletMV</span></button><button class="nl-topbtn" onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button></header>
-  <main class="main nl-main">${pkgNotice()}${body}</main>${MobileBar('money')}</div>`;
+  <main class="main nl-main">${WsBanner()}${pkgNotice()}${body}</main>${MobileBar('money')}</div>`;
 }
 const Head=(t,s)=>`<div class="nl-head"><div><h1>${t}</h1>${s?`<p>${s}</p>`:''}</div></div>`;
 
@@ -760,7 +760,7 @@ function PrivacyBody(){
  +LegalSection('2. Information we may collect',"<ul><li><b>Account information:</b> name, email address, account identifier, and authentication data.</li><li><b>Financial and business records:</b> transactions, budgets, goals, invoices, inventory, customer records, and notes you enter.</li><li><b>Payment verification:</b> selected package, payment reference, amount, date, and transfer proof if submitted.</li><li><b>Documents you choose to save:</b> details and photos you add to the Document box, such as a driving licence, vehicle registration, ID card, passport or insurance. They are kept in private storage that only your account can open, shown through links that expire after 10 minutes, and used only to show them back to you and to remind you before they expire. Please don’t save passwords, PINs or full bank card numbers there.</li><li><b>Support communications:</b> messages and details you provide to support.</li><li><b>Technical and usage information:</b> device, browser, session, security, diagnostic, and feature-usage information needed to operate and improve the Service. A problem report also includes your device type, app version and recent error messages so we can fix it.</li><li><b>Location (only if you choose):</b> if you tap “Use my location” in Groceries, your phone’s location becomes a map link inside the message you send to a shop. We don’t keep a location history.</li></ul>")
  +LegalSection('3. How we use information',"<p>We use information to create and maintain accounts, provide budgeting and business features, verify payments, activate purchased access, respond to support requests, prevent misuse, secure the Service, and troubleshoot problems.</p>")
  +LegalSection('4. Storage and security',"<p>WalletMV takes reasonable technical and organisational steps to protect information from unauthorised access, loss, misuse, or disclosure. No online system can guarantee absolute security. Users should protect their devices and passwords and report suspected account compromise. Each account’s records are kept separate.</p>")
- +LegalSection('5. Sharing',"<p>We do not sell personal information. Information may be processed by service providers needed to host, secure, authenticate, or support WalletMV, or by payment or messaging services when you choose to use them. We aim to limit access to what each provider needs and use appropriate confidentiality and security arrangements. Information may also be retained or disclosed where reasonably necessary to protect the Service, handle disputes, or meet applicable obligations.</p>")
+ +LegalSection('5. Sharing',"<p>We do not sell personal information. If you invite family or staff to your wallet or shop, they see and change only the parts you allow, and your documents and payment history are never shared with them. Information may be processed by service providers needed to host, secure, authenticate, or support WalletMV, or by payment or messaging services when you choose to use them. We aim to limit access to what each provider needs and use appropriate confidentiality and security arrangements. Information may also be retained or disclosed where reasonably necessary to protect the Service, handle disputes, or meet applicable obligations.</p>")
  +LegalSection('6. Cookies and device storage',"<p>The website or application may use essential cookies, session storage, local storage, and similar technologies for sign-in, preferences, security, and core functionality. WalletMV does not use advertising trackers. If that ever changes, we will update this policy first.</p>")
  +LegalSection('7. Retention',"<p>We retain information as reasonably necessary to provide the Service, maintain account and payment records, protect security, resolve disputes, and meet applicable retention requirements. When information is no longer needed, we will delete or de-identify it where appropriate, subject to required retention.</p>")
  +LegalSection('8. Your choices and requests',"<p>Subject to applicable law, users may request access to, correction of, export of, or deletion of personal information by contacting privacy@walletmv.com. We may verify account ownership before processing a request. If records must be retained, we will explain why where permitted.</p>")
@@ -1377,9 +1377,9 @@ const permList=()=>PERMS.filter(x=>(!x.biz||isBizPlan())&&(!x.tax||isTaxPlan()))
 const roleOpts=sel=>Object.entries(ROLE_SETS).filter(([k,r])=>!r.biz||isBizPlan()).map(([k,r])=>`<option value="${k}" ${k===sel?'selected':''}>${esc(r.l)}</option>`).join('');
 function memberRole(m){if(m.preset)return m.preset;return m.role==='view'?'viewer':'family'}
 function memberPerms(m){if(Array.isArray(m.perms))return m.perms;const r=ROLE_SETS[memberRole(m)];return r?r.p.slice():[]}
-function setPreset(id,k){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner'||!ROLE_SETS[k])return;m.preset=k;if(k!=='custom')m.perms=ROLE_SETS[k].p.slice();else m.perms=memberPerms(m);m.role=m.perms.some(x=>x!=='seeBalance')?'edit':'view';toast(m.name+': '+ROLE_SETS[k].l);render()}
+function setPreset(id,k){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner'||!ROLE_SETS[k])return;m.preset=k;if(k!=='custom')m.perms=ROLE_SETS[k].p.slice();else m.perms=memberPerms(m);m.role=m.perms.some(x=>x!=='seeBalance')?'edit':'view';memberDb(m,'update');toast(m.name+': '+ROLE_SETS[k].l);render()}
 function togglePerm(id,k,on){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner'||!PERMS.some(x=>x.k===k))return;const L=new Set(memberPerms(m));on?L.add(k):L.delete(k);m.perms=[...L];
- const hit=Object.entries(ROLE_SETS).find(([key,r])=>key!=='custom'&&r.p.length===m.perms.length&&r.p.every(x=>L.has(x)));m.preset=hit?hit[0]:'custom';m.role=m.perms.some(x=>x!=='seeBalance')?'edit':'view';queueSave();render()}
+ const hit=Object.entries(ROLE_SETS).find(([key,r])=>key!=='custom'&&r.p.length===m.perms.length&&r.p.every(x=>L.has(x)));m.preset=hit?hit[0]:'custom';m.role=m.perms.some(x=>x!=='seeBalance')?'edit':'view';memberDb(m,'update');queueSave();render()}
 function RightsEditor(m){const L=new Set(memberPerms(m)),list=permList(),groups=[...new Set(list.map(x=>x.g))];
  return `<div style="flex-basis:100%;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0 0 52px;background:rgba(201,169,97,.06)"><b style="font-size:14px">What ${esc(m.name.split(' ')[0])} can do</b>
   ${groups.map(g=>`<p style="font-size:12px;letter-spacing:.06em;color:var(--ink2);margin:12px 0 4px">${g.toUpperCase()}</p>${list.filter(x=>x.g===g).map(x=>`<label style="display:flex;gap:10px;align-items:center;margin:0;padding:7px 0;color:var(--ink);font-size:14.5px;cursor:pointer;min-height:36px"><input type="checkbox" style="width:auto;min-width:20px;height:20px" ${L.has(x.k)?'checked':''} onchange="togglePerm(${m.id},'${x.k}',this.checked)"> ${esc(x.l)}</label>`).join('')}`).join('')}
@@ -1395,22 +1395,98 @@ function sendInvite(){const name=$('#ivName').value.trim(),contact=$('#ivContact
  if(!/^\+?[\d\s-]{7,}$/.test(contact)&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contact))return toast('Enter a valid phone number or email');
  if(S.shared.some(m=>m.contact.replace(/\s/g,'').toLowerCase()===contact.replace(/\s/g,'').toLowerCase()))return toast('That person is already on your wallet');
  if(S.shared.length>=seatLimit())return toast(`Your ${i.p.short} package allows up to ${seatLimit()} people — upgrade to add more`);
- const m={id:Date.now(),code:Math.random().toString(36).slice(2,8),name,contact,role,preset,perms,status:'invited',since:isoD(today)};S.shared.push(m);S.sharedOpen=m.id;
- toast('Invite ready for '+name+' — share the link');render()}
+ const m={id:Date.now(),code:newInviteCode(),name,contact,role,preset,perms,status:'invited',since:isoD(today)};S.shared.push(m);S.sharedOpen=m.id;
+ memberDb(m,'add').then(ok=>{if(!ok&&S.signed&&walletAuth)toast('Invite saved here, but it couldn’t reach the server yet. Check your internet.')});toast('Invite ready for '+name+' — share the link');render()}
 function acceptInvite(id){const m=S.shared.find(x=>x.id===id);if(!m)return;m.status='joined';m.since=isoD(today);toast(m.name+' joined your wallet');render()}
-function removeMember(id){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner')return;S.shared=S.shared.filter(x=>x.id!==id);toast(m.name+(m.status==='invited'?' — invite cancelled':' removed from your wallet'));render()}
+function removeMember(id){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner')return;memberDb(m,'delete');S.shared=S.shared.filter(x=>x.id!==id);toast(m.name+(m.status==='invited'?' — invite cancelled':' removed from your wallet'));render()}
 function setRole(id,role){const m=S.shared.find(x=>x.id===id);if(!m||m.role==='owner')return;m.role=role;toast(m.name+': '+ROLE_L[role]);render()}
 function copyInvite(id){const m=S.shared.find(x=>x.id===id);if(!m)return;const t=inviteLink(m);
  try{navigator.clipboard.writeText(t);toast('Invite link copied')}catch(e){toast('Copy this link: '+t)}}
 function shareInvite(id){const m=S.shared.find(x=>x.id===id);if(!m)return;
  try{if(navigator.share){navigator.share({title:'Join my WalletMV',text:inviteMsg(m),url:inviteLink(m)});return}}catch(e){}
  copyInvite(id)}
-function People(){const i=subInfo(),lim=seatLimit(),used=S.shared.length,left=Math.max(0,lim-used),over=used>lim;
+
+/* ---------- STAFF & FAMILY SIGN-IN ----------
+   The owner's invite is saved in walletmv_members. The invited person opens walletmv.com/join/CODE, signs in with their
+   own account and joins. They can then open the owner's wallet or shop. The database only ever sends them the parts their
+   rights allow (walletmv_member_state) and only saves the parts their rights allow (walletmv_member_save); everything else
+   stays as the owner saved it. The menus below hide what they can't use. */
+var WS=null;
+const KEY_RIGHTS={tx:['addTx'],transfers:['addTx'],budget:['editBudget'],catBudgets:['editBudget'],goals:['editBudget'],bills:['editBudget'],calNotes:['editBudget'],tasks:['editBudget'],groc:['groceries'],homeStock:['groceries'],saleLines:['sell'],shopTx:['sell','expenses'],docCounters:['sell'],inv:['sell'],products:['sell','stockEdit'],discounts:['discount'],loyalty:['discount'],customers:['customers'],suppliers:['customers'],workers:['customers']};
+const MNAV_RIGHT={today:['seeBalance','addTx'],calendar:['seeBalance','editBudget'],tasks:['seeBalance','editBudget'],accounts:['seeBalance'],tx:['seeBalance','addTx'],addx:['addTx'],addi:['addTx'],groceries:['groceries'],budget:['seeBalance','editBudget'],goals:['seeBalance','editBudget'],reports:['seeBalance'],docs:['__owner'],people:['invite'],package:['__owner']};
+const SHOP_RIGHT={dashboard:['shopReports'],inbox:['expenses'],assistant:['shopReports'],discounts:['discount'],calendar:['shopReports','expenses','sell'],invoice:['sell'],charges:['stockEdit'],customers:['customers'],inventory:['stockView','stockEdit'],ledger:['shopReports','expenses'],reports:['shopReports'],people:['invite'],package:['__owner'],settings:['__owner']};
+const wsCan=k=>!WS||WS.perms.includes(k);
+const navOk=(map,k)=>!WS||!map[k]||map[k].some(x=>WS.perms.includes(x));
+const wsKeys=()=>WS?Object.keys(KEY_RIGHTS).filter(k=>KEY_RIGHTS[k].some(x=>WS.perms.includes(x))):[];
+const wsClone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
+const wsHasShop=perms=>['sell','stockView','stockEdit','customers','expenses','shopReports','discount','tax'].some(x=>perms.includes(x));
+const wsHasMoney=perms=>['seeBalance','addTx','editBudget','groceries'].some(x=>perms.includes(x));
+/* Three-way merge: keep both people's changes when two people saved at the same time. Lists merge item by item (by id). */
+function merge3(b,m,t){const J=JSON.stringify;if(t===undefined)return m;if(m===undefined)return J(t)===J(b)?undefined:t;if(J(m)===J(b))return t;if(J(t)===J(b))return m;
+ const isList=a=>Array.isArray(a)&&a.every(x=>x&&typeof x==='object'&&x.id!==undefined&&x.id!==null);
+ if(isList(m)&&isList(t)&&(b===undefined||isList(b))){const bm=new Map((b||[]).map(x=>[String(x.id),x])),mm=new Map(m.map(x=>[String(x.id),x])),tm=new Map(t.map(x=>[String(x.id),x])),out=[],seen=new Set();
+  const take=id=>{if(seen.has(id))return;seen.add(id);const bx=bm.get(id),mx=mm.get(id),tx=tm.get(id);
+   if(bx===undefined){const v=mx&&tx?merge3(undefined,mx,tx):(mx||tx);if(v)out.push(v);return}
+   if(!mx&&!tx)return;if(!mx){if(J(tx)!==J(bx))out.push(tx);return}if(!tx){if(J(mx)!==J(bx))out.push(mx);return}out.push(merge3(bx,mx,tx))};
+  m.forEach(x=>{const id=String(x.id);if(!bm.has(id)&&!tm.has(id))take(id)});t.forEach(x=>take(String(x.id)));m.forEach(x=>take(String(x.id)));return out}
+ if(m&&t&&typeof m==='object'&&typeof t==='object'&&!Array.isArray(m)&&!Array.isArray(t)){const bb=b&&typeof b==='object'&&!Array.isArray(b)?b:{},o={};new Set([...Object.keys(t),...Object.keys(m)]).forEach(k=>{const v=merge3(bb[k],m[k],t[k]);if(v!==undefined)o[k]=v});return o}
+ return m}
+async function wsRpc(fn,args){if(!walletAuth||!walletAuth.rpc)return {error:{message:'offline'}};try{return await walletAuth.rpc(fn,args||{})}catch(e){return {error:e}}}
+async function wsLoadList(){if(!S.signed||!walletAuth)return;const r=await wsRpc('walletmv_my_workspaces');S.workspaces=(r&&!r.error&&Array.isArray(r.data))?r.data:[];if(S.page==='money'&&S.mview==='settings')render()}
+async function wsJoin(){const code=S.joinCode;if(!code||!S.signed)return;S.joinCode=null;const r=await wsRpc('walletmv_join',{p_code:code});const d=r&&r.data;
+ if(!d||r.error||!d.ok)return toast((d&&d.error)||'Couldn’t join with that invite. Ask for a new link.');
+ await wsLoadList();const w=(S.workspaces||[]).find(x=>x.owner_id===d.owner);toast(d.already?'You were already part of this wallet':'You joined '+((w&&(w.shop_name||w.owner_name))||'the wallet')+'!');if(w)wsOpen(w.owner_id)}
+async function wsOpen(owner){if(S.conflict)return toast('Sort out the saving question first');const w=(S.workspaces||[]).find(x=>x.owner_id===owner);if(!w)return toast('That wallet isn’t available any more');
+ if(WS)await wsClose(true);clearTimeout(_saveT);await saveNow();
+ const r=await wsRpc('walletmv_member_state',{p_owner:owner});const d=r&&r.data;if(!d||r.error||!d.ok){wsLoadList();return toast((d&&d.error)||'Couldn’t open that wallet. Try again.')}
+ const own={d:myData(),comp:S.comp,page:S.page,mview:S.mview,shopView:S.shopView,saved:_lastSaved};
+ const perms=Array.isArray(d.perms)?d.perms:[];WS={owner,name:w.shop_name||w.owner_name||'Shared wallet',ownerName:w.owner_name||'',preset:w.preset||'custom',perms,at:d.updated_at,base:wsClone(d.d||{}),own};
+ applyData(d.d||{});wsKeys().forEach(k=>{if(!(k in WS.base))WS.base[k]=wsClone(S[k])});S.comp=null;S.sheet=null;
+ if(wsHasShop(perms)){S.page='shop';S.shopView=perms.includes('sell')&&!perms.includes('shopReports')?'invoice':(SHOPNAV.map(x=>x[0]).find(k=>navOk(SHOP_RIGHT,k))||'dashboard')}else{S.page='money';S.mview=MNAV.map(x=>x[0]).find(k=>navOk(MNAV_RIGHT,k))||'settings'}
+ render();scrollTo(0,0);toast('Opened '+WS.name)}
+async function wsClose(quiet){if(!WS)return;clearTimeout(_wsT);await wsSave();const o=WS.own;WS=null;applyData(o.d);S.comp=o.comp;_lastSaved=o.saved;S.page=o.page==='shop'||o.page==='money'?o.page:'money';S.mview=o.mview;S.shopView=o.shopView;if(!quiet){render();scrollTo(0,0);toast('Back to your own wallet')}}
+var _wsT=null,_wsBusy=false;
+function wsQueueSave(){if(!WS)return;const ks=wsKeys();if(!ks.some(k=>JSON.stringify(S[k])!==JSON.stringify(WS.base[k])))return;clearTimeout(_wsT);_wsT=setTimeout(wsSave,1200)}
+async function wsSave(tries){if(!WS||_wsBusy)return;tries=tries||0;const ks=wsKeys(),patch={};ks.forEach(k=>{if(JSON.stringify(S[k])!==JSON.stringify(WS.base[k]))patch[k]=S[k]});if(!Object.keys(patch).length)return;
+ _wsBusy=true;const ws=WS,r=await wsRpc('walletmv_member_save',{p_owner:ws.owner,p_patch:patch,p_expected:ws.at});_wsBusy=false;const d=r&&r.data;if(WS!==ws)return;
+ if(d&&d.ok){ws.at=d.updated_at;Object.keys(patch).forEach(k=>ws.base[k]=wsClone(patch[k]));S.syncErr=false;return}
+ if(d&&d.stale&&tries<3){const f=await wsRpc('walletmv_member_state',{p_owner:ws.owner});const fd=f&&f.data;if(!fd||!fd.ok||WS!==ws)return;const theirs=fd.d||{};
+  Object.keys(theirs).forEach(k=>{S[k]=k in patch?merge3(ws.base[k],S[k],theirs[k]):(JSON.stringify(S[k])===JSON.stringify(ws.base[k])?theirs[k]:merge3(ws.base[k],S[k],theirs[k]))});
+  ws.base=wsClone(theirs);ws.at=fd.updated_at;if(Array.isArray(fd.perms))ws.perms=fd.perms;render();return wsSave(tries+1)}
+ if(d&&d.error&&/not part of this wallet/.test(d.error)){toast(d.error);await wsClose(true);wsLoadList();render();return}
+ S.syncErr=true;clearTimeout(_wsT);_wsT=setTimeout(()=>wsSave(),15000)}
+const wsRoleName=()=>WS?((ROLE_SETS[WS.preset]||ROLE_SETS.custom).l):'';
+const WsBanner=()=>WS?`<div class="pkgnote" role="status" style="background:rgba(66,133,244,.10);border:1px solid rgba(66,133,244,.35);margin-bottom:14px;flex-wrap:wrap">${IC('users',18)}<span style="flex:1 1 200px">You’re in <b>${esc(WS.name)}</b> as <b>${esc(wsRoleName())}</b>. You can only see and change what the owner allows.</span><button class="btn sm" onclick="wsClose()">Back to my wallet</button></div>`:'';
+const NoAccess=()=>`<div class="card" style="text-align:center;padding:36px 22px">${ICB('lock','rgba(11,26,44,.06)','var(--deep)',56)}<h3 style="margin-top:14px">The owner hasn’t given you this</h3><p class="sub" style="max-width:40ch;margin:8px auto 16px">Ask ${esc(WS&&WS.ownerName||'the owner')} to switch this right on for you in People &amp; staff.</p><button class="btn ghost sm" onclick="wsClose()">Back to my wallet</button></div>`;
+function WorkspacesCard(){const L=S.workspaces||[];if(!L.length&&!WS)return '';
+ return `<div class="card"><h3>Wallets you can open</h3><p class="sub" style="margin:6px 0 10px">You’ve been added to these wallets or shops. Open one to work in it with the rights the owner gave you.</p>
+  <div class="today-row"><span class="dot" style="background:${WS?'var(--line)':'var(--ok)'}"></span><span style="flex:1"><b>My own wallet</b></span>${WS?`<button class="btn ghost sm" onclick="wsClose()">Open</button>`:'<small style="color:var(--ok);font-weight:600">Open now</small>'}</div>
+  ${L.map(w=>`<div class="today-row"><span class="dot" style="background:${WS&&WS.owner===w.owner_id?'var(--ok)':'var(--gold)'}"></span><span style="flex:1;min-width:0"><b>${esc(w.shop_name||w.owner_name||'Shared wallet')}</b><br><small style="color:var(--ink2)">${esc(w.owner_name||'')} · ${esc((ROLE_SETS[w.preset]||ROLE_SETS.custom).l)}</small></span>${WS&&WS.owner===w.owner_id?'<small style="color:var(--ok);font-weight:600">Open now</small>':`<button class="btn sm" onclick="wsOpen('${esc(w.owner_id)}')">Open</button>`}</div>`).join('')}</div>`}
+function WsSettings(){return `${Head('Settings','You’re working in someone else’s wallet.')}${WorkspacesCard()}
+ <div class="card"><h3>Your rights here</h3><ul class="pkchk" style="margin:12px 0 0">${permList().filter(x=>WS.perms.includes(x.k)).map(x=>`<li>${IC('check',16)}<span>${esc(x.l)}</span></li>`).join('')||'<li>None</li>'}</ul><p class="sub" style="font-size:13px;margin-top:10px">Only the owner can change these.</p></div>
+ <div class="card"><h3>Leave this wallet</h3><p class="sub" style="margin:6px 0 12px">You’ll stop seeing ${esc(WS.name)}. The owner can invite you again later.</p><button class="btn ghost sm" style="color:var(--rose)" onclick="arm('wsleave',wsLeave)">${S.armed==='wsleave'?'Confirm — leave':'Leave '+esc(WS.name)}</button></div>
+ <button class="btn ghost nl-logout" onclick="logoutUser()">${IC('logout',17)}Log out</button>`}
+async function wsLeave(){if(!WS||!walletAuth)return;const owner=WS.owner;await wsClose(true);try{await walletAuth.from('walletmv_members').delete().eq('owner_id',owner).eq('member_id',_dataUid)}catch(e){}await wsLoadList();render();toast('You left that wallet')}
+/* Owner side: keep the invite list in the database so invited people can really join. */
+const newInviteCode=()=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let c='';const r=new Uint8Array(8);try{crypto.getRandomValues(r)}catch(e){for(let i=0;i<8;i++)r[i]=Math.floor(Math.random()*256)}r.forEach(x=>c+=a[x%a.length]);return c};
+async function memberDb(m,op){if(!walletAuth||!S.signed||!_dataUid||WS||!m||m.role==='owner')return false;
+ try{if(op==='add'){const {data,error}=await walletAuth.from('walletmv_members').insert({code:m.code,name:String(m.name).slice(0,120),contact:String(m.contact||'').slice(0,200),preset:m.preset||'family',perms:memberPerms(m)}).select('id').maybeSingle();if(error)return false;m.dbId=data&&data.id;queueSave();return true}
+  if(!m.dbId)return memberDb(m,'add');
+  if(op==='update'){const {error}=await walletAuth.from('walletmv_members').update({preset:m.preset||'custom',perms:memberPerms(m),name:String(m.name).slice(0,120)}).eq('id',m.dbId);return !error}
+  if(op==='delete'){const {error}=await walletAuth.from('walletmv_members').delete().eq('id',m.dbId);return !error}}catch(e){return false}return false}
+async function loadMembers(){if(!walletAuth||!S.signed||!_dataUid||WS||S.membersBusy)return;S.membersBusy=true;let r;try{r=await walletAuth.from('walletmv_members').select('id,code,name,contact,preset,perms,status,member_email,joined_at').eq('owner_id',_dataUid)}catch(e){r={error:e}}S.membersBusy=false;S.membersLoaded=true;
+ if(!r||r.error||!Array.isArray(r.data))return;let changed=false;
+ r.data.forEach(row=>{let m=S.shared.find(x=>x.dbId===row.id||String(x.code||'').toUpperCase()===row.code);if(!m){m={id:Date.now()+Math.floor(Math.random()*1000),code:row.code,name:row.name,contact:row.contact||'',since:isoD(today)};S.shared.push(m)}
+  const st=row.status==='joined'?'joined':'invited';if(m.status!==st||m.dbId!==row.id||m.memberEmail!==(row.member_email||'')){m.status=st;m.dbId=row.id;m.memberEmail=row.member_email||'';if(row.joined_at)m.since=String(row.joined_at).slice(0,10);changed=true}
+  m.code=row.code;m.preset=row.preset;m.perms=row.perms||[]});
+ S.shared.filter(m=>m.role!=='owner'&&!m.dbId).forEach(m=>{m.code=/^[A-Z0-9]{6,12}$/.test(String(m.code||'').toUpperCase())?String(m.code).toUpperCase():newInviteCode();memberDb(m,'add')});
+ if(changed&&S.page==='money'&&S.mview==='people')render()}
+function People(){if(WS&&!wsCan('invite'))return NoAccess();if(!WS&&!S.membersLoaded&&S.signed)setTimeout(loadMembers,0);const i=subInfo(),lim=seatLimit(),used=S.shared.length,left=Math.max(0,lim-used),over=used>lim;
  const wa=m=>{const n=m.contact.replace(/[^\d]/g,'');return 'https://wa.me/'+(/@/.test(m.contact)?'':n)+'?text='+encodeURIComponent(inviteMsg(m))};
  const row=m=>`<div class="lrow" style="flex-wrap:wrap">${ICB(m.role==='owner'?'shield':'users',m.status==='joined'?'rgba(31,122,92,.12)':'rgba(201,169,97,.2)',m.status==='joined'?'var(--ok)':'var(--gold-d)',40)}
-  <span class="t" style="flex:1 1 180px"><b>${esc(m.name)}${m.role==='owner'?' (you)':''}</b><small>${esc(m.contact)} · ${m.status==='joined'?'Joined '+ld(m.since):'Invited '+ld(m.since)}</small></span>
+  <span class="t" style="flex:1 1 180px"><b>${esc(m.name)}${m.role==='owner'?' (you)':''}</b><small>${esc(m.contact)} · ${m.status==='joined'?'Joined '+ld(m.since)+(m.memberEmail?' as '+esc(m.memberEmail):''):'Invited '+ld(m.since)+' · waiting to join'}</small></span>
   ${m.role==='owner'?'<span class="badge" style="background:rgba(11,26,44,.08)">Owner</span>':`<div style="flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap;padding-left:52px"><select aria-label="Role for ${esc(m.name)}" style="width:auto;margin:0;padding:8px 10px" onchange="setPreset(${m.id},this.value)">${roleOpts(memberRole(m))}</select><button class="btn ghost sm" onclick="S.rightsOpen=S.rightsOpen===${m.id}?null:${m.id};render()">${S.rightsOpen===m.id?'Hide rights':'Change rights'}</button><small style="flex-basis:100%;color:var(--ink2)">${memberPerms(m).filter(k=>permList().some(x=>x.k===k)).length} of ${permList().length} rights on</small>`}
-  ${m.role==='owner'?'':`<span class="flex" style="gap:6px;flex-wrap:wrap">${m.status==='invited'?`<a class="btn ghost sm" style="text-decoration:none" href="${esc(wa(m))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost sm" onclick="shareInvite(${m.id})">Share link</button><button class="btn ghost sm" onclick="acceptInvite(${m.id})" title="Prototype: mark as joined">Mark joined</button>`:''}<button class="btn ghost sm" style="color:var(--rose)" onclick="arm('rm${m.id}',()=>removeMember(${m.id}))">${S.armed==='rm'+m.id?'Confirm':m.status==='invited'?'Cancel invite':'Remove'}</button></span></div>${S.rightsOpen===m.id?RightsEditor(m):''}`}</div>`;
+  ${m.role==='owner'?'':`<span class="flex" style="gap:6px;flex-wrap:wrap">${m.status==='invited'?`<a class="btn ghost sm" style="text-decoration:none" href="${esc(wa(m))}" target="_blank" rel="noopener">WhatsApp</a><button class="btn ghost sm" onclick="shareInvite(${m.id})">Share link</button>`:''}<button class="btn ghost sm" style="color:var(--rose)" onclick="arm('rm${m.id}',()=>removeMember(${m.id}))">${S.armed==='rm'+m.id?'Confirm':m.status==='invited'?'Cancel invite':'Remove'}</button></span></div>${S.rightsOpen===m.id?RightsEditor(m):''}`}</div>`;
  const fresh=S.shared.find(m=>m.id===S.sharedOpen&&m.status==='invited');
  return `${Head(isBizPlan()?'People & staff':'Shared wallet',isBizPlan()?'Add your staff or family, then choose exactly what each person can do.':'Invite family, a partner or your team to use this wallet with you.')}
  <div class="card"><div class="flex between" style="flex-wrap:wrap;gap:16px"><div><small style="color:var(--ink2)">${i.state==='active'?esc(i.p.short)+' package':'No active package'}</small><div style="font:600 2rem var(--head);color:var(--deep)">${used} of ${lim} people</div><small style="color:${over?'var(--rose)':'var(--ink2)'}">${over?'You have more people than your package allows — remove someone or upgrade.':left?left+' place'+(left===1?'':'s')+' left':'Your wallet is full'}</small></div>
@@ -1550,11 +1626,11 @@ const SICON={dashboard:'chart',inbox:'receipt',assistant:'chat',discounts:'card'
 const SGROUP={dashboard:'Overview',invoice:'Selling',customers:'Customers & stock',reports:'Reports',pdf:'Tools',people:'Account'};
 function MobileBar(kind){const money=kind==='money',cur=money?S.mview:S.shopView,f=money?'mv':'sv';
  const prim=money?[['today','Home','home'],['tx','Activity','activity'],['+','Add','plus'],['goals','Goals','plane'],['more','More','more']]:[['dashboard','Home','chart'],['inbox','Bills in','receipt'],['invoice','New bill','plus'],['inventory','Stock','box'],['more','More','menu']];
- const inPrim=prim.some(p=>p[0]===cur);
+ const _pr=prim.filter(([k])=>k==='more'||(k==='+'?(!money||wsCan('addTx')):navOk(money?MNAV_RIGHT:SHOP_RIGHT,k)));prim.length=0;prim.push(..._pr);const inPrim=prim.some(p=>p[0]===cur);
  const bar=`<nav class="nl-tabs" aria-label="Sections">${prim.map(([k,l,ic])=>k==='+'?`<button class="nl-fab" aria-label="Add" onclick="S.sheet='add';render()">${IC('plus',26)}</button>`:`<button ${(k===cur||(k==='more'&&!inPrim))?'aria-current="page"':''} onclick="${k==='more'?`S.sheet='${kind}';render()`:`S.sheet=null;${f}('${k}')`}">${IC(ic,22)}<span>${l}</span></button>`).join('')}</nav>`;
  let sheet='';
  if(S.sheet==='add'&&money)sheet=[['addx','Add expense','down'],['addi','Add income','up'],['addx','Scan a receipt','receipt'],['accounts','Transfer','swap'],['groceries','Groceries','cart'],['tasks','Add a task','task'],['calendar','Add a bill','bill'],['docs','Save a document','folder'],['pdf','Photos to PDF','file']].map(([k,l,ic])=>`<button class="tile" onclick="S.sheet=null;mv('${k}')">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',40)}${l}</button>`).join('');
- else if(S.sheet===kind){const items=money?MNAV.map(i=>[i[0],i[1],MICON[i[0]]]):SHOPNAV.map(i=>[i[0],i[2],SICON[i[0]]]);const G=money?MGROUP:SGROUP;
+ else if(S.sheet===kind){const items=money?MNAV.filter(i=>navOk(MNAV_RIGHT,i[0])).map(i=>[i[0],i[1],MICON[i[0]]]):SHOPNAV.filter(i=>navOk(SHOP_RIGHT,i[0])).map(i=>[i[0],i[2],SICON[i[0]]]);const G=money?MGROUP:SGROUP;
   sheet=items.map(([k,l,ic])=>`${G[k]?`<div class="sgrp">${G[k]}</div>`:''}<button class="tile ${k===cur?'on':''}" onclick="S.sheet=null;${f}('${k}')">${ICB(ic||'box','rgba(11,26,44,.06)','var(--deep)',40)}${l}</button>`).join('')+(money?`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;go('shop')">${ICB('store','rgba(11,26,44,.06)','var(--deep)',40)}MVSHOP</button>`:`<div class="sgrp">More</div><button class="tile" onclick="S.sheet=null;S.signed=true;go('money')">${ICB('wallet','rgba(11,26,44,.06)','var(--deep)',40)}Money app</button>`)+`<button class="tile" onclick="S.sheet=null;go('home')">${ICB('globe','rgba(11,26,44,.06)','var(--deep)',40)}Website</button>${isStandalone()?'':`<button class="tile" onclick="installApp()">${ICB('mobile','rgba(201,169,97,.16)','var(--gold-d)',40)}Install app</button>`}<button class="tile" onclick="reportProblem()">${ICB('chat','rgba(180,67,78,.1)','var(--rose)',40)}Report a problem</button>`}
  return bar+(sheet?`<div class="msheet" role="dialog" aria-label="${S.sheet==='add'?'Add':'All sections'}" onclick="if(event.target===this){S.sheet=null;render()}"><div class="pan"><div class="flex between" style="margin-bottom:6px"><b style="font:600 1.3rem var(--head)">${S.sheet==='add'?'Add something':'All sections'}</b><button class="btn ghost sm" onclick="S.sheet=null;render()">Close</button></div><div class="sgrid">${sheet}</div></div></div>`:'')}
 const ISSUE_CATS=['Payment or package','Something isn\'t working','Wrong numbers or data','Account or login','Scanning','Suggestion','Other'];
@@ -1900,7 +1976,7 @@ function ShopChargesTab(){
  <div class="flex" style="margin-top:16px;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px"><input id="ncn" aria-label="New charge name" placeholder="Service charge" style="flex:1;min-width:140px"><select id="nct" aria-label="New charge type" style="width:120px"><option value="percent">Percent %</option><option value="fixed">Fixed (${S.cur})</option></select><input id="ncv" aria-label="New charge amount" type="number" min="0" placeholder="10" style="width:100px"><button class="btn" onclick="addCharge()">Add preset</button></div></div>`}
 const SHOPNAV=[['dashboard','📊','Dashboard'],['inbox','📥','Bill inbox'],['assistant','✨','AI assistant'],['discounts','🎟️','Discount cards'],['calendar','🗓️','Calendar'],['invoice','🧾','Create bill'],['charges','💰','Tax & charges'],['customers','📇','Contacts'],['inventory','📦','Products & services'],['ledger','📑','Sales & expenses'],['reports','📈','Reports'],['pdf','📄','Image to PDF'],['people','👥','Shared wallet'],['package','💳','My package'],['settings','⚙️','Settings']];
 const sv=k=>{S.shopView=k;S.armed=null;render();scrollTo(0,0)};
-function ShopView(){if(needPkg()&&!['package','settings'].includes(S.shopView))return PayWall();return ({dashboard:ShopDashTab,inbox:ShopInboxTab,assistant:ShopAssistantTab,discounts:ShopDiscountsTab,calendar:ShopCalendarTab,invoice:ShopInvoiceTab,charges:ShopChargesTab,customers:ShopCustomersTab,inventory:ShopInventoryTab,ledger:ShopLedgerTab,reports:ShopReportsTab,pdf:ImgPdf,package:MyPackage,people:People,settings:ShopSettingsTab})[S.shopView]()}
+function ShopView(){if(WS&&!navOk(SHOP_RIGHT,S.shopView))return NoAccess();if(needPkg()&&!['package','settings'].includes(S.shopView))return PayWall();return ({dashboard:ShopDashTab,inbox:ShopInboxTab,assistant:ShopAssistantTab,discounts:ShopDiscountsTab,calendar:ShopCalendarTab,invoice:ShopInvoiceTab,charges:ShopChargesTab,customers:ShopCustomersTab,inventory:ShopInventoryTab,ledger:ShopLedgerTab,reports:ShopReportsTab,pdf:ImgPdf,package:MyPackage,people:People,settings:ShopSettingsTab})[S.shopView]()}
 const AI_SUGGEST=['What sold best this month?','What should I reorder this week?','Which products are not selling?','How is my profit compared with last month?','Who owes me money?','Summarise my week in 3 points'];
 function shopContext(){const c=shopCalc();const prev=shopCalcMonth(lastMonths(2)[1]);const st=prodStats(30);
  const r=n=>Math.round(n*100)/100;
@@ -1964,7 +2040,7 @@ function ShopCalendarTab(){const dim=daysInMonth();const td=today.getDate();var 
  </div></div>`}
 function ShopShell(){
  const dark=S.theme==='noir',nm=(S.shopProfile&&S.shopProfile.name)||'Your shop';
- const snav=SHOPNAV.map(i=>`${SGROUP[i[0]]?`<div class="g">${SGROUP[i[0]]}</div>`:''}<button ${S.shopView===i[0]?'aria-current="page"':''} onclick="sv('${i[0]}')">${IC(SICON[i[0]]||'box',19)}${i[2]}</button>`).join('');
+ const snav=SHOPNAV.filter(i=>navOk(SHOP_RIGHT,i[0])).map(i=>`${SGROUP[i[0]]?`<div class="g">${SGROUP[i[0]]}</div>`:''}<button ${S.shopView===i[0]?'aria-current="page"':''} onclick="sv('${i[0]}')">${IC(SICON[i[0]]||'box',19)}${i[2]}</button>`).join('');
  return `<div class="nl-shell shop"><aside class="nl-side" aria-label="MVSHOP menu">
   <button class="nl-brand" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>WalletMV</span></button>
   <div class="nl-shopname"><span class="eb">MVSHOP</span><b>${esc(nm)}</b></div>
@@ -1974,7 +2050,7 @@ function ShopShell(){
   <div class="nl-me"><div class="nl-tools"><button onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}" title="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button><button onclick="reportProblem()" aria-label="Report a problem" title="Report a problem">${IC('chat',18)}</button></div></div>
  </aside>
  <header class="nl-top"><button class="nl-brand sm" onclick="go('home')" aria-label="WalletMV home">${LOGO()}<span>MVSHOP</span></button><button class="nl-topbtn" onclick="toggleTheme()" aria-label="${dark?'Light theme':'Dark theme'}">${IC(dark?'sun':'moon',18)}</button></header>
- <main class="main nl-main">${pkgNotice()}${ShopView()}</main>${MobileBar('shop')}</div>`}
+ <main class="main nl-main">${WsBanner()}${pkgNotice()}${ShopView()}</main>${MobileBar('shop')}</div>`}
 function ShopDashTab(){const c=shopCalc();
  const invoiceCount=S.shopTx.filter(t=>t.type==='income').length;
  const lowStock=S.products.filter(p=>p.stock<=5).length;
@@ -2922,27 +2998,28 @@ async function loadMyData(user){if(!walletAuth||!user||_dataUid===user.id)return
  if(res&&res.error){if(!local)applyData(blankData());S.syncErr=true}
  else if(cloud&&(!local||!local.at||new Date(row.updated_at)>=new Date(local.at))){applyData(cloud);_lastSaved=JSON.stringify(myData());S.syncErr=false}
  else if(!local&&!cloud){applyData(blankData())}
- if(row&&row.updated_at)_cloudAt=row.updated_at;S.dataReady=true;render();loadMyPayments(true)}
-function queueSave(){if(!S.signed||!_dataUid||!S.dataReady||!walletAuth)return;const j=JSON.stringify(myData());if(j===_lastSaved)return;clearTimeout(_saveT);_saveT=setTimeout(()=>saveNow(j),1200)}
-async function saveNow(j){if(!_dataUid||!walletAuth||!S.dataReady||S.conflict)return;j=j||JSON.stringify(myData());if(j===_lastSaved)return;
- if(_cloudAt&&await newerCopy(true))return;
+ if(row&&row.updated_at)_cloudAt=row.updated_at;S.dataReady=true;render();loadMyPayments(true);wsLoadList().then(()=>{if(S.joinCode)wsJoin()})}
+function queueSave(){if(WS)return wsQueueSave();if(!S.signed||!_dataUid||!S.dataReady||!walletAuth)return;const j=JSON.stringify(myData());if(j===_lastSaved)return;clearTimeout(_saveT);_saveT=setTimeout(()=>saveNow(j),1200)}
+async function saveNow(j){if(WS)return wsSave();if(!_dataUid||!walletAuth||!S.dataReady||S.conflict)return;j=j||JSON.stringify(myData());if(j===_lastSaved)return;
+ if(_cloudAt){const nc=await newerCopy(true);if(nc===true)return;if(nc==='merged')j=JSON.stringify(myData())}
  const uid=_dataUid,at=new Date().toISOString(),d=JSON.parse(j);
  try{localStorage.setItem(LOCAL_KEY(uid),JSON.stringify({at,d}))}catch(e){}
  let error=null;try{({error}=await walletAuth.from('walletmv_app_state').upsert({user_id:uid,state:{v:1,d},updated_at:at},{onConflict:'user_id'}))}catch(e){error=e}
  if(error){S.syncErr=true;clearTimeout(_retryT);_retryT=setTimeout(()=>saveNow(),15000)}else{if(uid===_dataUid){_lastSaved=j;_cloudAt=at}S.syncErr=false}}
 /* ---------- Two devices at once: never overwrite a newer copy without asking ---------- */
-async function newerCopy(fromSave){if(!walletAuth||!_dataUid||!_cloudAt)return false;const uid=_dataUid;
+async function newerCopy(fromSave){if(WS)return false;if(!walletAuth||!_dataUid||!_cloudAt)return false;const uid=_dataUid;
  let res;try{res=await walletAuth.from('walletmv_app_state').select('state,updated_at').eq('user_id',uid).maybeSingle()}catch(e){return false}
  const row=res&&res.data;if(uid!==_dataUid||!row||!row.updated_at||!(new Date(row.updated_at)>new Date(_cloudAt)))return false;
  const cloud=row.state&&row.state.d;if(!cloud)return false;
  if(!fromSave&&JSON.stringify(myData())===_lastSaved){applyData(cloud);_lastSaved=JSON.stringify(myData());_cloudAt=row.updated_at;render();toast('Updated with your latest changes from another device');return true}
+ try{if(_lastSaved){const base=JSON.parse(_lastSaved),mine=myData(),merged={};SAVE_KEYS.forEach(k=>{merged[k]=merge3(base[k],mine[k],cloud[k])});applyData(merged);_cloudAt=row.updated_at;render();if(fromSave)return 'merged';queueSave();return true}}catch(e){}
  S.conflict={d:cloud,at:row.updated_at};clearTimeout(_saveT);clearTimeout(_retryT);showConflict();return true}
 function showConflict(){let b=$('#cfbar');if(!b){b=document.createElement('div');b.id='cfbar';b.setAttribute('role','alertdialog');b.style.cssText='position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;background:#0B1A2C;color:#fff;border:1px solid #D4B26A;border-radius:14px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.35);max-width:520px;margin:0 auto;font-size:14px;line-height:1.45';document.body.appendChild(b)}
  b.innerHTML='<b style="color:#D4B26A">A newer copy was saved on another device.</b><br>To protect your records, we paused saving. Which do you want to keep?<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" onclick="useCloudCopy()" style="min-height:44px">Use the newer copy</button><button class="btn ghost sm" onclick="keepThisCopy()" style="min-height:44px;color:#fff;border-color:#D4B26A">Keep this device’s copy</button></div>'}
 function hideConflict(){const b=$('#cfbar');if(b)b.remove()}
 function useCloudCopy(){const c=S.conflict;if(!c)return;applyData(c.d);_lastSaved=JSON.stringify(myData());_cloudAt=c.at;S.conflict=null;hideConflict();render();toast('Loaded the newer copy')}
 function keepThisCopy(){const c=S.conflict;if(!c)return;_cloudAt=c.at;S.conflict=null;hideConflict();_lastSaved='';saveNow();toast('Saved this device’s copy')}
-function clearMyData(keepLocal){const uid=_dataUid;S.conflict=null;_cloudAt=null;try{hideConflict()}catch(e){}clearTimeout(_saveT);clearTimeout(_retryT);_dataUid=null;_lastSaved='';S.dataReady=false;S.syncErr=false;
+function clearMyData(keepLocal){WS=null;S.workspaces=[];S.membersLoaded=false;const uid=_dataUid;S.conflict=null;_cloudAt=null;try{hideConflict()}catch(e){}clearTimeout(_saveT);clearTimeout(_retryT);_dataUid=null;_lastSaved='';S.dataReady=false;S.syncErr=false;
  if(uid&&!keepLocal){try{localStorage.removeItem(LOCAL_KEY(uid))}catch(e){}}applyData(DEMO_DATA)}
 addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){clearTimeout(_saveT);saveNow()}else if(!S.conflict&&S.dataReady)newerCopy(false)});
 addEventListener('pagehide',()=>{clearTimeout(_saveT);saveNow()});
@@ -3705,7 +3782,7 @@ function PayWall(){const i=subInfo(),v=veliPlan(),pp=paidPlans(),trial=!!i.trial
  <div class="card" style="border:2px solid var(--gold)"><div class="flex between" style="gap:14px;flex-wrap:wrap;align-items:center"><div style="flex:1;min-width:220px"><h3 style="margin:0">Keep ${esc(v.name)} for MVR ${v.price} every ${v.days} days</h3><p class="sub" style="margin:6px 0 0">Everything you’ve been using: safe-to-spend, tracking, bills, the to-do list, groceries and your documents.</p></div><button class="btn" onclick="requestUpgrade('${v.id}')">Keep ${esc(v.name)}</button></div></div>
  <div class="pw-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:16px">${pp.map(p=>`<div class="card" style="display:flex;flex-direction:column;gap:6px"><div class="flex between" style="gap:8px;align-items:baseline;flex-wrap:wrap"><b style="font:600 1.3rem var(--head)">${esc(p.name)}</b><span style="font-weight:600">MVR ${p.price}<small style="color:var(--ink2);font-weight:400"> / ${p.days} days</small></span></div><p class="sub" style="margin:0;flex:1">${esc(p.tag)}</p><button class="btn ghost sm" onclick="requestUpgrade('${p.id}')">Choose ${esc(p.name)}</button></div>`).join('')}</div>
  <p class="sub" style="margin:16px 0 0;font-size:13.5px">Paid by transfer or WhatsApp? It switches on as soon as we confirm it. Questions: WhatsApp ${esc(S.supportWhatsapp)}. My package and Settings stay open.</p>`}
-function MoneyView(){if(needPkg()&&!['package','settings'].includes(S.mview))return PayWall();return ({today:MoneyToday,dash:MoneyToday,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,docs:DocsView,pdf:ImgPdf,settings:Settings})[S.mview]()}
+function MoneyView(){if(WS&&S.mview==='settings')return WsSettings();if(WS&&!navOk(MNAV_RIGHT,S.mview))return NoAccess();if(needPkg()&&!['package','settings'].includes(S.mview))return PayWall();return ({today:MoneyToday,dash:MoneyToday,tasks:Tasks,package:MyPackage,people:People,calendar:MoneyCalendar,accounts:Accounts,tx:Tx,addx:Add,addi:Add,groceries:Groceries,cards:WalletCards,budget:Budget,goals:Goals,reports:Reports,docs:DocsView,pdf:ImgPdf,settings:Settings})[S.mview]()}
 function accountBalance(id){const a=S.accounts.find(x=>x.id===id);if(!a)return 0;
  const txSum=S.tx.filter(t=>t.accId===id).reduce((s,t)=>s+(t.type==='income'?t.amt:-t.amt),0);
  const trSum=S.transfers.reduce((s,tr)=>s+(tr.to===id?tr.amt:0)-(tr.from===id?tr.amt:0),0);
@@ -4282,6 +4359,7 @@ function Settings(){return `${Head('Settings','Your package, profile and prefere
  <span class="flex" style="gap:8px;flex-wrap:wrap">${S.subscription.status==='pending_approval'?`<button class="btn ghost sm" onclick="go('checkout')">Review request</button>`:''}<button class="btn ghost sm" onclick="go('packages')">Change package</button>${(()=>{const sp=S.subscription&&S.subscription.plan,pl=sp&&planOf(sp);return pl&&!isVeli(pl)?`<button class="btn sm" onclick="requestUpgrade('${esc(sp)}')">${S.subscription.status==='pending_approval'?'Pay a different way':'Renew / pay now'}</button>`:''})()}${S.isOwner?`<button class="btn ghost sm" onclick="go('admin')">Open admin panel</button>`:''}</span>
  ${S.pendingSubs.length?`<div class="store-hide" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><p class="sub" style="font-size:13px;margin-bottom:8px">Request history</p>${S.pendingSubs.map(s=>`<div class="today-row"><span class="dot" style="background:var(--${s.status==='approved'?'ok':s.status==='rejected'?'rose':'gold'})"></span><span style="flex:1"><b>${esc(planInfo(s.plan).name)} — ${money(s.price)}/mo</b><br><small style="color:var(--ink2)">${sd(s.requestedAt)} · ${esc(s.method)} · ref ${esc(s.ref)} · ${s.status}</small></span></div>`).join('')}</div>`:''}
  </div>
+ ${WorkspacesCard()}
  ${CurrencyCard()}
  ${PayMethodsCard()}
  <div class="card"><h3>Profile</h3><label for="s1">Full name</label><input id="s1" value="${esc(S.name)}"><label>Email</label><p style="margin:0;color:var(--ink2)">${S.email}</p>
