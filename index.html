@@ -576,38 +576,47 @@ const FAQ=[
  ['Does it work on my phone?','Yes. Open walletmv.com on any phone and tap "Get the app" (or Add to Home Screen) — WalletMV gets its own icon and opens full screen like any other app, on iPhone and Android. It also works on tablets and computers.']];
 const faqA=a=>typeof a==='function'?a():a;
 
-/* ---------- Front page: how to use each feature ---------- */
+/* ---------- Front page: how to use each feature (pictures + a little fun) ---------- */
 const HW_CSS=`<style>
-.hw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start;margin-top:26px}
-.hw{background:var(--card);border:1px solid var(--line);border-radius:18px}
-.hw[open]{border-color:var(--gold)}
-.hw summary{cursor:pointer;list-style:none;display:flex;gap:14px;align-items:center;padding:16px 18px;min-height:44px}
+.hw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;align-items:start;margin-top:30px}
+.hw{background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+.hw:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(11,26,44,.12)}
+.hw-img{background:linear-gradient(160deg,#F6E7BC 0%,#EFD9A0 45%,#E3C27E 100%);padding:22px 22px 0;height:300px;overflow:hidden;position:relative}
+.hw-img img{display:block;width:100%;max-width:230px;margin:0 auto;border-radius:22px 22px 0 0;border:5px solid #0B1A2C;border-bottom:0;box-shadow:0 12px 30px rgba(11,26,44,.35);background:#fff}
+.hw-em{position:absolute;right:14px;top:12px;font-size:34px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.2));transform:rotate(8deg)}
+.hw-body{padding:18px 20px 20px}
+.hw-body h3{font-size:1.5rem;margin:0 0 6px;line-height:1.15}
+.hw-body p{margin:0 0 12px;color:var(--ink2);font-size:15px;line-height:1.5}
+.hw-body .tag{display:inline-block;margin:0 0 10px;padding:3px 10px;border-radius:99px;background:rgba(201,169,97,.16);color:var(--gold-d);font-size:12px;font-weight:600}
+.hw details{border-top:1px solid var(--line);padding-top:4px}
+.hw summary{cursor:pointer;list-style:none;font-weight:600;color:var(--gold-d);min-height:44px;display:flex;align-items:center;gap:8px}
 .hw summary::-webkit-details-marker{display:none}
-.hw summary::after{content:"+";margin-left:auto;font-size:22px;color:var(--gold-d);line-height:1}
-.hw[open] summary::after{content:"–"}
-.hw summary b{display:block;font:600 1.25rem/1.2 var(--head);color:var(--ink)}
-.hw summary small{display:block;color:var(--ink2);font-size:14px;margin-top:2px}
-.hw ol{margin:0;padding:0 20px 18px 52px;color:var(--ink2);font-size:15px;line-height:1.55}
-.hw li{margin:0 0 8px;padding-left:4px}
-.hw li::marker{color:var(--gold-d);font-weight:600}
-.hw .tag{display:inline-block;margin:0 20px 16px 18px;padding:3px 10px;border-radius:99px;background:rgba(201,169,97,.16);color:var(--gold-d);font-size:12px;font-weight:600}
-@media(max-width:900px){.hw-grid{grid-template-columns:1fr}}
+.hw summary::after{content:"→";margin-left:auto;transition:transform .2s}
+.hw details[open] summary::after{transform:rotate(90deg)}
+.hw ol{margin:0;padding:0 0 4px 22px;color:var(--ink2);font-size:15px;line-height:1.55}
+.hw li{margin:0 0 8px;padding-left:4px}.hw li::marker{color:var(--gold-d);font-weight:700}
+.hw-end{margin:34px auto 0;max-width:640px;text-align:center;background:linear-gradient(135deg,#F6E7BC,#E3C27E);border-radius:26px;padding:30px 24px}
+.hw-end h3{font-size:1.9rem;margin:0 0 6px;color:#0B1A2C}.hw-end p{margin:0 0 18px;color:#4A3F25;font-size:16px}
+@media(max-width:1000px){.hw-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.hw-grid{grid-template-columns:1fr}.hw-img{height:270px}}
+@media(prefers-reduced-motion:reduce){.hw{transition:none}.hw:hover{transform:none}}
 </style>`;
 const HOWTO=[
- ['target','Your safe-to-spend number','Know what you can spend today',['Add your income and your regular bills once.','Set your monthly budget.','Open WalletMV each morning. The big number is what is safe to spend today.'],''],
- ['clock','Bills and reminders','Never miss STELCO, rent or school fees',['Add each bill with its name, amount and due day.','In Settings, turn on the reminder for bills due in 2 days.','Tap Paid when you pay, and it is logged as an expense. Reminders show when WalletMV is open on your phone.'],''],
- ['cart','Groceries: save your lists','Build it once, use it every week',['Add items with a quantity and price. Tick them as you shop.','Tap Save list. You can keep up to 7 lists, each with its own delivery address.','Next week, tap Use now to bring a list back. Tap Edit to change it.'],''],
- ['chat','Send an order to your shop','Items, address and map in one message',['Fill in your delivery details once: name, phone, island and address.','Tap Use my location, or paste a Google Maps link, so the shop can find you.','Pick a shop from My shops, or type its number.','Tap Send on WhatsApp or Send on Viber.'],''],
- ['shield','Savings goals','Umrah, a new home, an island holiday',['Name your goal and set the target amount and date.','WalletMV shows how much to put aside each month.','Watch the bar fill up as you save.'],''],
- ['globe','Choose your currency','MVR, USD, KWD and about 150 more',['Open Settings, then Currency.','Search for the name or code, like MVR or USD.','Tap to choose. It changes how amounts are shown. It does not convert amounts you already saved.'],''],
- ['lock','Lock the app with a PIN','Only you can open your money',['Open Settings, then App lock (PIN).','Choose 4 to 6 numbers.','WalletMV asks for the PIN when you open it and after a minute away. The lock is for that phone only.'],''],
- ['receipt','Scan a receipt or bill','Take a photo instead of typing',['Tap Scan receipt and take a clear, flat photo.','Check the items and the amount WalletMV found.','Save it. Scanning is in Muraka, Atholhu and Dhoni.'],''],
- ['phone','Put WalletMV on your phone','No app store needed',['Android: open walletmv.com in Chrome and tap Get the app, then Install.','iPhone: open walletmv.com in Safari, tap Share, then Add to Home Screen.','Open it from your home screen like any other app.'],''],
- ['store','Run a shop with MVSHOP','Bills, stock and GST in one place',['Make a bill or invoice with 8% GST in a few taps.','Keep track of stock and get reorder tips.','Prepare GST reports for MIRA, and give customers a loyalty discount card.'],'Dhoni package']];
+ ['🎯','Your daily “can I buy it?” number','Wake up. Peek at one number. Spend like a boss.','today',['Add your salary and regular bills once. WalletMV loves homework done early.','Set your monthly budget.','Each morning, check the big number. That is what is safe to spend today.'],''],
+ ['⏰','Bills that never ambush you','STELCO, water, internet: we nudge you before they knock.','bills',['Add each bill with its name, amount and due day.','In Settings, switch on the reminder for bills due in 2 days.','Pay it, tap Mark paid, and it is logged for you. Reminders show when WalletMV is open on your phone.'],''],
+ ['🛒','Your grocery list, saved forever','Same weekly shop? Save it once, tap it forever. Fish and rice approved. 🐟','groceries',['Add items with a quantity and price, then tick them off as you shop.','Tap Save list. Keep up to 7 lists, each with its own delivery address.','Next week, tap Use now to bring a list back. Tap Edit to tweak it.'],''],
+ ['💬','Order from your couch','Items, address and a map pin in one tap. Your shop will think you are psychic. 🔮','send',['Fill in your delivery details once: name, phone, island and address.','Tap Use my location, or paste a Google Maps link, so the shop finds your door.','Pick a shop from My shops, or type its number.','Tap Send on WhatsApp or Send on Viber. Done!'],''],
+ ['🌴','Goals with a finish line','Umrah, a new home or an island escape. Tell us the dream, we do the maths.','goals',['Name your goal and set the target amount and date.','WalletMV shows how much to put aside each month.','Add money whenever you can and watch the bar fill up. 🎉'],''],
+ ['🌍','Any currency, any mood','MVR today, USD for the holiday, 150 more when you feel fancy.','currency',['Open Settings, then Currency.','Search the name or code, like MVR or USD.','Tap to choose. It changes how amounts are shown. It does not convert amounts you already saved.'],''],
+ ['🔒','A PIN that is just yours','Curious friends? Not today. Only you open your money.','lock',['Open Settings, then App lock (PIN).','Choose 4 to 6 numbers.','WalletMV asks for the PIN when you open it and after a minute away. The lock is for that phone only.'],''],
+ ['📸','Snap it, don’t type it','A photo of the receipt goes in. A neat expense comes out. Your thumbs say thanks.','scan',['Tap the camera on Add expense and take a clear, flat photo.','Check the items and the amount WalletMV found.','Save it. Scanning is in Muraka, Atholhu and Dhoni.'],''],
+ ['📱','Make it an app in 10 seconds','No store, no waiting. Just your gold W on your home screen. ✨','install',['Android: open walletmv.com in Chrome and tap Get the app, then Install.','iPhone: open walletmv.com in Safari, tap Share, then Add to Home Screen.','Open it from your home screen like any other app.'],''],
+ ['🏪','Shop owners, this one is for you','Bills, stock and GST in one place. Your accountant may send flowers. 💐','shop',['Make a bill or invoice with 8% GST in a few taps.','Keep track of your stock and get reorder tips.','Prepare GST reports for MIRA, and hand out loyalty discount cards.'],'Dhoni package']];
+const GI=()=>(location.protocol==='file:'?'':'/')+'images/guides/';
 function HowToUse(){const wa='https://wa.me/'+String(S.supportWhatsapp||'+960 798 7770').replace(/\D/g,'');
- return `${HW_CSS}<section class="sec wrap" id="guides" aria-labelledby="guidesh" style="padding-top:0"><span class="kick">How to use WalletMV</span><h2 id="guidesh">Learn each feature in a minute.</h2><p class="intro">Tap a guide to see the steps. Every step is short and in plain words.</p>
- <div class="hw-grid">${HOWTO.map(([ic,t,sub,steps,tag],i)=>`<details class="hw" ${i===0?'open':''}><summary>${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',44)}<span><b>${t}</b><small>${sub}</small></span></summary><ol>${steps.map(x=>`<li>${x}</li>`).join('')}</ol>${tag?`<span class="tag">${tag}</span>`:''}</details>`).join('')}</div>
- <div class="flex" style="gap:12px;flex-wrap:wrap;justify-content:center;margin-top:28px"><button class="btn" onclick="go('packages')">Start free</button><a class="btn ghost" style="text-decoration:none" href="${esc(wa)}" target="_blank" rel="noopener">Need help? WhatsApp us</a></div></section>`}
+ return `${HW_CSS}<section class="sec wrap" id="guides" aria-labelledby="guidesh" style="padding-top:0"><span class="kick">Meet your wallet’s new best friend</span><h2 id="guidesh">Money, but make it fun.</h2><p class="intro">Ten little tricks that make you feel like a budgeting genius. Tap “Show me how” on any card. It takes less time than making your morning tea. ☕</p>
+ <div class="hw-grid">${HOWTO.map(([em,t,quip,img,steps,tag])=>`<article class="hw"><div class="hw-img"><span class="hw-em" aria-hidden="true">${em}</span><img src="${GI()}${img}.webp" alt="WalletMV screen: ${esc(t)}" width="480" height="867" loading="lazy" decoding="async"></div><div class="hw-body">${tag?`<span class="tag">${tag}</span>`:''}<h3>${t}</h3><p>${quip}</p><details><summary>Show me how</summary><ol>${steps.map(x=>`<li>${x}</li>`).join('')}</ol></details></div></article>`).join('')}</div>
+ <div class="hw-end"><h3>Ready to feel in control? 🎉</h3><p>Start free and let your wallet do the worrying.</p><div class="flex" style="gap:12px;flex-wrap:wrap;justify-content:center"><button class="btn" onclick="go('packages')">Start free</button><a class="btn ghost" style="text-decoration:none;background:#fff" href="${esc(wa)}" target="_blank" rel="noopener">Need help? WhatsApp us</a></div></div></section>`}
 function Home(){const plans=S.plans.filter(p=>p.on),from=(cheapest()||{price:0}).price,hasFree=plans.some(isVeli);
  const B=[['target','One number, every morning','WalletMV looks at your income, bills and goals, then tells you exactly how much is safe to spend today. No maths, no guessing.'],
   ['bill','Never miss a bill again','STELCO, rent, internet, school fees — snap a photo of the bill to add it, and get a reminder before each one is due.'],
