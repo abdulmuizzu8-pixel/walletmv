@@ -576,12 +576,52 @@ const FAQ=[
  ['Does it work on my phone?','Yes. Open walletmv.com on any phone and tap "Get the app" (or Add to Home Screen) — WalletMV gets its own icon and opens full screen like any other app, on iPhone and Android. It also works on tablets and computers.']];
 const faqA=a=>typeof a==='function'?a():a;
 
+const BZ_CSS=`<style>
+.bz-band{position:relative;overflow:hidden;padding:76px 0 70px;background:linear-gradient(180deg,#FFFFFF 0%,#EAF5FE 100%)}
+.bz-band::before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(47,143,224,.09);right:-140px;top:-160px}
+.bz-band::after{content:"";position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(47,143,224,.07);left:-110px;bottom:-120px}
+.bz-band .wrap{z-index:1}
+.bz-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:30px}
+.bz-card{background:#fff;border:1px solid #D3E6F6;border-radius:22px;padding:22px;box-shadow:0 2px 6px rgba(27,111,194,.07);transition:transform .2s,box-shadow .2s}
+.bz-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(27,111,194,.15)}
+.bz-q{margin:14px 0 6px;font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:700;line-height:1.15;color:#1B6FC2}
+.bz-a{margin:0;color:#33445A;font-size:15.5px;line-height:1.5}
+.bz-note{display:block;margin-top:8px;font-size:12.5px;color:#6B7C92}
+.bz-day{margin:46px auto 0;max-width:760px;background:#fff;border:1px solid #D3E6F6;border-radius:26px;padding:28px 26px;box-shadow:0 10px 30px rgba(27,111,194,.10)}
+.bz-day h3{margin:0 0 4px;font-size:1.7rem;color:#0B1A2C;text-align:center}
+.bz-day>p{margin:0 0 22px;text-align:center;color:#4A5A6E;font-size:15.5px}
+.bz-tl{list-style:none;margin:0;padding:0;position:relative}
+.bz-tl::before{content:"";position:absolute;left:103px;top:14px;bottom:14px;width:2px;background:#CFE4F6}
+.bz-tl li{display:grid;grid-template-columns:86px 14px 1fr;gap:12px;align-items:start;margin:0 0 16px;position:relative}
+.bz-tl li:last-child{margin-bottom:0}
+.bz-t{font-weight:700;color:#1B6FC2;font-size:14px;white-space:nowrap;text-align:right;line-height:1.5;padding-top:2px}
+.bz-tl i{width:14px;height:14px;border-radius:50%;background:#1B6FC2;box-shadow:0 0 0 4px #E3F1FC;display:block;margin-top:4px;position:relative}
+.bz-tl li>span:last-child{color:#0B1A2C;font-size:16px;line-height:1.45}
+.bz-cta{text-align:center;margin-top:32px}.bz-cta .btn{background:#1B6FC2!important;color:#fff!important;box-shadow:0 10px 24px rgba(27,111,194,.35)}
+@media(max-width:1000px){.bz-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.bz-grid{grid-template-columns:1fr}.bz-band{padding:56px 0 52px}.bz-day{padding:22px 18px}.bz-tl li{grid-template-columns:68px 14px 1fr;gap:10px}.bz-t{font-size:13px}.bz-tl::before{left:84px}}
+@media(prefers-reduced-motion:reduce){.bz-card{transition:none}.bz-card:hover{transform:none}}
+</style>`;
+const BUSY=[
+ ['cart','“No time to go shopping?”','Send your saved list to your shop on WhatsApp or Viber, with your address and map pin.',''],
+ ['bill','“I forgot to pay a bill again.”','Get a reminder before each bill is due.','Reminders show while the app is open.'],
+ ['target','“Same shopping every week?”','Save up to 7 lists and use them again in one tap.',''],
+ ['shield','“What can I safely spend?”','Check one number every morning. No maths.',''],
+ ['users','“My family needs different things.”','Keep separate lists, each with its own delivery address.',''],
+ ['card','“Too busy to type receipts.”','Snap a photo and WalletMV fills in the details.','Included in Muraka, Atholhu and Dhoni.']];
+const BUSYDAY=[['7:00 am','Open the app and see your safe-to-spend number.'],['12:00 pm','Send your saved shopping list to your shop in one tap.'],['6:00 pm','Your groceries arrive at your door.'],['8:00 pm','A reminder says your internet bill is due soon.']];
+function BusyLife(){return `${BZ_CSS}<div class="bz-band"><section class="sec wrap" id="busy" aria-labelledby="busyh" style="padding-top:0;padding-bottom:0"><span class="kick">Made for busy people</span><h2 id="busyh">Busy life? Let your wallet remember for you.</h2><p class="intro">No time to shop. Too many things to remember. WalletMV helps with the small stuff, so you have more time for what matters.</p>
+ <div class="bz-grid">${BUSY.map(([ic,q,a,n])=>`<article class="bz-card">${ICB(ic,'rgba(47,143,224,.14)','#1B6FC2',48)}<h3 class="bz-q">${q}</h3><p class="bz-a">${a}</p>${n?`<span class="bz-note">${n}</span>`:''}</article>`).join('')}</div>
+ <div class="bz-day"><h3>A busy day with WalletMV</h3><p>Four small taps. A lot less stress.</p><ol class="bz-tl">${BUSYDAY.map(([t,x])=>`<li><span class="bz-t">${t}</span><i></i><span>${x}</span></li>`).join('')}</ol></div>
+ <div class="bz-cta"><button class="btn" onclick="go('packages')">Start free today</button></div></section></div>`}
 /* ---------- Front page: how to use each feature (pictures + a little fun) ---------- */
 const HW_CSS=`<style>
 .hw-band{position:relative;margin-top:24px;padding:72px 0 64px;background:linear-gradient(180deg,#F4FAFF 0%,#E3F1FC 100%)}
 .hw-band::before{content:"";position:absolute;left:0;right:0;top:0;height:48px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 48' preserveAspectRatio='none'%3E%3Cpath d='M0 0h1200v18c-100 22-200 22-300 0s-200-22-300 0-200 22-300 0-200-22-300 0z' fill='%23FAF6EE'/%3E%3C/svg%3E") center/100% 100% no-repeat;pointer-events:none}
 #guides{padding-top:0;padding-bottom:0}
-#guides .kick{color:#1B6FC2}
+#guides .kick,.bz-band .kick{color:#1B6FC2}
+.hw-band h2,.bz-band h2{color:#0B1A2C}.hw-band .intro,.bz-band .intro{color:#4A5A6E}
+.hw{color:#0B1A2C}.hw-body h3{color:#0B1A2C}.hw-body p{color:#4A5A6E!important}.hw li{color:#0B1A2C!important}
 .hw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;align-items:start;margin-top:32px}
 .hw{background:#fff;border:1px solid #D3E6F6;border-radius:24px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px rgba(27,111,194,.07);transition:transform .2s,box-shadow .2s}
 .hw:hover{transform:translateY(-3px);box-shadow:0 16px 34px rgba(27,111,194,.16)}
@@ -632,13 +672,13 @@ function Home(){const plans=S.plans.filter(p=>p.on),from=(cheapest()||{price:0})
  const B=[['target','One number, every morning','WalletMV looks at your income, bills and goals, then tells you exactly how much is safe to spend today. No maths, no guessing.'],
   ['bill','Never miss a bill again','STELCO, rent, internet, school fees — snap a photo of the bill to add it, and get a reminder before each one is due.'],
   ['shield','Goals with a finish date','Umrah, a new home, an island holiday. Set the target and see how much to put aside each month to get there on time.'],
-  ['cart','Groceries made easy','Save your weekly shopping list, share it on WhatsApp or as Excel, and log the shop as an expense in seconds.'],
+  ['cart','Groceries made easy','Too busy to shop? Save your weekly list and send it to your shop on WhatsApp or Viber, with your address and map pin.'],
   ['users','Share with your family','Invite up to 9 people to one wallet with the Atholhu package. Everyone logs their own spending — you see the whole picture.'],
   ['card','Discounts in your pocket','Your digital member card unlocks discounts at shops, cafés and dive centres. Show it at checkout and save.']];
  return `<div class="hm"><section class="hm-hero">${SiteHeader('home',false)}
  <div class="wrap"><div class="grid"><div><span class="pill">${IC('check',15)} Budget app &amp; shop tools for the Maldives</span>
  <h1>Know exactly what you can spend today.</h1>
- <p class="lead">WalletMV turns your salary, bills and savings goals into one clear number every morning — in rufiyaa. Spend with confidence, save without stress, and see your plans come true.</p>
+ <p class="lead">Too busy to shop or keep track? WalletMV remembers your bills, saves your shopping lists and sends them to your shop in one tap — all in rufiyaa.</p>
  <div class="flex" style="gap:12px;flex-wrap:wrap"><button class="btn" onclick="go('packages')">${hasFree?`Get started — ${trialMonths()} months free`:'Get started — from MVR '+from}</button><a class="btn ghost" href="#how" onclick="event.preventDefault();document.getElementById('how')&&document.getElementById('how').scrollIntoView({behavior:'smooth'})" style="text-decoration:none">See how it works</a></div>
  <div class="trow"><span>${IC('check',16)} Made in the Maldives</span><span>${IC('check',16)} MVR + every world currency</span><span>${IC('check',16)} Pay by BML transfer or m-Faisaa</span></div></div>
  <div class="mock" aria-hidden="true"><div class="ph"><div class="flex between"><span class="logo sm" style="color:#fff">${LOGO()}<span class="brand" style="font-size:1rem">WALLET<span class="bmv">MV</span></span></span><small style="color:rgba(255,255,255,.6)">Good morning</small></div>
@@ -647,6 +687,7 @@ function Home(){const plans=S.plans.filter(p=>p.on),from=(cheapest()||{price:0})
   <div class="mini"><div><small>Income</small><b>MVR 18,500</b></div><div><small>Spent</small><b>MVR 6,880</b></div><div><small>Bills due</small><b>2 this week</b></div><div><small>Umrah goal</small><b>36% saved</b></div></div></div>
   <div class="float" style="left:-34px;bottom:-22px">${ICB('bill','rgba(201,169,97,.2)','var(--gold-d)',34)}<span><b>STELCO bill</b><br><small style="color:var(--ink2)">Due in 2 days · MVR 640</small></span></div>
   <div class="float" style="right:-18px;top:-18px">${ICB('card','rgba(31,122,92,.12)','var(--ok)',34)}<span><b>10% off</b><br><small style="color:var(--ink2)">Sunset Corner Store</small></span></div></div></div></div></section>
+ ${BusyLife()}
  <section class="sec wrap" aria-labelledby="why"><span class="kick">Why WalletMV</span><h2 id="why">Everything your money needs, nothing it doesn't.</h2><p class="intro">Built for real life in the Maldives — salaries, island trips, family bills and big dreams. Simple enough to use every day, powerful enough to run a shop.</p>
  <div class="bgrid">${B.map(([ic,t,d])=>`<article class="card bcard">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',48)}<h3>${t}</h3><p>${d}</p></article>`).join('')}</div></section>
  <section class="sec wrap" id="how" aria-labelledby="howh" style="padding-top:0"><span class="kick">How it works</span><h2 id="howh">Up and running in three minutes.</h2>
