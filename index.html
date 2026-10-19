@@ -509,7 +509,7 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v42';
+const APP_BUILD='walletmv-v43';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -1746,6 +1746,7 @@ function AdminPanel(){
  <div class="eyebrow" style="color:var(--gold-d)">Staff only</div><h1 style="margin-top:10px;font-size:clamp(2.2rem,5vw,3rem)">Package &amp; payment approvals</h1><p class="sub" style="margin-top:10px;max-width:56ch">${S.autoActivate?'Packages switch on as soon as a customer submits a transfer reference and slip. Check each one against your bank statement, then confirm it or switch it off.':'Every upgrade request lands here first — check the payment reference against what actually came in, then approve or decline. Nothing activates on its own.'}</p>
  ${StaffJump()}
  ${AdminPayHTML()}
+ <div id="admin-paymethods" style="margin-top:22px">${PayMethodsCard()}</div>
  <h3 style="margin:28px 0 0">Requests made from this account</h3>
  <div class="grid3" style="margin-top:12px"><div class="card stat"><small>To check with your bank</small><b class="${(pending.length+autoList.length)?'neg':''}">${pending.length+autoList.length}</b></div><div class="card stat"><small>Approved (all time)</small><b class="pos">${approved.length}</b></div><div class="card stat"><small>Recognised MRR</small><b>${money(mrr)}</b></div></div>
  <div class="card" style="margin-top:22px"><h3>Current account</h3><p class="sub" style="margin:8px 0">${esc(S.name)} · ${esc(S.email)} — on <b>${planInfo(S.subscription.plan)?planInfo(S.subscription.plan).name:'No package yet'}</b>, <span class="badge" style="background:${S.subscription.status==='active'?'rgba(47,143,107,.18)':'rgba(227,168,87,.25)'}">${S.subscription.status==='active'?'active':'pending approval'}</span></p></div>
@@ -1760,18 +1761,6 @@ function AdminPanel(){
  ${AdminWaHTML()}
  ${AdminPlansHTML()}
  ${AdminPartnersHTML()}
- <div class="card" style="margin-top:22px" id="admin-paymethods"><h3>Payment methods</h3><p class="sub" style="margin:6px 0 10px">Choose which methods customers see at checkout, and the details they use to pay you. Add your own for anything not listed.</p>
- ${S.payMethods.map(m=>`<div class="today-row" style="flex-wrap:wrap;align-items:flex-start">
-  <label style="display:flex;gap:8px;align-items:center;margin:0;min-width:220px;flex:1;color:var(--ink);font-size:15px"><input type="checkbox" ${m.on?'checked':''} style="width:auto" onchange="togglePayMethod('${m.id}')"> <b>${esc(m.name)}</b></label>
-  <span class="badge" style="background:${m.region==='MV'?'rgba(212,178,106,.18)':'rgba(47,143,107,.15)'};color:${m.region==='MV'?'var(--gold-d)':'var(--ok)'}">${m.region==='MV'?'Maldives':'Worldwide'}${m.custom?' · custom':''}</span>
-  <div class="flex" style="width:100%;gap:8px;flex-wrap:wrap"><input id="pmd${m.id}" aria-label="Payment details for ${esc(m.name)}" value="${esc(m.details)}" style="flex:1;min-width:200px"><button class="btn ghost sm" onclick="savePayDetails('${m.id}')">Save</button><input id="pml${m.id}" aria-label="Payment link for ${esc(m.name)}" placeholder="Payment link (https://…) — optional" value="${esc(m.link||'')}" style="flex:1 1 100%;min-width:200px">${m.custom?`<button class="btn ghost sm" style="color:var(--rose)" onclick="arm('pm${m.id}',()=>delPayMethod('${m.id}'))">${S.armed==='pm'+m.id?'Confirm':'Remove'}</button>`:''}</div>
- </div>`).join('')}
- <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:6px"><h3 style="font-size:1.15rem">Create a new payment method</h3>
- <label for="npmName">Name customers will see</label><input id="npmName" placeholder="e.g. Western Union, Crypto (USDT), Cash at our office">
- <label for="npmDetails">Payment details / instructions</label><input id="npmDetails" placeholder="e.g. Send to WalletMV Pvt Ltd, Malé — MTCN goes in the reference">
- <label for="npmLink">Payment link (optional)</label><input id="npmLink" placeholder="https://… customers tap to pay online">
- <label for="npmRegion">Available for</label><select id="npmRegion"><option value="world">Worldwide</option><option value="MV">Maldives only</option></select>
- <button class="btn" style="margin-top:16px" onclick="addPayMethod()">Add payment method</button></div></div>
  <div class="flex" style="margin-top:22px;gap:8px"><button class="btn ghost sm" onclick="go('money')">← Back to the app</button><button class="btn ghost sm" style="color:var(--rose)" onclick="adminLogout()">Sign out of admin</button></div>
  </div>`;
 }
@@ -4250,7 +4239,7 @@ function CurrencyCard(){const cur=CURRENCIES.find(c=>c[0]===S.cur)||[S.cur,S.cur
  <div id="curlist" class="curlist" role="group" aria-label="Currencies">${CURRENCIES.map(c=>`<button type="button" class="curopt${c[0]===S.cur?' on':''}" aria-pressed="${c[0]===S.cur}" data-s="${esc((c[0]+' '+c[1]).toLowerCase())}" onclick="setCurrency('${c[0]}')"><b>${c[0]}</b><span>${esc(c[1])}</span>${c[0]===S.cur?'<i aria-hidden="true">✓</i>':''}</button>`).join('')}</div>
  <p id="curnone" class="sub" hidden>No match. Try the currency’s code, like USD.</p></div>`}
 function PayMethodsCard(){if(!S.isOwner)return '';
- return `<div class="card"><h3>Payment methods</h3><p class="sub" style="margin:6px 0 10px">Tick the ways customers can pay at checkout. Add a payment link if you have one — customers get a “Pay online” button.</p>
+ return `<div class="card"><h3>Payment methods</h3><p class="sub" style="margin:6px 0 10px">Tick the ways customers can pay at checkout. Type the details customers need (account name and number, or wallet number), then tap Save. Add a payment link if you have one — customers get a “Pay online” button.</p>
  ${S.payMethods.map(m=>`<div class="today-row" style="flex-wrap:wrap;align-items:flex-start;gap:8px"><label style="display:flex;gap:10px;align-items:center;margin:0;color:var(--ink);font-size:15px;cursor:pointer;flex:1;min-width:200px"><input type="checkbox" ${m.on?'checked':''} style="width:auto" onchange="togglePayMethod('${m.id}')"> <span style="flex:1"><b>${esc(m.name)}</b></span><small style="color:var(--ink2)">${m.region==='MV'?'Maldives':'Worldwide'}</small></label>
   <div class="flex" style="width:100%;gap:8px;flex-wrap:wrap"><input id="pmd${m.id}" aria-label="Details for ${esc(m.name)}" value="${esc(m.details)}" placeholder="How to pay" style="flex:1 1 100%"><input id="pml${m.id}" aria-label="Payment link for ${esc(m.name)}" placeholder="Payment link (https://…) — optional" value="${esc(m.link||'')}" style="flex:1;min-width:160px"><button class="btn ghost sm" onclick="savePayDetails('${m.id}')">Save</button>${m.custom?`<button class="btn ghost sm" style="color:var(--rose)" onclick="arm('pm${m.id}',()=>delPayMethod('${m.id}'))">${S.armed==='pm'+m.id?'Confirm':'Remove'}</button>`:''}</div>
   <div class="flex" style="width:100%;gap:10px;align-items:center;flex-wrap:wrap">${m.qr?`<img src="${m.qr}" alt="QR code for ${esc(m.name)}" style="width:56px;height:56px;background:#fff;border-radius:8px;border:1px solid var(--line)"><button class="btn ghost sm" onclick="delPayQr('${m.id}')">Remove QR</button>`:''}<label class="btn ghost sm" style="margin:0;cursor:pointer">${m.qr?'Replace':'Add'} scan-to-pay QR<input type="file" accept="image/*" hidden onchange="setPayQr('${m.id}',this)"></label></div></div>`).join('')}
