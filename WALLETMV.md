@@ -25,9 +25,9 @@ Everything is in rufiyaa (MVR) first. GST is **8%** (prices include GST unless t
 | Package | Meaning | Price / 30 days | Yearly (pay 10 months) | People | Scanning | Best for |
 |---|---|---|---|---|---|---|
 | **Veli** | Sand — where every island starts | MVR 88 (**first 3 months free**) | MVR 880 | 1 | — | Starting out (*3 months free*) |
-| **Boli** | Cowrie shell — the Maldives' first money | MVR 99 | MVR 990 | 2 | — | One person or a couple, no limits |
-| **Muraka** | Coral — strong, growing | MVR 199 | MVR 1,990 | 3 | ✓ | Couples, small homes (*Most popular*) |
-| **Atholhu** | Atoll — a family of islands | MVR 299 | MVR 2,990 | up to 9 | ✓ | Families (*Best value per person*) |
+| **Boli** | Cowrie shell — the Maldives' first money | MVR 249 | MVR 2,490 | 2 | — | One person or a couple, no limits |
+| **Muraka** | Coral — strong, growing | MVR 499 | MVR 4,990 | 3 | ✓ | Couples, small homes (*Most popular*) |
+| **Atholhu** | Atoll — a family of islands | MVR 599 | MVR 5,990 | up to 9 | ✓ | Families (*Best value per person*) |
 | **Dhoni** | The trading boat | MVR 499 | MVR 4,990 | 4 staff | ✓ + Bill inbox | Shops (*Best for shops*) |
 | **MVTAX** | Tax and accounting for businesses | MVR 800 | MVR 8,000 | 4 staff | ✓ + Bill inbox | Businesses wanting tax tools: everything in Dhoni plus tax dashboard, supplier list and approvals (*new tax tools coming soon*) |
 
