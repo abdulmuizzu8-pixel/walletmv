@@ -29,6 +29,7 @@ Everything is in rufiyaa (MVR) first. GST is **8%** (prices include GST unless t
 | **Muraka** | Coral — strong, growing | MVR 199 | MVR 1,990 | 3 | ✓ | Couples, small homes (*Most popular*) |
 | **Atholhu** | Atoll — a family of islands | MVR 299 | MVR 2,990 | up to 9 | ✓ | Families (*Best value per person*) |
 | **Dhoni** | The trading boat | MVR 499 | MVR 4,990 | 4 staff | ✓ + Bill inbox | Shops (*Best for shops*) |
+| **MVTAX** | Tax and accounting for businesses | MVR 800 | MVR 8,000 | 4 staff | ✓ + Bill inbox | Businesses wanting tax tools: everything in Dhoni plus tax dashboard, supplier list and approvals (*new tax tools coming soon*) |
 
 Prices include 8% GST. Set for the Maldives market in October 2026 (owner's choice: paid packages from MVR 99 to
 MVR 499), aiming at 10,000 monthly users: 3 free months of Veli to start, and Dhoni in the middle of local POS apps
