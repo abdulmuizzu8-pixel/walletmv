@@ -127,7 +127,7 @@ export default function App() {
   const handleNavigation = useCallback((request) => {
     const url = request?.url || '';
     if (isWalletMV(url) || url === 'about:blank') return true;
-    if (/^(https?:|mailto:|tel:|sms:|whatsapp:|intent:)/i.test(url)) {
+    if (/^(https?:|mailto:|tel:|sms:|whatsapp:|viber:|intent:|geo:)/i.test(url)) {
       openExternal(url);
       return false;
     }
@@ -158,7 +158,7 @@ export default function App() {
           ref={webRef}
           source={{ uri: START_URL }}
           style={styles.webview}
-          originWhitelist={['https://*', 'http://*', 'about:*', 'mailto:*', 'tel:*', 'sms:*', 'whatsapp:*', 'intent:*']}
+          originWhitelist={['https://*', 'http://*', 'about:*', 'mailto:*', 'tel:*', 'sms:*', 'whatsapp:*', 'viber:*', 'geo:*', 'intent:*']}
           javaScriptEnabled domStorageEnabled sharedCookiesEnabled thirdPartyCookiesEnabled
           setSupportMultipleWindows pullToRefreshEnabled
           allowsBackForwardNavigationGestures

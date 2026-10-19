@@ -54,7 +54,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install
-        run: npm install --no-audit --no-fund
+        run: npm install --no-audit --no-fund --legacy-peer-deps
 
       - name: Match package versions to the Expo SDK
         run: npx expo install --fix
