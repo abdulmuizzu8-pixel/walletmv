@@ -1,4 +1,4 @@
--- WalletMV staff & family sign-in (NOT applied yet — needs the owner's approval).
+-- WalletMV staff & family sign-in (applied 19 Oct 2026 with the owner's approval).
 -- An owner invites a person (walletmv_members row with a one-time code). The person opens walletmv.com/join/CODE,
 -- signs in with their own account and joins. They can then open the owner's wallet or shop:
 --  * they only ever receive the parts of the owner's data their rights allow (walletmv_member_state),
