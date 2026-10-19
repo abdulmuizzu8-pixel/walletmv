@@ -2,7 +2,7 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), microphone=()
+  Permissions-Policy: geolocation=(self), microphone=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
 
 /sw.js

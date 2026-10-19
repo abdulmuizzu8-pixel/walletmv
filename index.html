@@ -3159,7 +3159,7 @@ function grocLoadSaved(id){const l=S.groc.saved.find(x=>x.id===id);if(!l)return;
 function grocDelSaved(id){const l=S.groc.saved.find(x=>x.id===id);S.groc.saved=S.groc.saved.filter(x=>x.id!==id);if(l)toast('"'+l.name+'" deleted');render()}
 function grocListSource(id){if(id==null)return{name:'Grocery list '+sd(isoD(today)),items:S.groc.list};const l=S.groc.saved.find(x=>x.id===id);return l?{name:l.name,items:l.items,del:l.del}:null}
 function grocWorkbook(src){const cur=S.cur;const wb=XLSX.utils.book_new();
- const d=src.del||grocDel(),dl=[d.name&&['','Deliver to',d.name],d.phone&&['','Phone',d.phone],(d.addr||d.area)&&['','Address',[d.addr,d.area].filter(Boolean).join(', ')],d.note&&['','Note',d.note]].filter(Boolean);
+ const d=src.del||grocDel(),dl=[d.name&&['','Deliver to',d.name],d.phone&&['','Phone',d.phone],(d.addr||d.area)&&['','Address',[d.addr,d.area].filter(Boolean).join(', ')],d.loc&&['','Google Maps',d.loc],d.note&&['','Note',d.note]].filter(Boolean);
  const rows=[[src.name],['From '+(S.name||'WalletMV')+' · '+sd(isoD(today))],[],['✓','Item','Quantity','Price ('+cur+')'],
   ...src.items.map(i=>[i.done?'✓':'☐',i.name,i.qty||'',+i.price||0]),[],['','Estimated total','',grocTotal(src.items)],...(dl.length?[[],...dl]:[])];
  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:4},{wch:28},{wch:14},{wch:14}];
@@ -3180,12 +3180,12 @@ const grocDel=()=>(S.groc&&S.groc.deliver)||{};
 function shopNum(v){const d=String(v||'').replace(/\D/g,'');return d.length===7?'960'+d:d}
 function grocMsg(src){const d=src.del||grocDel(),addr=[d.addr,d.area].filter(Boolean).join(', ');
  let m='🛒 '+src.name+'\n'+src.items.map(i=>'☐ '+i.name+(i.qty?' — '+i.qty:'')).join('\n')+'\n\nAbout '+money(grocTotal(src.items));
- if(addr||d.phone||d.name)m+='\n\n📍 Deliver to'+(d.name?': '+d.name:'')+(addr?'\n'+addr:'')+(d.phone?'\n📞 '+d.phone:'')+(d.note?'\n📝 '+d.note:'');
+ if(addr||d.phone||d.name||d.loc)m+='\n\n📍 Deliver to'+(d.name?': '+d.name:'')+(addr?'\n'+addr:'')+(d.phone?'\n📞 '+d.phone:'')+(d.loc?'\n🗺️ Google Maps: '+d.loc:'')+(d.note?'\n📝 '+d.note:'');
  return m}
 function grocSaveDel(){const v=id=>(($('#'+id)||{}).value||'').trim().slice(0,200);
- S.groc.deliver={name:v('gdname'),phone:v('gdphone'),area:v('gdarea'),addr:v('gdaddr'),note:v('gdnote'),to:v('gdto')}}
+ S.groc.deliver={name:v('gdname'),phone:v('gdphone'),area:v('gdarea'),addr:v('gdaddr'),note:v('gdnote'),to:v('gdto'),loc:cleanMapUrl((($('#gdloc')||{}).value||'').trim())||''}}
 function grocReady(){grocSaveDel();const src=grocListSource(null);if(!src.items.length){toast('Add some items to the list first');return null}
- const d=grocDel();if(!d.phone||!d.addr){toast('Add your phone number and delivery address first');return null}return src}
+ const d=grocDel();if(!d.phone||!(d.addr||d.loc)){toast('Add your phone number and a delivery address or map location first');return null}return src}
 function grocSendWA(){const src=grocReady();if(!src)return;window.open(grocWaHref(null),'_blank','noopener')}
 async function grocCopy(){const src=grocReady();if(!src)return;const m=grocMsg(src);
  try{if(navigator.share&&/Mobi|Android|iPhone/i.test(navigator.userAgent)){await navigator.share({title:src.name,text:m});return}}catch(e){if(e&&e.name==='AbortError')return}
@@ -3198,33 +3198,46 @@ function GrocSavedCard(g){const n=g.saved.length;
 function grocSavedRow(l){if(_grocEdit===l.id)return grocEditor(l);const d=l.del||grocDel();
  return `<div style="border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px"><b style="font-size:16px">📋 ${esc(l.name)}</b>
   <div style="color:var(--ink2);font-size:13px;margin-top:2px">${l.items.length} item${l.items.length===1?'':'s'} · about ${money(grocTotal(l.items))}</div>
-  <div style="font-size:13px;margin-top:6px;color:var(--ink)">${esc(grocDelLine(d))}${d.to?' · Shop '+esc(d.to):''}</div>
+  <div style="font-size:13px;margin-top:6px;color:var(--ink)">${esc(grocDelLine(d))}${d.loc?' · 🗺️ Map attached':''}${d.to?' · Shop '+esc(d.to):''}</div>
   <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn" style="min-height:44px;flex:1;min-width:130px" onclick="grocSendSaved(${l.id})">📲 Send to shop</button><button class="btn ghost" style="min-height:44px" onclick="grocEdit(${l.id})">✏️ Edit</button><button class="btn ghost" style="min-height:44px" onclick="grocLoadSaved(${l.id})">Use now</button></div>
   <div class="flex" style="gap:8px;margin-top:8px"><button class="btn ghost xs" onclick="grocSendXLS(${l.id})">📤 Excel</button><button class="btn ghost xs" style="color:var(--rose)" onclick="arm('gl${l.id}',()=>grocDelSaved(${l.id}))">${S.armed==='gl'+l.id?'Confirm delete':'✕ Delete'}</button></div></div>`}
 function grocEditor(l){const d=l.del||grocDel();
- const fi=(k,lab,ph,ty)=>`<div class="nl-field" style="margin-top:8px"><label for="ge-${k}">${lab}</label><input id="ge-${k}" ${ty?'type="'+ty+'" inputmode="tel" ':''}value="${esc(d[k]||'')}" placeholder="${ph}" onchange="grocEditDel(${l.id},'${k}',this.value)"></div>`;
+ const fi=(k,lab,ph,ty)=>`<div class="nl-field" style="margin-top:8px"><label for="ge-${k}">${lab}</label><input id="ge-${k}" ${ty?'type="'+ty+'" inputmode="'+(ty==='tel'?'tel':'url')+'" ':''}value="${esc(d[k]||'')}" placeholder="${ph}" onchange="${k==='loc'?'grocLocOk(this);':''}grocEditDel(${l.id},'${k}',this.value)"></div>`;
  const rows=l.items.map((it,i)=>`<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px"><div class="flex" style="gap:6px;align-items:center"><input aria-label="Item" value="${esc(it.name)}" style="flex:1;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0" onchange="grocEditItem(${l.id},${i},'name',this.value)"><button class="btn ghost xs" style="min-height:44px;min-width:44px" aria-label="Remove ${esc(it.name)}" onclick="grocEditRemove(${l.id},${i})">✕</button></div><div class="flex" style="gap:6px;margin-top:6px"><input aria-label="Quantity" value="${esc(it.qty||'')}" placeholder="Quantity (e.g. 1 kg)" style="flex:1;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0" onchange="grocEditItem(${l.id},${i},'qty',this.value)"><input type="number" min="0" step="0.01" aria-label="Price" value="${it.price||''}" placeholder="Price" style="width:110px;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0" onchange="grocEditItem(${l.id},${i},'price',this.value)"></div></div>`).join('');
  return `<div style="border:2px solid var(--gold);border-radius:14px;padding:14px;margin-top:10px"><b>Edit this list</b>
   <div class="nl-field" style="margin-top:8px"><label for="ge-name">List name</label><input id="ge-name" value="${esc(l.name)}" onchange="grocEditName(${l.id},this.value)"></div>
   <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:14px 0 0">ITEMS</p>${rows||'<p class="sub" style="margin:6px 0">No items yet.</p>'}
   <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px"><input id="ge-an" aria-label="New item" placeholder="Add another item" style="width:100%;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><div class="flex" style="gap:6px;margin-top:6px"><input id="ge-aq" aria-label="Quantity" placeholder="Quantity" style="flex:1;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><input id="ge-ap" type="number" min="0" step="0.01" aria-label="Price" placeholder="Price" style="width:110px;padding:8px 12px;height:44px;box-sizing:border-box;min-width:0"><button class="btn sm" style="min-height:44px" onclick="grocEditAdd(${l.id})">+ Add</button></div></div>
   <p style="font-size:12px;letter-spacing:.05em;color:var(--ink2);margin:16px 0 0">DELIVERY</p>
-  ${fi('name','Name','Who is receiving it')}${fi('phone','Phone number','e.g. 798 7770','tel')}${fi('area','Island / area','e.g. Hulhumalé Phase 2')}${fi('addr','Delivery address','House name, road, ward, landmark')}${fi('note','Note for the shop (optional)','e.g. Call at the gate')}${fi('to','Shop’s WhatsApp number','e.g. 777 1234','tel')}
+  ${fi('name','Name','Who is receiving it')}${fi('phone','Phone number','e.g. 798 7770','tel')}${fi('area','Island / area','e.g. Hulhumalé Phase 2')}${fi('addr','Delivery address','House name, road, ward, landmark')}${fi('loc','Google Maps location (optional)','Paste a Google Maps link','url')}${locBtns(l.id)}${fi('note','Note for the shop (optional)','e.g. Call at the gate')}${fi('to','Shop’s WhatsApp number','e.g. 777 1234','tel')}
   <div class="flex" style="gap:8px;margin-top:14px"><button class="btn" style="flex:1;min-height:46px" onclick="grocEditDone()">✓ Done</button><button class="btn ghost" style="min-height:46px" onclick="grocSendSaved(${l.id})">📲 Send</button></div></div>`}
 const grocL=id=>S.groc.saved.find(x=>x.id===id);
 function grocEdit(id){_grocEdit=id;render();setTimeout(()=>{const e=$('#ge-name');if(e)e.scrollIntoView({behavior:'smooth',block:'center'})},60)}
 function grocEditDone(){_grocEdit=null;toast('List updated');render()}
 function grocEditName(id,v){const l=grocL(id);if(l&&v.trim()){l.name=v.trim().slice(0,60);queueSave()}}
-function grocEditDel(id,k,v){const l=grocL(id);if(!l)return;l.del=l.del||{...grocDel()};l.del[k]=String(v||'').trim().slice(0,200);queueSave()}
+function grocEditDel(id,k,v){const l=grocL(id);if(!l)return;l.del=l.del||{...grocDel()};l.del[k]=k==='loc'?(cleanMapUrl(v)||''):String(v||'').trim().slice(0,200);queueSave()}
 function grocEditItem(id,i,k,v){const l=grocL(id);if(!l||!l.items[i])return;l.items[i][k]=k==='price'?(+v||0):String(v||'').trim().slice(0,80);if(k==='name'&&!l.items[i].name)l.items[i].name='Item';queueSave()}
 function grocEditRemove(id,i){const l=grocL(id);if(!l)return;l.items.splice(i,1);render()}
 function grocEditAdd(id){const l=grocL(id),n=(($('#ge-an')||{}).value||'').trim();if(!l||!n)return toast('Type the item name first');l.items.push({name:n.slice(0,80),qty:($('#ge-aq').value||'').trim().slice(0,40),price:+$('#ge-ap').value||0});render();setTimeout(()=>{const e=$('#ge-an');if(e)e.focus()},50)}
 function grocSendSaved(id){const l=grocL(id);if(!l)return;if(!l.items.length)return toast('This list is empty — add some items first');
- const d=l.del||grocDel();if(!d.phone||!d.addr){toast('Add the phone number and delivery address first');if(_grocEdit!==id)grocEdit(id);return}
+ const d=l.del||grocDel();if(!d.phone||!(d.addr||d.loc)){toast('Add the phone number and a delivery address or map location first');if(_grocEdit!==id)grocEdit(id);return}
  window.open(grocWaHref(id),'_blank','noopener')}
-function GrocSendCard(g){const d=g.deliver||{};const f=(id,l,v,ph,ty,extra)=>`<div class="nl-field" style="margin-top:10px"><label for="${id}">${l}</label><input id="${id}" ${ty?'type="'+ty+'" ':''}value="${esc(v||'')}" placeholder="${ph}" ${extra||''} onchange="grocSaveDel()"></div>`;
+/* ---------- Google Maps location for a delivery ---------- */
+function cleanMapUrl(v){v=String(v||'').trim();if(!v)return '';
+ const ll=v.match(/^(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)$/);if(ll)return 'https://www.google.com/maps?q='+ll[1]+','+ll[2];
+ if(/^https:\/\/((www\.)?google\.[a-z.]{2,}\/maps|maps\.google\.[a-z.]{2,}|maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)/i.test(v))return v.slice(0,500);return null}
+function grocLocOk(inp){const v=inp.value.trim();if(v&&cleanMapUrl(v)===null){toast('That doesn’t look like a Google Maps link. In Google Maps tap Share, then Copy link.');inp.value='';return false}return true}
+function grocUseLoc(id){const done=link=>{if(id==null){const e=$('#gdloc');if(e)e.value=link;grocSaveDel()}else{grocEditDel(id,'loc',link);const e=$('#ge-loc');if(e)e.value=link}toast('Your location is attached')};
+ if(!navigator.geolocation)return toast('This phone can’t share its location. Paste a Google Maps link instead.');
+ toast('Finding your location…');
+ navigator.geolocation.getCurrentPosition(pos=>done('https://www.google.com/maps?q='+pos.coords.latitude.toFixed(6)+','+pos.coords.longitude.toFixed(6)),
+  err=>toast(err&&err.code===1?'Location is blocked. Allow it in your browser settings, or paste a Google Maps link.':'Couldn’t get your location. Try again, or paste a Google Maps link.'),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})}
+function grocFindMap(id){const g=k=>((id==null?$('#gd'+k):$('#ge-'+k))||{}).value||'';const q=[g('addr'),g('area'),'Maldives'].filter(Boolean).join(', ');
+ window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q),'_blank','noopener');toast('In Google Maps, tap Share, then Copy link, and paste it here')}
+const locBtns=id=>`<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn ghost sm" style="min-height:44px" onclick="grocUseLoc(${id})">📍 Use my location</button><button type="button" class="btn ghost sm" style="min-height:44px" onclick="grocFindMap(${id})">🗺️ Find on Google Maps</button></div>`;
+function GrocSendCard(g){const d=g.deliver||{};const f=(id,l,v,ph,ty,extra)=>`<div class="nl-field" style="margin-top:10px"><label for="${id}">${l}</label><input id="${id}" ${ty?'type="'+ty+'" ':''}value="${esc(v||'')}" placeholder="${ph}" ${extra||''} onchange="${id==='gdloc'?'grocLocOk(this);':''}grocSaveDel()"></div>`;
  return `<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px"><h3 style="margin-top:12px">Send this list for delivery</h3><p class="sub" style="margin:4px 0 0;font-size:13px">Fill in the delivery details once. They’re saved and go out with every list you send.</p>
-  ${f('gdname','Name',d.name,'Who is receiving it')}${f('gdphone','Phone number',d.phone,'e.g. 798 7770','tel','inputmode="tel" autocomplete="tel"')}${f('gdarea','Island / area',d.area,'e.g. Hulhumalé Phase 2')}${f('gdaddr','Delivery address',d.addr,'House name, road, ward, landmark')}${f('gdnote','Note for the shop (optional)',d.note,'e.g. Call when you arrive')}${f('gdto','Shop’s WhatsApp number (optional)',d.to,'Or pick one in WhatsApp','tel','inputmode="tel"')}
+  ${f('gdname','Name',d.name,'Who is receiving it')}${f('gdphone','Phone number',d.phone,'e.g. 798 7770','tel','inputmode="tel" autocomplete="tel"')}${f('gdarea','Island / area',d.area,'e.g. Hulhumalé Phase 2')}${f('gdaddr','Delivery address',d.addr,'House name, road, ward, landmark')}${f('gdloc','Google Maps location (optional)',d.loc,'Paste a Google Maps link','url','inputmode="url" autocomplete="off"')}${locBtns('null')}${f('gdnote','Note for the shop (optional)',d.note,'e.g. Call when you arrive')}${f('gdto','Shop’s WhatsApp number (optional)',d.to,'Or pick one in WhatsApp','tel','inputmode="tel"')}
   <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" style="flex:1;min-width:170px;min-height:46px" onclick="grocSendWA()">📲 Send on WhatsApp</button><button class="btn ghost" style="min-height:46px" onclick="grocCopy()">📋 Share / copy</button></div></div>`}
 function grocWaHref(id){const src=grocListSource(id);if(!src||!src.items.length)return null;
  return 'https://wa.me/'+shopNum((src.del||grocDel()).to)+'?text='+encodeURIComponent(grocMsg(src))}
