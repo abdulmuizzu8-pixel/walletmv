@@ -576,6 +576,38 @@ const FAQ=[
  ['Does it work on my phone?','Yes. Open walletmv.com on any phone and tap "Get the app" (or Add to Home Screen) — WalletMV gets its own icon and opens full screen like any other app, on iPhone and Android. It also works on tablets and computers.']];
 const faqA=a=>typeof a==='function'?a():a;
 
+/* ---------- Front page: how to use each feature ---------- */
+const HW_CSS=`<style>
+.hw-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;align-items:start;margin-top:26px}
+.hw{background:var(--card);border:1px solid var(--line);border-radius:18px}
+.hw[open]{border-color:var(--gold)}
+.hw summary{cursor:pointer;list-style:none;display:flex;gap:14px;align-items:center;padding:16px 18px;min-height:44px}
+.hw summary::-webkit-details-marker{display:none}
+.hw summary::after{content:"+";margin-left:auto;font-size:22px;color:var(--gold-d);line-height:1}
+.hw[open] summary::after{content:"–"}
+.hw summary b{display:block;font:600 1.25rem/1.2 var(--head);color:var(--ink)}
+.hw summary small{display:block;color:var(--ink2);font-size:14px;margin-top:2px}
+.hw ol{margin:0;padding:0 20px 18px 52px;color:var(--ink2);font-size:15px;line-height:1.55}
+.hw li{margin:0 0 8px;padding-left:4px}
+.hw li::marker{color:var(--gold-d);font-weight:600}
+.hw .tag{display:inline-block;margin:0 20px 16px 18px;padding:3px 10px;border-radius:99px;background:rgba(201,169,97,.16);color:var(--gold-d);font-size:12px;font-weight:600}
+@media(max-width:900px){.hw-grid{grid-template-columns:1fr}}
+</style>`;
+const HOWTO=[
+ ['target','Your safe-to-spend number','Know what you can spend today',['Add your income and your regular bills once.','Set your monthly budget.','Open WalletMV each morning. The big number is what is safe to spend today.'],''],
+ ['clock','Bills and reminders','Never miss STELCO, rent or school fees',['Add each bill with its name, amount and due day.','In Settings, turn on the reminder for bills due in 2 days.','Tap Paid when you pay, and it is logged as an expense. Reminders show when WalletMV is open on your phone.'],''],
+ ['cart','Groceries: save your lists','Build it once, use it every week',['Add items with a quantity and price. Tick them as you shop.','Tap Save list. You can keep up to 7 lists, each with its own delivery address.','Next week, tap Use now to bring a list back. Tap Edit to change it.'],''],
+ ['chat','Send an order to your shop','Items, address and map in one message',['Fill in your delivery details once: name, phone, island and address.','Tap Use my location, or paste a Google Maps link, so the shop can find you.','Pick a shop from My shops, or type its number.','Tap Send on WhatsApp or Send on Viber.'],''],
+ ['shield','Savings goals','Umrah, a new home, an island holiday',['Name your goal and set the target amount and date.','WalletMV shows how much to put aside each month.','Watch the bar fill up as you save.'],''],
+ ['globe','Choose your currency','MVR, USD, KWD and about 150 more',['Open Settings, then Currency.','Search for the name or code, like MVR or USD.','Tap to choose. It changes how amounts are shown. It does not convert amounts you already saved.'],''],
+ ['lock','Lock the app with a PIN','Only you can open your money',['Open Settings, then App lock (PIN).','Choose 4 to 6 numbers.','WalletMV asks for the PIN when you open it and after a minute away. The lock is for that phone only.'],''],
+ ['receipt','Scan a receipt or bill','Take a photo instead of typing',['Tap Scan receipt and take a clear, flat photo.','Check the items and the amount WalletMV found.','Save it. Scanning is in Muraka, Atholhu and Dhoni.'],''],
+ ['phone','Put WalletMV on your phone','No app store needed',['Android: open walletmv.com in Chrome and tap Get the app, then Install.','iPhone: open walletmv.com in Safari, tap Share, then Add to Home Screen.','Open it from your home screen like any other app.'],''],
+ ['store','Run a shop with MVSHOP','Bills, stock and GST in one place',['Make a bill or invoice with 8% GST in a few taps.','Keep track of stock and get reorder tips.','Prepare GST reports for MIRA, and give customers a loyalty discount card.'],'Dhoni package']];
+function HowToUse(){const wa='https://wa.me/'+String(S.supportWhatsapp||'+960 798 7770').replace(/\D/g,'');
+ return `${HW_CSS}<section class="sec wrap" id="guides" aria-labelledby="guidesh" style="padding-top:0"><span class="kick">How to use WalletMV</span><h2 id="guidesh">Learn each feature in a minute.</h2><p class="intro">Tap a guide to see the steps. Every step is short and in plain words.</p>
+ <div class="hw-grid">${HOWTO.map(([ic,t,sub,steps,tag],i)=>`<details class="hw" ${i===0?'open':''}><summary>${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',44)}<span><b>${t}</b><small>${sub}</small></span></summary><ol>${steps.map(x=>`<li>${x}</li>`).join('')}</ol>${tag?`<span class="tag">${tag}</span>`:''}</details>`).join('')}</div>
+ <div class="flex" style="gap:12px;flex-wrap:wrap;justify-content:center;margin-top:28px"><button class="btn" onclick="go('packages')">Start free</button><a class="btn ghost" style="text-decoration:none" href="${esc(wa)}" target="_blank" rel="noopener">Need help? WhatsApp us</a></div></section>`}
 function Home(){const plans=S.plans.filter(p=>p.on),from=(cheapest()||{price:0}).price,hasFree=plans.some(isVeli);
  const B=[['target','One number, every morning','WalletMV looks at your income, bills and goals, then tells you exactly how much is safe to spend today. No maths, no guessing.'],
   ['bill','Never miss a bill again','STELCO, rent, internet, school fees — snap a photo of the bill to add it, and get a reminder before each one is due.'],
@@ -599,6 +631,7 @@ function Home(){const plans=S.plans.filter(p=>p.on),from=(cheapest()||{price:0})
  <div class="bgrid">${B.map(([ic,t,d])=>`<article class="card bcard">${ICB(ic,'rgba(201,169,97,.16)','var(--gold-d)',48)}<h3>${t}</h3><p>${d}</p></article>`).join('')}</div></section>
  <section class="sec wrap" id="how" aria-labelledby="howh" style="padding-top:0"><span class="kick">How it works</span><h2 id="howh">Up and running in three minutes.</h2>
  <div class="steps3">${[['Start free','Make an account and get Veli free for 3 months. Move to Boli, Muraka, Atholhu or Dhoni any time and pay by bank transfer or m-Faisaa.'],['Add your money','Enter your accounts, salary and regular bills once. WalletMV does the rest.'],['Check one number','Open the app each morning and spend what\'s safe — your goals stay on track.']].map((x,n)=>`<div class="card"><span class="n">0${n+1}</span><h3>${x[0]}</h3><p>${x[1]}</p></div>`).join('')}</div></section>
+ ${HowToUse()}
  <section class="wrap" aria-labelledby="shoph"><div class="darkband split"><div><span class="kick" style="color:var(--gold)">For shop owners</span><h2 id="shoph">Run your shop from your phone.</h2><p class="intro" style="margin-bottom:24px">MVSHOP comes with the Dhoni package — for a team of up to 4. Sell, invoice, track stock and stay organised for tax time — without the paperwork.</p><button class="btn" onclick="requestUpgrade('mvshop')">Get Dhoni — MVR ${(planOf('mvshop')||{price:499}).price}</button></div>
  <ul class="ticks">${['Point of sale, invoices &amp; receipts with GST','Bill inbox: photos sort themselves into stock, expenses, income and GST','Stock levels and smart reorder suggestions','GST reports and filing reminders for tax filing','Customers, suppliers and repair contacts','Discount and loyalty cards for your regulars','AI assistant that answers questions about your shop'].map(t=>`<li>${IC('check',18)}<span>${t}</span></li>`).join('')}</ul></div></section>
  <section class="sec wrap" aria-labelledby="loyh" style="padding-top:96px"><div class="split"><div><span class="kick">Loyalty discount cards</span><h2 id="loyh">Members save. Businesses grow.</h2><p class="intro">Every WalletMV member carries a digital discount card. Shops, cafés and dive centres can offer member deals or send a personal discount straight to a customer's wallet.</p>
