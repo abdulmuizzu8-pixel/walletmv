@@ -3236,7 +3236,7 @@ function Groceries(){grocAutoDaily();const g=S.groc;
   <div class="flex" style="gap:8px;margin-top:8px"><input id="gqty" placeholder="Qty (e.g. 1 kg)" aria-label="Quantity" style="flex:1"><input id="gprice" type="number" min="0" step="0.01" placeholder="Price (${S.cur})" aria-label="Price" style="flex:1"></div>
   <label for="gkeep" style="margin-top:10px">Buy this regularly?</label><select id="gkeep"><option value="none">Just this once</option><option value="daily">Every day — save as an everyday item</option><option value="weekly">Every week — save as an everyday item</option></select>
   <button class="btn" style="margin-top:14px;width:100%" onclick="grocAddItem()">Add to list</button></div>
-  ${g.list.length?`<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px"><label for="gsname">Save this list to use again</label><div class="flex" style="gap:8px"><input id="gsname" placeholder="Name it, or just tap Save" style="flex:1"><button class="btn" style="min-height:44px" onclick="grocSaveList()">💾 Save list</button></div><p class="sub" style="margin:6px 0 0;font-size:12px">No name needed. Saving with the name of an existing list updates it.</p></div>`:''}
+  ${g.list.length?`<div style="border-top:1px solid var(--line);margin-top:16px;padding-top:4px"><label for="gsname">Save this list to use again</label><div class="flex" style="gap:8px"><input id="gsname" placeholder="Name (optional)" style="flex:1"><button class="btn" style="min-height:44px" onclick="grocSaveList()">💾 Save list</button></div><p class="sub" style="margin:6px 0 0;font-size:12px">No name needed. Saving with the name of an existing list updates it.</p></div>`:''}
   ${GrocSendCard(g)}
  </div>
  <div>
