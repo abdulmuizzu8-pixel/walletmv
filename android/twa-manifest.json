@@ -1,0 +1,47 @@
+{
+  "packageId": "com.walletmv.app",
+  "host": "walletmv.com",
+  "name": "WalletMV — Budget & Shop",
+  "launcherName": "WalletMV",
+  "display": "standalone",
+  "displayOverride": ["standalone", "minimal-ui"],
+  "themeColor": "#0B1A2C",
+  "themeColorDark": "#0B1A2C",
+  "navigationColor": "#0B1A2C",
+  "navigationColorDark": "#0B1A2C",
+  "navigationDividerColor": "#0B1A2C",
+  "navigationDividerColorDark": "#0B1A2C",
+  "backgroundColor": "#0B1A2C",
+  "enableNotifications": false,
+  "startUrl": "/?app=1",
+  "iconUrl": "https://walletmv.com/icons/icon-512.png",
+  "maskableIconUrl": "https://walletmv.com/icons/maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./walletmv.keystore",
+    "alias": "walletmv"
+  },
+  "appVersionCode": 1,
+  "appVersion": "1.0.0",
+  "shortcuts": [
+    {
+      "name": "Add expense",
+      "shortName": "Add expense",
+      "url": "/?app=1#addx",
+      "chosenIconUrl": "https://walletmv.com/icons/icon-192.png"
+    },
+    {
+      "name": "MVSHOP",
+      "shortName": "MVSHOP",
+      "url": "/?app=1#shop",
+      "chosenIconUrl": "https://walletmv.com/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "fallbackType": "customtabs",
+  "enableSiteSettingsShortcut": true,
+  "minSdkVersion": 23,
+  "orientation": "any",
+  "additionalTrustedOrigins": [],
+  "fingerprints": []
+}
