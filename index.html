@@ -4179,6 +4179,10 @@ function CurrencyCard(){const cur=CURRENCIES.find(c=>c[0]===S.cur)||[S.cur,S.cur
  <input id="curq" type="search" autocomplete="off" placeholder="Type a country or code, e.g. Kuwait or KWD" oninput="filterCur(this.value)">
  <div id="curlist" class="curlist" role="group" aria-label="Currencies">${CURRENCIES.map(c=>`<button type="button" class="curopt${c[0]===S.cur?' on':''}" aria-pressed="${c[0]===S.cur}" data-s="${esc((c[0]+' '+c[1]).toLowerCase())}" onclick="setCurrency('${c[0]}')"><b>${c[0]}</b><span>${esc(c[1])}</span>${c[0]===S.cur?'<i aria-hidden="true">✓</i>':''}</button>`).join('')}</div>
  <p id="curnone" class="sub" hidden>No match. Try the currency’s code, like USD.</p></div>`}
+function PayMethodsCard(){if(!S.isOwner)return '';
+ return `<div class="card"><h3>Payment methods</h3><p class="sub" style="margin:6px 0 10px">Tick the ways customers can pay at checkout. Untick to hide one. Details can be edited in Admin.</p>
+ ${S.payMethods.map(m=>`<label class="today-row" style="display:flex;gap:10px;align-items:center;margin:0;color:var(--ink);font-size:15px;cursor:pointer"><input type="checkbox" ${m.on?'checked':''} style="width:auto" onchange="togglePayMethod('${m.id}')"> <span style="flex:1"><b>${esc(m.name)}</b></span><small style="color:var(--ink2)">${m.region==='MV'?'Maldives':'Worldwide'}</small></label>`).join('')}
+ <p class="sub" style="font-size:13px;margin-top:8px">At least one method must stay on.</p></div>`}
 function Settings(){return `${Head('Settings','Your package, profile and preferences.')}
  <div class="nl-set"><div class="nl-col"><div class="card"><h3>Billing &amp; package</h3>
  <p class="sub" style="margin:6px 0 14px">Current plan: ${(()=>{const i=subInfo();if(i.state==='none')return '<b>No package yet</b>';const st={active:['Active','rgba(47,143,107,.18)'],pending:['Waiting for payment confirmation','rgba(227,168,87,.25)'],expired:['Ended','rgba(180,67,78,.14)']}[i.state]||['','transparent'];return `<b>${esc(i.p.short||i.p.name)}</b> — <span class="badge" style="background:${st[1]}">${st[0]}</span>`})()}</p>
@@ -4186,6 +4190,7 @@ function Settings(){return `${Head('Settings','Your package, profile and prefere
  ${S.pendingSubs.length?`<div class="store-hide" style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><p class="sub" style="font-size:13px;margin-bottom:8px">Request history</p>${S.pendingSubs.map(s=>`<div class="today-row"><span class="dot" style="background:var(--${s.status==='approved'?'ok':s.status==='rejected'?'rose':'gold'})"></span><span style="flex:1"><b>${esc(planInfo(s.plan).name)} — ${money(s.price)}/mo</b><br><small style="color:var(--ink2)">${sd(s.requestedAt)} · ${esc(s.method)} · ref ${esc(s.ref)} · ${s.status}</small></span></div>`).join('')}</div>`:''}
  </div>
  ${CurrencyCard()}
+ ${PayMethodsCard()}
  <div class="card"><h3>Profile</h3><label for="s1">Full name</label><input id="s1" value="${esc(S.name)}"><label>Email</label><p style="margin:0;color:var(--ink2)">${S.email}</p>
  <label for="s5">Appearance</label><select id="s5" onchange="if(this.value!==S.theme)toggleTheme()"><option value="light" ${S.theme==='light'?'selected':''}>Light</option><option value="noir" ${S.theme==='noir'?'selected':''}>Noir (dark)</option></select>
  <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--ink)"><input id="s3" type="checkbox" ${S.notif?'checked':''}> Notify me at 90% of my budget</label>
