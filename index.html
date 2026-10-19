@@ -3,6 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- © 2026 WalletMV. All rights reserved. The WalletMV name, logo, design, text and code may not be copied, resold or re-hosted without written permission. Report copies to WhatsApp +960 798 7770. -->
+<script>
+/* WalletMV copy guard: the real app only runs on walletmv.com (and its own previews). A copy hosted anywhere else shows a notice instead. */
+(function(){try{var h=location.hostname.toLowerCase();
+ var ok=!h||h==='localhost'||h==='127.0.0.1'||h==='[::1]'||/\.localhost$/.test(h)||h==='walletmv.com'||h==='www.walletmv.com'||/^walletmv[a-z0-9-]*\.vercel\.app$/.test(h);
+ var framed=false;try{framed=window.top!==window.self}catch(e){framed=true}
+ if(ok&&!framed)return;
+ window.__WM_BLOCKED=true;
+ document.open();document.write('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>WalletMV</title><body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0B1A2C;color:#F5EFE0;font:16px/1.5 system-ui,sans-serif;text-align:center;padding:24px"><div style="max-width:420px"><div style="width:64px;height:64px;border-radius:50%;border:2px solid #D4B26A;color:#D4B26A;font:700 34px Georgia,serif;display:flex;align-items:center;justify-content:center;margin:0 auto 18px">W</div><h1 style="font:600 26px Georgia,serif;margin:0 0 10px">This is not the real WalletMV</h1><p style="margin:0 0 18px;color:#cfc8b6">This copy is not approved by WalletMV. For your safety, please use the official app and never enter your details here.</p><a href="https://walletmv.com" style="display:inline-block;background:#D4B26A;color:#0B1A2C;padding:12px 22px;border-radius:999px;font-weight:600;text-decoration:none">Go to walletmv.com</a></div></body>');document.close();
+}catch(e){}})();
+</script>
 <title>WalletMV — Budget App &amp; Shop Tools for the Maldives</title>
 <meta name="description" content="WalletMV is the budget app made in the Maldives. Know what you can spend today, never miss a bill, reach your savings goals, and run your shop with POS, GST reports and loyalty cards. 3 months free, then from MVR 88 a month.">
 <meta name="theme-color" content="#0B1A2C">
@@ -497,7 +508,7 @@ const S={page:'home',mview:'today',signed:false,cur:'MVR',theme:'light',notif:tr
 const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do list'],['accounts','Accounts'],['tx','Transactions'],['addx','Add expense'],['addi','Add income'],['groceries','Groceries'],['cards','Discount cards'],['budget','Budget'],['goals','Goals'],['reports','Reports'],['docs','Documents'],['pdf','Image to PDF'],['people','Shared wallet'],['package','My package'],['settings','Settings']];
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
-const APP_BUILD='walletmv-v38';
+const APP_BUILD='walletmv-v39';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
