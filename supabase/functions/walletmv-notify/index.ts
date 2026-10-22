@@ -3,7 +3,8 @@
 //  - a new customer signs up with Google / Gmail ("signin"),
 //  - a customer reports a problem ("problem").
 // Alerts go to the owner's WhatsApp (CallMeBot, secret CALLMEBOT_APIKEY; number in OWNER_WHATSAPP, default +960 798 7770)
-// and/or the ntfy phone app (secret NTFY_TOPIC). Keys live only in Supabase secrets — never in this file.
+// and/or Telegram (secrets TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID) and/or the ntfy phone app (secret NTFY_TOPIC).
+// Keys live only in Supabase secrets — never in this file.
 // Each event is checked on the server (it must belong to the signed-in customer and be new),
 // and is sent once only, so nobody can use this to spam the owner.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -38,6 +39,19 @@ async function whatsapp(title: string, message: string, tags: string) {
     return r.ok;
   } catch { return false; }
 }
+async function telegram(title: string, message: string, tags: string) {
+  const token = Deno.env.get("TELEGRAM_BOT_TOKEN"), chat = Deno.env.get("TELEGRAM_CHAT_ID");
+  if (!token || !chat) return false;
+  const text = `${EMOJI[tags] || "🔔"} WalletMV — ${title}\n${message}\n\nOpen the staff area: https://walletmv.com/?staff=1`;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chat, text: text.slice(0, 3500), disable_web_page_preview: true }),
+    });
+    return r.ok;
+  } catch { return false; }
+}
 async function ntfy(title: string, message: string, tags: string, priority: string) {
   const topic = Deno.env.get("NTFY_TOPIC");
   if (!topic) return false;
@@ -51,8 +65,8 @@ async function ntfy(title: string, message: string, tags: string, priority: stri
   } catch { return false; }
 }
 async function push(title: string, message: string, tags: string, priority = "high") {
-  const [a, b] = await Promise.all([whatsapp(title, message, tags), ntfy(title, message, tags, priority)]);
-  return a || b;
+  const res = await Promise.all([whatsapp(title, message, tags), telegram(title, message, tags), ntfy(title, message, tags, priority)]);
+  return res.some(Boolean);
 }
 
 Deno.serve(async (req: Request) => {
@@ -77,7 +91,7 @@ Deno.serve(async (req: Request) => {
   if (kind === "status" || kind === "test") {
     const { data: owner } = await admin.from("walletmv_admins").select("email").eq("email", (me.email || "").toLowerCase()).maybeSingle();
     if (!owner) return reply({ ok: false }, 403);
-    const status = { whatsapp: !!Deno.env.get("CALLMEBOT_APIKEY"), ntfy: !!Deno.env.get("NTFY_TOPIC"), phone: (Deno.env.get("OWNER_WHATSAPP") || "9607987770").replace(/\D/g, "").replace(/^(\d{3})(\d{3})(\d+)$/, "+$1 $2 $3") };
+    const status = { whatsapp: !!Deno.env.get("CALLMEBOT_APIKEY"), telegram: !!(Deno.env.get("TELEGRAM_BOT_TOKEN") && Deno.env.get("TELEGRAM_CHAT_ID")), ntfy: !!Deno.env.get("NTFY_TOPIC"), phone: (Deno.env.get("OWNER_WHATSAPP") || "9607987770").replace(/\D/g, "").replace(/^(\d{3})(\d{3})(\d+)$/, "+$1 $2 $3") };
     if (kind === "status") return reply({ ok: true, ...status });
     const sent = await push("Test message", "Alerts are working. You'll get a message like this when a customer pays, reports a problem or signs up with Gmail.", "white_check_mark", "default");
     return reply({ ok: true, sent, ...status });
