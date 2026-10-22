@@ -509,7 +509,7 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v46';
+const APP_BUILD='walletmv-v47';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -761,7 +761,7 @@ function PrivacyBody(){
  +LegalSection('3. How we use information',"<p>We use information to create and maintain accounts, provide budgeting and business features, verify payments, activate purchased access, respond to support requests, prevent misuse, secure the Service, and troubleshoot problems.</p>")
  +LegalSection('4. Storage and security',"<p>WalletMV takes reasonable technical and organisational steps to protect information from unauthorised access, loss, misuse, or disclosure. No online system can guarantee absolute security. Users should protect their devices and passwords and report suspected account compromise. Each account’s records are kept separate.</p>")
  +LegalSection('5. Sharing',"<p>We do not sell personal information. If you invite family or staff to your wallet or shop, they see and change only the parts you allow, and your documents and payment history are never shared with them. Information may be processed by service providers needed to host, secure, authenticate, or support WalletMV, or by payment or messaging services when you choose to use them. We aim to limit access to what each provider needs and use appropriate confidentiality and security arrangements. Information may also be retained or disclosed where reasonably necessary to protect the Service, handle disputes, or meet applicable obligations.</p>")
- +LegalSection('6. Cookies and device storage',"<p>The website or application may use essential cookies, session storage, local storage, and similar technologies for sign-in, preferences, security, and core functionality. WalletMV does not use advertising trackers. If that ever changes, we will update this policy first.</p>")
+ +LegalSection('6. Cookies and device storage',"<p>The website or application may use essential cookies, session storage, local storage, and similar technologies for sign-in, preferences, security, and core functionality. WalletMV does not use advertising trackers. To count visitors, each browser gets a random number that stays in that browser; we only see that a device visited and which page was open — never your name, email or IP address. If that ever changes, we will update this policy first.</p>")
  +LegalSection('7. Retention',"<p>We retain information as reasonably necessary to provide the Service, maintain account and payment records, protect security, resolve disputes, and meet applicable retention requirements. When information is no longer needed, we will delete or de-identify it where appropriate, subject to required retention.</p>")
  +LegalSection('8. Your choices and requests',"<p>Subject to applicable law, users may request access to, correction of, export of, or deletion of personal information by contacting privacy@walletmv.com. We may verify account ownership before processing a request. If records must be retained, we will explain why where permitted.</p>")
  +LegalSection('9. Children',"<p>WalletMV is intended for users at least 18 years old or the age of legal majority where they live. If you believe an ineligible person has supplied personal information, contact us so we can review the matter.</p>")
@@ -1243,8 +1243,64 @@ async function adminDecide(id,ok,btn){const P=S.adminPay||{},row=(P.list||[]).fi
 async function adminSlip(path){if(!walletAuth||!walletAuth.storage)return;try{const {data,error}=await walletAuth.storage.from('walletmv-slips').createSignedUrl(path,300);if(error||!data)return toast('Couldn’t open the slip');window.open(data.signedUrl,'_blank','noopener')}catch(e){toast('Couldn’t open the slip')}}
 function loginProvider(em){em=String(em||'').toLowerCase();const u=S.recentLogins&&S.recentLogins.list&&S.recentLogins.list.find(x=>String(x.email||'').toLowerCase()===em);return u?u.provider:(/@gmail\.com$/.test(em)?'gmail':'')}
 function loginBadge(em){const p=loginProvider(em);return p==='google'||p==='gmail'?` <span class="badge" style="background:rgba(66,133,244,.14);color:#1a5fd0">Gmail</span>`:''}
+
+/* ---------- VISITOR COUNTING (anonymous) + ADMIN DASHBOARD ----------
+   Each browser gets a random id kept only in that browser. Every minute while the page is open we tell the database
+   "this id is here, on this page". No names, emails or IP addresses. Admin visits are not counted. */
+var _vid=null,_pingT=null;
+function visitorId(){if(_vid)return _vid;try{_vid=localStorage.getItem('walletmv:vid')}catch(e){}
+ if(!/^[0-9a-f-]{36}$/.test(_vid||'')){try{_vid=crypto.randomUUID()}catch(e){_vid='xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/x/g,()=>(Math.random()*16|0).toString(16))}try{localStorage.setItem('walletmv:vid',_vid)}catch(e){}}return _vid}
+function visitPing(){try{if(!walletAuth||!walletAuth.rpc||S.isOwner||document.visibilityState==='hidden')return;const w=innerWidth,dev=w<700?'phone':w<1100?'tablet':'computer';
+ walletAuth.rpc('walletmv_ping',{p_vid:visitorId(),p_page:String(PAGE_NAME()).slice(0,60),p_app:!!(STORE_APP||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)),p_device:dev}).then(()=>{},()=>{})}catch(e){}}
+function startVisitPing(){clearInterval(_pingT);setTimeout(visitPing,4000);_pingT=setInterval(visitPing,60000);addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')visitPing()})}
+var _dashT=null;
+async function loadDash(){if(!walletAuth||!S.isOwner)return;S.dash=S.dash||{};S.dash.busy=true;let r;try{r=await walletAuth.rpc('walletmv_admin_stats',{p_days:14})}catch(e){r={error:e}}
+ S.dash.busy=false;if(r&&!r.error&&r.data){S.dash.d=r.data;S.dash.err=''}else S.dash.err='The dashboard couldn’t load. Check you’re logged in as the owner, then tap Refresh.';
+ if(S.page==='admin'){const el=document.getElementById('admin-dash'),f=document.activeElement;if(el&&!(f&&el.contains(f)&&/INPUT|TEXTAREA/.test(f.tagName)))el.outerHTML=AdminDashHTML();else if(!el)render()}
+ clearTimeout(_dashT);if(S.page==='admin')_dashT=setTimeout(loadDash,30000)}
+async function addCost(){const n=(($('#costName')||{}).value||'').trim(),a=+(($('#costAmt')||{}).value||0);if(!n)return toast('Name the cost, e.g. Hosting');if(!(a>0))return toast('Enter the monthly amount in MVR');
+ let r;try{r=await walletAuth.from('walletmv_admin_costs').insert({name:n.slice(0,80),amount:Math.round(a*100)/100})}catch(e){r={error:e}}if(r&&r.error)return toast('Couldn’t save that cost. Try again.');toast(n+' added');loadDash()}
+async function delCost(id){let r;try{r=await walletAuth.from('walletmv_admin_costs').delete().eq('id',id)}catch(e){r={error:e}}if(r&&r.error)return toast('Couldn’t remove it. Try again.');toast('Cost removed');loadDash()}
+const mvr=v=>'MVR '+(Math.round((+v||0)*100)/100).toLocaleString('en-GB',{minimumFractionDigits:0,maximumFractionDigits:2});
+function DashChart(daily){if(!daily||!daily.length)return '';const noir=S.theme==='noir',cV=noir?'#5A8AE0':'#3A6FD0',cN=noir?'#B5821C':'#B9821A';
+ const W=Math.round(Math.max(320,Math.min(640,innerWidth-70))),H=W<500?190:200,padL=30,padB=26,padT=10,inner=W-padL-8,max=Math.max(4,...daily.map(d=>+d.visitors||0)),step=Math.ceil(max/4),top=step*4,slot=inner/daily.length,bw=Math.max(4,Math.min(14,(slot-6)/2));
+ const y=v=>padT+(H-padT-padB)*(1-(v/top));const bar=(x,v,c)=>{const h=Math.max(0,(H-padB)-y(v));if(h<=0)return '';const r=Math.min(4,h/2,bw/2);return `<path d="M${x},${H-padB} V${H-padB-h+r} Q${x},${H-padB-h} ${x+r},${H-padB-h} H${x+bw-r} Q${x+bw},${H-padB-h} ${x+bw},${H-padB-h+r} V${H-padB} Z" fill="${c}"/>`};
+ const grid=[0,1,2,3,4].map(i=>{const v=step*i,yy=y(v);return `<line x1="${padL}" x2="${W-8}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${padL-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--ink2)">${v}</text>`}).join('');
+ const bars=daily.map((d,i)=>{const x0=padL+i*slot+(slot-(bw*2+2))/2,dt=new Date(d.day+'T00:00'),lab=dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  return `<g class="dbar"><title>${lab}: ${d.visitors} visitor${d.visitors==1?'':'s'}, ${d.new} new</title><rect x="${padL+i*slot}" y="${padT}" width="${slot}" height="${H-padT-padB}" fill="transparent"/>${bar(x0,+d.visitors||0,cV)}${bar(x0+bw+2,+d.new||0,cN)}${(i%2===daily.length%2||daily.length<=8)?`<text x="${padL+i*slot+slot/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--ink2)">${dt.getDate()}</text>`:''}</g>`}).join('');
+ return `<div class="flex" style="gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink2);margin:10px 0 4px"><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${cV};vertical-align:-1px"></span> Visitors</span><span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${cN};vertical-align:-1px"></span> New visitors</span></div>
+  <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors and new visitors per day, last ${daily.length} days" style="width:100%;height:auto;display:block">${grid}${bars}</svg>
+  <details style="margin-top:6px"><summary style="cursor:pointer;font-size:13px;color:var(--ink2)">Show as a table</summary><table style="width:100%;font-size:13px;margin-top:6px;border-collapse:collapse"><tr><th style="text-align:left">Day</th><th style="text-align:right">Visitors</th><th style="text-align:right">New</th></tr>${daily.slice().reverse().map(d=>`<tr><td>${esc(ld(d.day))}</td><td style="text-align:right">${d.visitors}</td><td style="text-align:right">${d.new}</td></tr>`).join('')}</table></details>`}
+function AdminDashHTML(){if(!S.isOwner)return '';const D=S.dash||{};if(!D.d&&!D.busy&&!D.err)setTimeout(loadDash,0);const d=D.d;
+ const tile=(lab,val,sub,extra)=>`<div class="card stat" style="padding:14px 16px;margin:0"><small>${lab}</small><b style="display:flex;align-items:center;gap:8px">${extra||''}${val}</b>${sub?`<small style="color:var(--ink2)">${sub}</small>`:''}</div>`;
+ if(!d)return `<div class="card" id="admin-dash" style="margin-top:22px"><h3>Dashboard</h3><p class="sub" style="margin:8px 0 0">${D.err?esc(D.err):'Loading…'}</p>${D.err?'<button class="btn ghost sm" style="margin-top:10px" onclick="S.dash=null;render()">Refresh</button>':''}</div>`;
+ const n=v=>(+v||0).toLocaleString('en-GB'),dev=d.devices||{},devT=Object.values(dev).reduce((a,b)=>a+(+b||0),0)||1,pr=+d.profit_month||0,mon=new Date().toLocaleDateString('en-GB',{month:'long'});
+ return `<div class="card" id="admin-dash" style="margin-top:22px"><div class="flex between" style="flex-wrap:wrap;gap:10px;align-items:center"><div><h3 style="margin:0">Dashboard</h3><p class="sub" style="margin:4px 0 0">Updates by itself every 30 seconds. Your own visits aren’t counted.</p></div><button class="btn ghost sm" onclick="loadDash()">${D.busy?'Loading…':'Refresh'}</button></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,42%),1fr));gap:10px;margin-top:14px">
+   ${tile('Online now',n(d.online),(+d.online_app?n(d.online_app)+' in the app':'on the website or app'),`<span aria-hidden="true" style="width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(31,122,92,.18)"></span>`)}
+   ${tile('Visitors today',n(d.today),n(d.today_new)+' new today')}
+   ${tile('Last 7 days',n(d.week),n(d.week_new)+' new · '+n(d.returning_week)+' came back')}
+   ${tile('Last 30 days',n(d.month),n(d.all_visitors)+' visitors ever')}
+   ${tile('Sign-ups this week',n(d.signups_week),n(d.signups_today)+' today · '+n(d.signups_all)+' accounts')}
+   ${tile('Paying customers',n(d.paid_customers),(+d.pending_payments?n(d.pending_payments)+' payment'+(+d.pending_payments===1?'':'s')+' waiting':'none waiting'))}
+  </div>
+  <h3 style="margin:22px 0 0;font-size:1.15rem">Visitors per day</h3>${DashChart(d.daily)}
+  <div class="grid2" style="margin-top:18px;align-items:start">
+   <div><h3 style="font-size:1.05rem;margin:0 0 6px">Most viewed (7 days)</h3>${(d.pages||[]).length?(d.pages||[]).map(x=>`<div class="today-row"><span style="flex:1">${esc(x.page)}</span><b>${n(x.n)}</b></div>`).join(''):'<p class="sub">No visits yet.</p>'}</div>
+   <div><h3 style="font-size:1.05rem;margin:0 0 6px">Devices (30 days)</h3>${['phone','tablet','computer'].map(k=>`<div class="today-row"><span style="flex:1">${k==='phone'?'📱 Phone':k==='tablet'?'💻 Tablet':'🖥️ Computer'}</span><b>${Math.round((+dev[k]||0)*100/devT)}%</b></div>`).join('')}<div class="today-row"><span style="flex:1">📲 Using the installed app</span><b>${n(d.app_share)}</b></div></div>
+  </div>
+  <div style="border-top:1px solid var(--line);margin-top:18px;padding-top:14px"><h3 style="margin:0;font-size:1.15rem">Profit · ${esc(mon)}</h3><p class="sub" style="margin:4px 0 10px;font-size:13px">From payments you approved this month. Package prices include 8% GST, which belongs to MIRA.</p>
+   <div class="today-row"><span style="flex:1">Payments received</span><b>${mvr(d.revenue_month)}</b></div>
+   <div class="today-row"><span style="flex:1">GST to pay MIRA (8%)</span><b>− ${mvr(d.gst_month)}</b></div>
+   <div class="today-row"><span style="flex:1">Running costs (monthly)</span><b>− ${mvr(d.costs_month)}</b></div>
+   <div class="today-row" style="border-top:2px solid var(--line)"><span style="flex:1;font-weight:700">${pr>=0?'Profit':'Loss'} this month</span><b style="font-size:1.3rem;color:${pr>=0?'var(--ok)':'var(--rose)'}">${pr<0?'− ':''}${mvr(Math.abs(pr))}</b></div>
+   <p class="sub" style="font-size:13px;margin:8px 0 0">All payments ever: <b>${mvr(d.revenue_all)}</b></p>
+   <details style="margin-top:10px" ontoggle="S.dashCostsOpen=this.open"${(S.dashCostsOpen||!(d.costs||[]).length)?' open':''}><summary style="cursor:pointer;font-weight:600">Your monthly costs (${(d.costs||[]).length})</summary>
+    ${(d.costs||[]).map(c=>`<div class="today-row"><span style="flex:1">${esc(c.name)}</span><b>${mvr(c.amount)}</b><button class="btn ghost xs" style="color:var(--rose)" onclick="arm('cost${esc(c.id)}',()=>delCost('${esc(c.id)}'))">${S.armed==='cost'+c.id?'Confirm':'Remove'}</button></div>`).join('')}
+    <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:10px"><input id="costName" placeholder="e.g. Hosting, SIM, ads" style="flex:1;min-width:150px"><input id="costAmt" type="number" min="0" step="0.01" inputmode="decimal" placeholder="MVR a month" style="width:140px"><button class="btn sm" onclick="addCost()">Add cost</button></div></details>
+  </div></div>`}
 function StaffJump(){const j=(id,t)=>`<button class="btn ghost sm" style="min-height:42px" onclick="const e=document.getElementById('${id}');if(e)e.scrollIntoView({block:'start'})">${t}</button>`;
- return `<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:18px">${j('admin-pays','💰 Approve payments')}${j('admin-logins','👤 Gmail customers')}${j('admin-paymethods','💳 Payment methods')}${j('admin-issues','⚠️ Problems')}</div>`}
+ return `<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:18px">${j('admin-dash','📊 Dashboard')}${j('admin-pays','💰 Approve payments')}${j('admin-logins','👤 Gmail customers')}${j('admin-paymethods','💳 Payment methods')}${j('admin-issues','⚠️ Problems')}</div>`}
 function AdminPayHTML(){if(!S.recentLogins)setTimeout(loadRecentLogins,0);const P=S.adminPay||{filter:'pending'};if(!P.list&&!P.busy)setTimeout(loadAdminPays,0);
  const list=P.list||[],f=P.filter||'pending',n=k=>list.filter(x=>x.status===k).length,show=list.filter(x=>f==='all'||x.status===f);
  const row=x=>{const pl=planInfo(x.plan),st=x.status;return `<div class="today-row" style="align-items:flex-start;flex-wrap:wrap;gap:10px"><span class="dot" style="margin-top:6px;background:var(--${st==='approved'?'ok':st==='rejected'?'rose':'gold'})"></span>
@@ -1847,6 +1903,7 @@ function AdminPanel(){
  <div class="wrap" style="padding:24px 24px 90px">
  <div class="eyebrow" style="color:var(--gold-d)">Staff only</div><h1 style="margin-top:10px;font-size:clamp(2.2rem,5vw,3rem)">Package &amp; payment approvals</h1><p class="sub" style="margin-top:10px;max-width:56ch">${S.autoActivate?'Packages switch on as soon as a customer submits a transfer reference and slip. Check each one against your bank statement, then confirm it or switch it off.':'Every upgrade request lands here first — check the payment reference against what actually came in, then approve or decline. Nothing activates on its own.'}</p>
  ${StaffJump()}
+ ${AdminDashHTML()}
  ${AdminPayHTML()}
  <div id="admin-paymethods" style="margin-top:22px">${PayMethodsCard()}</div>
  <h3 style="margin:28px 0 0">Requests made from this account</h3>
@@ -4518,7 +4575,7 @@ if(walletAuth){walletAuth.auth.onAuthStateChange((event,session)=>{setTimeout(()
 
 /* ============ STUDIO ============ */
 if(walletAuth)loadPublicConfig();
-render();lockInit();
+render();lockInit();if(walletAuth)startVisitPing();
 </script>
 </body>
 </html>
