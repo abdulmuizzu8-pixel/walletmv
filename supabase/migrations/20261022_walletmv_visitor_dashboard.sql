@@ -1,4 +1,4 @@
--- WalletMV admin dashboard: anonymous visitor counting + profit (NOT applied yet — needs the owner's approval).
+-- WalletMV admin dashboard: anonymous visitor counting + profit (applied 22 Oct 2026 with the owner's approval).
 -- Each browser gets a random visitor id (kept in that browser only). No names, emails or IP addresses are stored.
 --  * walletmv_visitors: one row per browser — first and last time seen, which page, app or website, phone or computer.
 --  * walletmv_visit_days: which visitors came on which day (for "visitors per day" and "new visitors").
