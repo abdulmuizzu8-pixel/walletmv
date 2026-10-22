@@ -1345,13 +1345,12 @@ function AdminPayHTML(){if(!S.recentLogins)setTimeout(loadRecentLogins,0);const 
  <div style="margin-top:8px">${show.length?show.map(row).join(''):`<p class="sub" style="margin:12px 0 0">${P.busy&&!P.list?'Loading…':f==='pending'?'Nothing waiting. New requests show up here.':'Nothing here yet.'}</p>`}</div></div>`}
 
 function submitPayment(){
- const method=$('#payMethod').value||checkoutMethodId(),ref=$('#payRef').value.trim();
+ const method=$('#payMethod').value||checkoutMethodId(),ref='WM-'+String(Date.now()).slice(-6);
  if(!method)return toast('No payment method is available right now');
- if(!ref)return toast('Enter the payment reference or receipt number');
+ if(!S.checkoutSlip&&!S.checkoutSlipName)return toast('Attach your payment slip (photo or PDF) so we can check your payment');
  const plan=S.checkoutPlan,info=planInfo(plan);
  const auto=S.autoActivate;
- if(auto&&!S.checkoutSlip&&!S.checkoutSlipName)return toast('Attach a photo of your transfer slip so your package can switch on straight away');
- const sub={id:Date.now(),plan,price:info.price,total:planTotal(info),days:info.days,method,ref,requestedAt:isoD(today),status:auto?'auto':'pending',slip:S.checkoutSlip,slipName:S.checkoutSlipName};
+  const sub={id:Date.now(),plan,price:info.price,total:planTotal(info),days:info.days,method,ref,requestedAt:isoD(today),status:auto?'auto':'pending',slip:S.checkoutSlip,slipName:S.checkoutSlipName};
  S.pendingSubs.unshift(sub);
  if(auto)activateSub(plan,false,info.days);else S.subscription={plan,status:'pending_approval',requestedAt:isoD(today),approvedAt:null,prev:S.subscription};
  S.checkoutSlip=null;S.checkoutSlipName='';S.checkoutRef='';S.checkoutMethod=null;S.checkoutStep='done';S.lastSubId=sub.id;
@@ -1365,7 +1364,7 @@ function NotifyLinks(sub,dark){
  const wa=waHref(sub),vb=viberHref(sub);
  const waTag=wa?`<a class="btn ghost sm" style="${style};text-decoration:none" href="${esc(wa)}" target="_blank" rel="noopener">📲 Notify via WhatsApp</a>`
   :`<button class="btn ghost sm" style="${style}" onclick="toast('Add a WhatsApp number in Settings → Payment notifications first')">📲 Notify via WhatsApp</button>`;
- const vbTag=vb?`<a class="btn ghost sm" style="${style};text-decoration:none" href="${esc(vb)}" onclick="toast('Opening Viber — paste in the reference, and attach your slip photo')">📲 Notify via Viber</a>`
+ const vbTag=vb?`<a class="btn ghost sm" style="${style};text-decoration:none" href="${esc(vb)}" onclick="toast('Opening Viber — attach your slip photo')">📲 Notify via Viber</a>`
   :`<button class="btn ghost sm" style="${style}" onclick="toast('Add a Viber number in Settings → Payment notifications first')">📲 Notify via Viber</button>`;
  return waTag+vbTag}
 function approveSub(id){const s=S.pendingSubs.find(x=>x.id===id);if(!s)return;
@@ -1406,8 +1405,7 @@ function Checkout(){
   ${OrderSummary(p,'')}</div></div>`}
  const detail=pm?(kind==='wa'?`<div class="pmx"><p style="margin:0 0 6px;font-size:14px">We'll open WhatsApp with your order ready to send:</p><div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;white-space:pre-line">${esc(waOrderText(p,'WA-…'))}</div><p class="sub" style="font-size:12.5px;margin:8px 0 0">We reply with how to pay, then switch your package on.</p></div>`:kind==='card'?`<div class="pmx"><p style="margin:0;font-size:14px">You'll be taken to the secure card page to pay <b>MVR ${planTotal(p)}</b>. Your package switches on as soon as the payment goes through.</p></div>`
   :`<div class="pmx"><small style="color:var(--ink2);letter-spacing:.05em;font-weight:600">HOW TO PAY · ${pm.region==='MV'?'MALDIVES':'WORLDWIDE'}</small><p style="margin:4px 0 12px;font-size:14px">${esc(pm.details)}${pm.region!=='MV'?` Pay MVR ${planTotal(p)} or the equivalent in your currency.`:''}</p>${pm.link?`<a class="btn sm" href="${esc(pm.link)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 0 12px">Pay online now →</a><p class="sub" style="font-size:13px;margin:0 0 10px">After you pay, come back and add your payment reference below.</p>`:''}${pm.qr?`<div style="text-align:center;margin:0 0 12px"><img src="${pm.qr}" alt="Scan to pay with ${esc(pm.name)}" style="width:200px;max-width:70%;height:auto;background:#fff;padding:8px;border-radius:12px;border:1px solid var(--line)"><p class="sub" style="font-size:13px;margin:6px 0 0">Scan this with your banking app to pay.</p></div>`:''}
-   <label for="payRef" style="margin-top:0">Payment reference</label><input id="payRef" placeholder="${esc(pm.refHint||'Transaction or receipt number')}" value="${esc(S.checkoutRef)}" oninput="S.checkoutRef=this.value">
-   <label for="paySlip" style="margin-top:12px">Payment slip ${S.autoActivate?'(required)':'(optional)'}</label><div class="flex" style="align-items:center;gap:10px;flex-wrap:wrap"><label class="btn ghost sm" for="paySlip" style="margin:0">📎 Attach slip (photo or PDF)</label><input id="paySlip" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hide" onchange="pickSlip(this.files[0]);this.value=''">${S.checkoutSlipName?`<span style="font-size:13px;color:var(--ink2)">${esc(S.checkoutSlipName)} attached</span>`:''}</div>
+   <label for="paySlip" style="margin-top:0">Payment slip</label><div class="flex" style="align-items:center;gap:10px;flex-wrap:wrap"><label class="btn ghost sm" for="paySlip" style="margin:0">📎 Attach slip (photo or PDF)</label><input id="paySlip" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hide" onchange="pickSlip(this.files[0]);this.value=''">${S.checkoutSlipName?`<span style="font-size:13px;color:var(--ink2)">${esc(S.checkoutSlipName)} attached</span>`:''}</div>
    <p class="sub" style="font-size:12.5px;margin:10px 0 0">${S.autoActivate?'Your package switches on straight away once you attach the slip — we then check it against our bank statement.':'Your package switches on once we confirm the payment.'}</p></div>`):'';
  const btnLabel=kind==='wa'?`${IC('chat',16)} Send order on WhatsApp`:kind==='card'?`${IC('lock',16)} Pay now`:S.autoActivate?'Pay now &amp; activate':'Submit payment';
  return `${PageHeader('packages',false)}
