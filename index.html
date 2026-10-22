@@ -700,7 +700,10 @@ function PkTabs(dark){const k=S.pkTab||'personal';const st=t=>`border:0;border-r
 function setPkTab(t){S.pkTab=t;render()}
 function PlanGroups(plans,cardFn,where){const k=S.pkTab||'personal';const l=plans.filter(x=>kindOf(x)===k);
  const cards=where==='home'?l.map(periodize).map(cardFn).join(''):l.map(cardFn).join('');
- return `<div class="pgrp">${where==='home'?`<div class="bgrid pgh${l.length>2?'':' duo'}">${cards}</div>`:`<div class="pkgrid pk${l.length>2?'4':'2'}">${cards}</div>`}</div>`}
+ return `<div class="pgrp">${where==='home'?`<div class="bgrid pgh${l.length>2?'':' duo'}">${cards}</div>`:`<div class="pkgrid pk${l.length>2?'4':'2'}">${cards}</div>`}${PkOther(plans,k,where)}</div>`}
+function PkOther(plans,k,where){const o=k==='personal'?'business':'personal',names=plans.filter(x=>kindOf(x)===o).map(x=>esc(x.name));if(!names.length)return '';
+ const txt=o==='business'?'Have a shop or business? See '+names.join(' and ')+' →':'Looking for yourself or your family? See '+names.join(', ')+' →';
+ return `<p style="text-align:center;margin:22px 0 0"><button class="btn ghost" style="${where==='home'?'':'background:#fff;'}" onclick="setPkTab('${o}');(document.querySelector('.pktabs')||document.body).scrollIntoView({block:'start'})">${txt}</button></p>`}
 function Home(){const plans=S.plans.filter(p=>p.on),from=(cheapest()||{price:0}).price,hasFree=plans.some(isTrialP);
  const B=[['target','One number, every morning','WalletMV looks at your income, bills and goals, then tells you exactly how much is safe to spend today. No maths, no guessing.'],
   ['bill','Never miss a bill again','STELCO, rent, internet, school fees — snap a photo of the bill to add it, and get a reminder before each one is due.'],
