@@ -509,7 +509,7 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v47';
+const APP_BUILD='walletmv-v48';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -1299,8 +1299,26 @@ function AdminDashHTML(){if(!S.isOwner)return '';const D=S.dash||{};if(!D.d&&!D.
     ${(d.costs||[]).map(c=>`<div class="today-row"><span style="flex:1">${esc(c.name)}</span><b>${mvr(c.amount)}</b><button class="btn ghost xs" style="color:var(--rose)" onclick="arm('cost${esc(c.id)}',()=>delCost('${esc(c.id)}'))">${S.armed==='cost'+c.id?'Confirm':'Remove'}</button></div>`).join('')}
     <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:10px"><input id="costName" placeholder="e.g. Hosting, SIM, ads" style="flex:1;min-width:150px"><input id="costAmt" type="number" min="0" step="0.01" inputmode="decimal" placeholder="MVR a month" style="width:140px"><button class="btn sm" onclick="addCost()">Add cost</button></div></details>
   </div></div>`}
+
+/* ---------- Owner WhatsApp alerts (sent by the walletmv-notify server function; the key lives in Supabase secrets) ---------- */
+async function alertStatus(test){if(!walletAuth||!S.isOwner)return;S.alerts={...(S.alerts||{}),busy:true};render();let r;try{r=await walletAuth.functions.invoke('walletmv-notify',{body:{kind:test?'test':'status'}})}catch(e){r={error:e}}
+ const d=r&&r.data;S.alerts={busy:false,loaded:true,ok:!!(d&&d.ok),whatsapp:!!(d&&d.whatsapp),ntfy:!!(d&&d.ntfy),phone:(d&&d.phone)||S.ownerWhatsapp};
+ if(test)toast(d&&d.sent?'Test sent — check your WhatsApp':(d&&d.whatsapp?'Couldn’t send. Check the key and try again.':'WhatsApp alerts aren’t set up yet — follow the steps'));render()}
+function AlertsCard(){if(!S.isOwner)return '';const A=S.alerts||{};if(!A.loaded&&!A.busy)setTimeout(()=>alertStatus(false),0);
+ const on=A.whatsapp,step=(n,t)=>`<li style="margin:6px 0">${t}</li>`;
+ return `<div class="card" id="admin-alerts" style="margin-top:22px;${on?'':'border:2px solid var(--gold)'}"><div class="flex between" style="flex-wrap:wrap;gap:10px;align-items:center"><div><h3 style="margin:0">WhatsApp alerts</h3><p class="sub" style="margin:4px 0 0">Get a WhatsApp message on <b>${esc(A.phone||S.ownerWhatsapp)}</b> every time a customer sends a payment to approve, reports a problem or signs up with Gmail.</p></div>
+  <span class="badge" style="background:${on?'rgba(31,122,92,.15)':'rgba(201,169,97,.2)'};color:${on?'var(--ok)':'var(--gold-d)'}">${A.busy?'Checking…':on?'✓ On':'Not set up'}</span></div>
+  ${on?`<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn sm" onclick="alertStatus(true)">Send a test message</button></div>`:
+  `<ol style="margin:14px 0 0;padding-left:20px;font-size:14.5px;line-height:1.5">
+   ${step(1,'On your phone, save <b>+34 621 331 709</b> as a contact called “CallMeBot”. (If it doesn’t reply, check the current number on <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" rel="noopener">callmebot.com</a>.)')}
+   ${step(2,'From WhatsApp on '+esc(A.phone||S.ownerWhatsapp)+', send it this message: <b>I allow callmebot to send me messages</b>')}
+   ${step(3,'It replies with <b>your APIKEY</b> (a number). Keep it private.')}
+   ${step(4,'Open <a href="https://supabase.com/dashboard/project/stouchncgnyagrhcwaqr/functions/secrets" target="_blank" rel="noopener">Supabase → Edge Functions → Secrets</a>, add a secret named <b>CALLMEBOT_APIKEY</b> and paste the key as the value. Never put it anywhere else.')}
+   ${step(5,'Come back here and tap <b>Check again</b>, then send a test message.')}</ol>
+   <div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn sm" onclick="alertStatus(false)">Check again</button><button class="btn ghost sm" onclick="alertStatus(true)">Send a test message</button></div>`}
+  <p class="sub" style="font-size:12.5px;margin:12px 0 0">Customers can also message you directly: Report a problem and Order on WhatsApp both open a chat with ${esc(S.ownerWhatsapp)}.</p></div>`}
 function StaffJump(){const j=(id,t)=>`<button class="btn ghost sm" style="min-height:42px" onclick="const e=document.getElementById('${id}');if(e)e.scrollIntoView({block:'start'})">${t}</button>`;
- return `<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:18px">${j('admin-dash','📊 Dashboard')}${j('admin-pays','💰 Approve payments')}${j('admin-logins','👤 Gmail customers')}${j('admin-paymethods','💳 Payment methods')}${j('admin-issues','⚠️ Problems')}</div>`}
+ return `<div class="flex" style="gap:8px;flex-wrap:wrap;margin-top:18px">${j('admin-dash','📊 Dashboard')}${j('admin-pays','💰 Approve payments')}${j('admin-alerts','📲 WhatsApp alerts')}${j('admin-logins','👤 Gmail customers')}${j('admin-paymethods','💳 Payment methods')}${j('admin-issues','⚠️ Problems')}</div>`}
 function AdminPayHTML(){if(!S.recentLogins)setTimeout(loadRecentLogins,0);const P=S.adminPay||{filter:'pending'};if(!P.list&&!P.busy)setTimeout(loadAdminPays,0);
  const list=P.list||[],f=P.filter||'pending',n=k=>list.filter(x=>x.status===k).length,show=list.filter(x=>f==='all'||x.status===f);
  const row=x=>{const pl=planInfo(x.plan),st=x.status;return `<div class="today-row" style="align-items:flex-start;flex-wrap:wrap;gap:10px"><span class="dot" style="margin-top:6px;background:var(--${st==='approved'?'ok':st==='rejected'?'rose':'gold'})"></span>
@@ -1905,6 +1923,7 @@ function AdminPanel(){
  ${StaffJump()}
  ${AdminDashHTML()}
  ${AdminPayHTML()}
+ ${AlertsCard()}
  <div id="admin-paymethods" style="margin-top:22px">${PayMethodsCard()}</div>
  <h3 style="margin:28px 0 0">Requests made from this account</h3>
  <div class="grid3" style="margin-top:12px"><div class="card stat"><small>To check with your bank</small><b class="${(pending.length+autoList.length)?'neg':''}">${pending.length+autoList.length}</b></div><div class="card stat"><small>Approved (all time)</small><b class="pos">${approved.length}</b></div><div class="card stat"><small>Recognised MRR</small><b>${money(mrr)}</b></div></div>

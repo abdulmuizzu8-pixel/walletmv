@@ -2,7 +2,8 @@
 //  - a customer sends a payment ("payment"),
 //  - a new customer signs up with Google / Gmail ("signin"),
 //  - a customer reports a problem ("problem").
-// The ntfy topic lives only in the Supabase secret NTFY_TOPIC — never in this file.
+// Alerts go to the owner's WhatsApp (CallMeBot, secret CALLMEBOT_APIKEY; number in OWNER_WHATSAPP, default +960 798 7770)
+// and/or the ntfy phone app (secret NTFY_TOPIC). Keys live only in Supabase secrets — never in this file.
 // Each event is checked on the server (it must belong to the signed-in customer and be new),
 // and is sent once only, so nobody can use this to spam the owner.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -26,15 +27,32 @@ function headersFor(origin: string | null): Record<string, string> {
 const PLAN: Record<string, string> = { veli: "Veli", starter: "Boli", plus: "Muraka", family: "Atholhu", mvshop: "Dhoni", mvtax: "MVTAX" };
 const clip = (v: unknown, n = 120) => String(v ?? "").replace(/[\r\n]+/g, " ").slice(0, n);
 
-async function push(title: string, message: string, tags: string, priority = "high") {
+const EMOJI: Record<string, string> = { moneybag: "💰", warning: "⚠️", wave: "👋", white_check_mark: "✅" };
+async function whatsapp(title: string, message: string, tags: string) {
+  const key = Deno.env.get("CALLMEBOT_APIKEY");
+  if (!key) return false;
+  const phone = (Deno.env.get("OWNER_WHATSAPP") || "9607987770").replace(/\D/g, "");
+  const text = `${EMOJI[tags] || "🔔"} *WalletMV — ${title}*\n${message}\n\nOpen the staff area: https://walletmv.com/?staff=1`;
+  try {
+    const r = await fetch(`https://api.callmebot.com/whatsapp.php?phone=${phone}&apikey=${encodeURIComponent(key)}&text=${encodeURIComponent(text.slice(0, 1500))}`);
+    return r.ok;
+  } catch { return false; }
+}
+async function ntfy(title: string, message: string, tags: string, priority: string) {
   const topic = Deno.env.get("NTFY_TOPIC");
   if (!topic) return false;
-  const r = await fetch("https://ntfy.sh/" + encodeURIComponent(topic), {
-    method: "POST",
-    body: message,
-    headers: { "Title": title, "Tags": tags, "Priority": priority, "Click": "https://walletmv.com/?staff=1" },
-  });
-  return r.ok;
+  try {
+    const r = await fetch("https://ntfy.sh/" + encodeURIComponent(topic), {
+      method: "POST",
+      body: message,
+      headers: { "Title": title, "Tags": tags, "Priority": priority, "Click": "https://walletmv.com/?staff=1" },
+    });
+    return r.ok;
+  } catch { return false; }
+}
+async function push(title: string, message: string, tags: string, priority = "high") {
+  const [a, b] = await Promise.all([whatsapp(title, message, tags), ntfy(title, message, tags, priority)]);
+  return a || b;
 }
 
 Deno.serve(async (req: Request) => {
@@ -54,6 +72,16 @@ Deno.serve(async (req: Request) => {
   let body: { kind?: string; id?: string; ref?: string } = {};
   try { body = await req.json(); } catch { /* empty */ }
   const kind = String(body.kind || "");
+
+  // Owner only: is WhatsApp set up, and send a test message.
+  if (kind === "status" || kind === "test") {
+    const { data: owner } = await admin.from("walletmv_admins").select("email").eq("email", (me.email || "").toLowerCase()).maybeSingle();
+    if (!owner) return reply({ ok: false }, 403);
+    const status = { whatsapp: !!Deno.env.get("CALLMEBOT_APIKEY"), ntfy: !!Deno.env.get("NTFY_TOPIC"), phone: (Deno.env.get("OWNER_WHATSAPP") || "9607987770").replace(/\D/g, "").replace(/^(\d{3})(\d{3})(\d+)$/, "+$1 $2 $3") };
+    if (kind === "status") return reply({ ok: true, ...status });
+    const sent = await push("Test message", "Alerts are working. You'll get a message like this when a customer pays, reports a problem or signs up with Gmail.", "white_check_mark", "default");
+    return reply({ ok: true, sent, ...status });
+  }
   const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
   if (kind === "payment") {
