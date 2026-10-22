@@ -509,7 +509,7 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v50';
+const APP_BUILD='walletmv-v51';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -1152,6 +1152,8 @@ function dayRing(left,total,size=120,label='Days left'){const r=size/2-9,c=2*Mat
 function requestUpgrade(plan){S.period='month';if((isVeli(planOf(plan))||isTrialP(planOf(plan)))&&!S.signed)return startFree();S.checkoutPlan=plan;S.checkoutStep='pay';S.lastSubId=null;go('checkout')}
 function pickSlip(file){
  if(!file)return;
+ if(file.type&&!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.type))return toast('Attach a photo (JPG or PNG) or a PDF of your slip');
+ if(file.size>3*1024*1024)return toast('That file is over 3 MB. Take a screenshot of the slip instead.');
  if(typeof FileReader==='undefined'){S.checkoutSlipName=file.name||'slip';render();return}
  const reader=new FileReader();
  reader.onload=()=>{S.checkoutSlip=reader.result;S.checkoutSlipName=file.name||'payment-slip';render()};
@@ -1405,7 +1407,7 @@ function Checkout(){
  const detail=pm?(kind==='wa'?`<div class="pmx"><p style="margin:0 0 6px;font-size:14px">We'll open WhatsApp with your order ready to send:</p><div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;white-space:pre-line">${esc(waOrderText(p,'WA-…'))}</div><p class="sub" style="font-size:12.5px;margin:8px 0 0">We reply with how to pay, then switch your package on.</p></div>`:kind==='card'?`<div class="pmx"><p style="margin:0;font-size:14px">You'll be taken to the secure card page to pay <b>MVR ${planTotal(p)}</b>. Your package switches on as soon as the payment goes through.</p></div>`
   :`<div class="pmx"><small style="color:var(--ink2);letter-spacing:.05em;font-weight:600">HOW TO PAY · ${pm.region==='MV'?'MALDIVES':'WORLDWIDE'}</small><p style="margin:4px 0 12px;font-size:14px">${esc(pm.details)}${pm.region!=='MV'?` Pay MVR ${planTotal(p)} or the equivalent in your currency.`:''}</p>${pm.link?`<a class="btn sm" href="${esc(pm.link)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:0 0 12px">Pay online now →</a><p class="sub" style="font-size:13px;margin:0 0 10px">After you pay, come back and add your payment reference below.</p>`:''}${pm.qr?`<div style="text-align:center;margin:0 0 12px"><img src="${pm.qr}" alt="Scan to pay with ${esc(pm.name)}" style="width:200px;max-width:70%;height:auto;background:#fff;padding:8px;border-radius:12px;border:1px solid var(--line)"><p class="sub" style="font-size:13px;margin:6px 0 0">Scan this with your banking app to pay.</p></div>`:''}
    <label for="payRef" style="margin-top:0">Payment reference</label><input id="payRef" placeholder="${esc(pm.refHint||'Transaction or receipt number')}" value="${esc(S.checkoutRef)}" oninput="S.checkoutRef=this.value">
-   <label for="paySlip" style="margin-top:12px">Payment slip ${S.autoActivate?'(required)':'(optional)'}</label><div class="flex" style="align-items:center;gap:10px;flex-wrap:wrap"><label class="btn ghost sm" for="paySlip" style="margin:0">📷 Attach slip photo</label><input id="paySlip" type="file" accept="image/*" capture="environment" class="hide" onchange="pickSlip(this.files[0])">${S.checkoutSlipName?`<span style="font-size:13px;color:var(--ink2)">${esc(S.checkoutSlipName)} attached</span>`:''}</div>
+   <label for="paySlip" style="margin-top:12px">Payment slip ${S.autoActivate?'(required)':'(optional)'}</label><div class="flex" style="align-items:center;gap:10px;flex-wrap:wrap"><label class="btn ghost sm" for="paySlip" style="margin:0">📎 Attach slip (photo or PDF)</label><input id="paySlip" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="hide" onchange="pickSlip(this.files[0]);this.value=''">${S.checkoutSlipName?`<span style="font-size:13px;color:var(--ink2)">${esc(S.checkoutSlipName)} attached</span>`:''}</div>
    <p class="sub" style="font-size:12.5px;margin:10px 0 0">${S.autoActivate?'Your package switches on straight away once you attach the slip — we then check it against our bank statement.':'Your package switches on once we confirm the payment.'}</p></div>`):'';
  const btnLabel=kind==='wa'?`${IC('chat',16)} Send order on WhatsApp`:kind==='card'?`${IC('lock',16)} Pay now`:S.autoActivate?'Pay now &amp; activate':'Submit payment';
  return `${PageHeader('packages',false)}
