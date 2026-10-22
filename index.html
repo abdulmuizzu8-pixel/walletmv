@@ -509,7 +509,7 @@ const MNAV=[['today','Today'],['calendar','Bills & calendar'],['tasks','To-do li
 const ACC_ICON={bank:'🏦',cash:'💵',ewallet:'📱'};
 /* Store apps (Google Play / App Store) open with ?store=android|ios — see storeTidy() */
 let WANT_STAFF=/[?&]staff=1\b/.test(location.search);
-const APP_BUILD='walletmv-v51';
+const APP_BUILD='walletmv-v52';
 const STORE_APP=(()=>{try{const m=location.search.match(/[?&]store=(ios|android)\b/);if(m){sessionStorage.setItem('walletmv:store',m[1]);return m[1]}return sessionStorage.getItem('walletmv:store')||''}catch(e){return ''}})();
 const STORE_HIDE=['home','packages','services','checkout'];
 /* Card payments are a test page until BML Connect is approved: only on this computer and on private preview links */
@@ -2580,6 +2580,19 @@ function ReminderNote(){if(!canNotify())return `<p class="sub" style="margin:0;f
  return `<div class="flex" style="gap:10px;align-items:center;flex-wrap:wrap"><p class="sub" style="margin:0;font-size:13px;flex:1;min-width:180px">${IC('bell',15)} Get a reminder at the time you set, even in another tab.</p><button class="btn ghost sm" onclick="enableReminders()">Turn on reminders</button></div>`}
 
 const TASK_CSS=`<style>
+.tk-dash{margin-bottom:16px;padding:16px 18px}
+.tk-dash .tkd-head{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer;text-align:left;color:var(--ink);font:inherit}
+.tk-dash .tkd-head>span{flex:1;display:flex;flex-direction:column;gap:2px}.tk-dash .tkd-head b{font:600 1.25rem var(--head)}.tk-dash .tkd-head small{color:var(--ink2);font-size:13.5px}
+.tk-dash .tkd-head svg{flex:none;color:var(--ink2);transition:transform .15s}.tk-dash .tkd-head[aria-expanded=false] svg{transform:rotate(-90deg)}
+.tkd-fire{font-style:normal;font-weight:700;background:rgba(212,178,106,.2);color:var(--gold-d);border-radius:999px;padding:4px 10px;font-size:14px;white-space:nowrap}
+.tkd-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(140px,44%),1fr));gap:10px;margin-top:14px}
+.tkd-tile{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tkd-tile small{color:var(--ink2);font-size:12.5px}.tkd-tile b{font:600 1.45rem var(--head);color:var(--ink)}
+.tkd-next{margin-top:12px}.tkd-next small{color:var(--ink2);font-size:12.5px;display:block;margin-top:6px}
+.tkd-chart{margin-top:12px}.tkd-lab{color:var(--ink2);font-size:12.5px}
+.tkd-chart details{margin-top:4px;font-size:13px;color:var(--ink2)}.tkd-chart summary{cursor:pointer}.tkd-chart table{width:100%;border-collapse:collapse;margin-top:6px}.tkd-chart td,.tkd-chart th{text-align:left;padding:3px 0}.tkd-chart td+td,.tkd-chart th+th{text-align:right}
+.tkd-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.tkd-badge{background:rgba(212,178,106,.18);color:var(--gold-d);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600}
+
 .tk-week{display:flex;align-items:stretch;gap:6px;margin:4px 0 18px}
 .tk-days{flex:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .tk-day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px 0 6px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);cursor:pointer;min-height:66px;font:inherit;color:var(--ink)}
@@ -3008,6 +3021,40 @@ function TodoList(title){const all=S.tasks||[],ed=S.tkEd,open=all.filter(t=>!tkI
 function TkGuide(){const tips=['Do these first. They matter and can’t wait.','They matter, but can wait a little. Pick a day for them.','Good to do when you have time.','Ideas and someday jobs. Look at them once a week.'];
  return `<div class="card tl-guide"><h3 style="margin:0 0 6px">Most important first</h3>${[1,2,3,4].map(i=>`<div class="tkp${i}"><i class="tl-flag"></i><span><b>${TK_PRI[i].n}</b><small>${tips[i-1]}</small></span></div>`).join('')}</div>`}
 
+/* To-do progress dashboard: streaks, this week, all-time totals and milestones, to keep people going.
+   Built from what's already saved: t.done (date an undated task was ticked) and t.doneDates (dated / repeating tasks). */
+const TK_MILES=[1,5,10,25,50,100,250,500,1000],TK_STREAKS=[3,7,14,30,60,100];
+function tkDoneLog(){const m={},tdy=isoD(today);(S.tasks||[]).forEach(t=>{if(!t.date&&t.done&&t.done<=tdy)m[t.done]=(m[t.done]||0)+1;(t.doneDates||[]).forEach(d=>{if(d&&d<=tdy)m[d]=(m[d]||0)+1})});return m}
+function tkStats(){const log=tkDoneLog(),tdy=isoD(today),n=d=>log[d]||0;
+ let streak=0,d=n(tdy)?tdy:addDays(tdy,-1);while(n(d)){streak++;d=addDays(d,-1)}
+ const days=Object.keys(log).sort();let best=0,run=0,prev=null;days.forEach(x=>{run=prev&&addDays(prev,1)===x?run+1:1;if(run>best)best=run;prev=x});
+ const week=[...Array(7)].map((_,i)=>{const iso=addDays(tdy,i-6);return{iso,n:n(iso)}}),thisWeek=week.reduce((a,b)=>a+b.n,0);
+ let lastWeek=0;for(let i=7;i<14;i++)lastWeek+=n(addDays(tdy,-i));
+ const total=Object.values(log).reduce((a,b)=>a+b,0),dueToday=tasksOn(tdy),leftToday=dueToday.filter(t=>!taskDone(t,tdy)).length;
+ return{log,today:n(tdy),streak,best:Math.max(best,streak),week,thisWeek,lastWeek,total,leftToday,dueToday:dueToday.length}}
+function tkMsg(st){if(!st.total)return 'Tick off your first task to start your streak.';
+ if(st.today&&st.streak>=2)return `${st.streak} days in a row. Great going, keep it up tomorrow!`;
+ if(st.today)return st.leftToday?`Nice work today! ${st.leftToday} more to go.`:'Nice work today! Do one tomorrow to start a streak.';
+ if(st.streak)return `Finish one task today to keep your ${st.streak}-day streak going.`;
+ return 'A new day. Tick off one small task to get going.'}
+function TkWeekChart(week){const noir=S.theme==='noir',c=noir?'#B5821C':'#B9821A',W=320,H=120,padB=22,padT=16,slot=W/7,bw=22,max=Math.max(3,...week.map(d=>d.n)),tdy=isoD(today);
+ const bars=week.map((d,i)=>{const h=d.n?Math.max(6,(H-padT-padB)*d.n/max):0,x=i*slot+(slot-bw)/2,yb=H-padB,r=Math.min(4,h/2),dt=new Date(d.iso+'T00:00'),lab=d.iso===tdy?'Today':dt.toLocaleDateString('en-GB',{weekday:'short'});
+  const path=h?`<path d="M${x},${yb} V${yb-h+r} Q${x},${yb-h} ${x+r},${yb-h} H${x+bw-r} Q${x+bw},${yb-h} ${x+bw},${yb-h+r} V${yb} Z" fill="${c}"/>`:`<rect x="${x}" y="${yb-2}" width="${bw}" height="2" rx="1" fill="var(--line)"/>`;
+  return `<g><title>${dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})}: ${d.n} task${d.n===1?'':'s'} done</title><rect x="${i*slot}" y="0" width="${slot}" height="${H}" fill="transparent"/>${path}${d.n?`<text x="${x+bw/2}" y="${yb-h-4}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">${d.n}</text>`:''}<text x="${x+bw/2}" y="${H-6}" text-anchor="middle" font-size="11" ${d.iso===tdy?'font-weight="700" fill="var(--ink)"':'fill="var(--ink2)"'}>${lab}</text></g>`}).join('');
+ return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tasks done each day, last 7 days" style="width:100%;max-width:440px;height:auto;display:block;margin:4px auto 0">${bars}</svg>`}
+function TkProgress(){const st=tkStats();
+ if(S.tkTotalSeen!==undefined&&st.total>S.tkTotalSeen){const hit=TK_MILES.find(m=>m>S.tkTotalSeen&&m<=st.total),sh=TK_STREAKS.find(m=>m===st.streak);if(hit||sh)setTimeout(()=>toast(hit?`🎉 ${hit} task${hit===1?'':'s'} done! Keep going.`:`🔥 ${sh}-day streak! Brilliant.`),60)}
+ S.tkTotalSeen=st.total;
+ const open=S.tkDashOpen!==false,next=TK_MILES.find(m=>m>st.total)||null,prevM=[...TK_MILES].reverse().find(m=>m<=st.total)||0,pct=next?Math.round((st.total-prevM)/(next-prevM)*100):100;
+ const diff=st.thisWeek-st.lastWeek,tile=(ic,lab,val,sub)=>`<div class="tkd-tile"><small>${ic} ${lab}</small><b>${val}</b>${sub?`<small>${sub}</small>`:''}</div>`;
+ const badges=[...TK_MILES.filter(m=>m<=st.total).slice(-3).map(m=>`<span class="tkd-badge">🏅 ${m} done</span>`),...TK_STREAKS.filter(m=>m<=st.best).slice(-2).map(m=>`<span class="tkd-badge">🔥 ${m}-day streak</span>`)];
+ return `<div class="card tk-dash"><button class="tkd-head" aria-expanded="${open}" onclick="S.tkDashOpen=${!open};render()"><span><b>Your progress</b><small>${esc(tkMsg(st))}</small></span>${st.streak?`<em class="tkd-fire" aria-label="${st.streak}-day streak">🔥 ${st.streak}</em>`:''}${IC('chevd',18)}</button>
+ ${open?`<div class="tkd-tiles">${tile('🔥','Streak',st.streak+' day'+(st.streak===1?'':'s'),'Best: '+st.best)}${tile('✅','Today',st.today+' done',st.dueToday?st.leftToday+' left for today':'Nothing due today')}${tile('📅','This week',st.thisWeek+' done',diff>0?'↑ '+diff+' more than last week':diff<0?(-diff)+' fewer than last week':st.thisWeek?'Same as last week':'Last 7 days')}${tile('🏆','All time',st.total+' done',next?(next-st.total)+' to your next medal':'Every medal earned!')}</div>
+ ${next?`<div class="tkd-next"><div class="tk-prog" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Progress to ${next} tasks"><i style="width:${pct}%"></i></div><small>Next medal: <b>${next} tasks done</b></small></div>`:''}
+ <div class="tkd-chart"><small class="tkd-lab">Tasks done, last 7 days</small>${TkWeekChart(st.week)}
+ <details><summary>Show as a table</summary><table><tr><th>Day</th><th>Done</th></tr>${st.week.slice().reverse().map(d=>`<tr><td>${esc(ld(d.iso))}</td><td>${d.n}</td></tr>`).join('')}</table></details></div>
+ ${badges.length?`<div class="tkd-badges" aria-label="Medals earned">${badges.join('')}</div>`:''}`:''}</div>`}
+
 function taskRow(t,day,compact){const dn=taskDone(t,day),tdy=isoD(today),late=day===tdy&&t.time&&!dn&&t.time<hmNow(),due=(S.dueNow||[]).includes(t.id)&&!dn;
  const meta=[`<span class="tk-pri tkp${tPri(t)}"><i></i>${TK_PRI[tPri(t)].n}</span>`,t.time?(late?'⏰ ':'')+t.time:'',t.repeat&&t.repeat!=='none'?REPEAT_L[t.repeat]:'',t.ai&&!compact?'Suggested':''].filter(Boolean).join(' · ');
  return `<div class="tk-row${dn?' done':''}${due?' due':''}"><button class="tk-check" role="checkbox" aria-checked="${dn}" aria-label="${dn?'Mark as not done':'Mark as done'}: ${esc(t.title)}" onclick="toggleTask(${t.id},'${day}')">${dn?IC('check',16):''}</button><span class="tk-txt"><b>${esc(t.title)}</b>${meta?`<small>${meta}</small>`:''}</span>${compact?'':`<button class="btn ghost xs" aria-label="Delete ${esc(t.title)}" onclick="delTask(${t.id})">Delete</button>`}</div>`}
@@ -3018,7 +3065,7 @@ function TodayTasksCard(){const iso=isoD(today),list=tasksOn(iso),done=list.filt
  const go=`S.taskDay=null;S.tkTab='list';S.tkEd=null;mv('tasks')`;
  if(!list.length&&!bills.length&&!open.length){const n=(S.tasks||[]).filter(t=>!tkIsDone(t)).length;
   return `<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><span><b>✅ ${n?'Your to-do list':'Plan your day'}</b><br><small style="color:var(--ink2)">${n?`${n} task${n===1?'':'s'} on your list. Nothing is due today.`:'Add tasks and reminders, or let WalletMV suggest some.'}</small></span><button class="btn ghost sm" onclick="${go}">Open to-do list</button></div></div>`}
- return `${TASK_CSS}<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Today’s tasks</h3>${list.length?`<span class="tk-tag">${done} of ${list.length} done</span>`:''}</div>
+ return `${TASK_CSS}<div class="card" style="margin-top:18px"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Today’s tasks</h3><span class="flex" style="gap:6px;align-items:center">${(()=>{const k=tkStats().streak;return k>=2?`<span class="tk-tag" title="Days in a row with a task done">🔥 ${k}-day streak</span>`:''})()}${list.length?`<span class="tk-tag">${done} of ${list.length} done</span>`:''}</span></div>
  ${list.length?`<div class="tk-prog"><i style="width:${Math.round(done/list.length*100)}%"></i></div>`:''}
  ${bills.map(b=>`<div class="tk-row"><span class="dot" style="background:var(--rose);margin:0 11px"></span><span class="tk-txt"><b>Pay ${esc(b.name)}</b><small>Bill due today · ${money(b.amt)}</small></span><button class="btn ghost xs" onclick="markPaid(${b.id})">Mark paid</button></div>`).join('')}
  ${open.slice(0,4).map(t=>tkListRow(t,true)).join('')}${open.length>4?`<p class="sub" style="margin:8px 0 0;font-size:13px">and ${open.length-4} more</p>`:''}
@@ -3042,9 +3089,9 @@ function Tasks(){if(S.aiOn===undefined)setTimeout(checkAi,0);const aiOn=S.aiOn&&
   <div class="flex" style="gap:8px;flex-wrap:wrap"><label for="ask-q" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Your question</label><input id="ask-q" maxlength="300" placeholder="Ask a question" value="${a?esc(a.q):''}" style="flex:1;min-width:200px" onkeydown="if(event.key==='Enter')askMoney(this.nextElementSibling)"><button class="btn sm" onclick="askMoney(this)">Ask</button></div>
   ${a?`<div class="${a.ok?'okbox':'warnbox'}" style="margin-top:12px" role="status">${esc(a.a)}</div>`:''}
   <p class="sub" style="margin:10px 0 0;font-size:12px">Answers use only your WalletMV figures. They’re not financial advice.</p></div>`:''}</div>`;
- if(tab==='list')return `${TASK_CSS}${Head('To-do list','Your tasks in order of importance. Tick them off as you go.')}${tabs}
+ if(tab==='list')return `${TASK_CSS}${Head('To-do list','Your tasks in order of importance. Tick them off as you go.')}${TkProgress()}${tabs}
  <div class="grid2 tl-grid"><div class="card tl-card">${TodoList()}</div>${side}</div>`;
- return `${TASK_CSS}${Head('To-do list','Your tasks and reminders for each day. Tick them off as you go.')}${tabs}
+ return `${TASK_CSS}${Head('To-do list','Your tasks and reminders for each day. Tick them off as you go.')}${TkProgress()}${tabs}
  <div class="tk-week"><button class="tk-nav" aria-label="Previous week" onclick="pickTaskDay('${addDays(week[0],-7)}')">‹</button><div class="tk-days">${strip}</div><button class="tk-nav" aria-label="Next week" onclick="pickTaskDay('${addDays(week[0],7)}')">›</button></div>
  <div class="grid2" style="align-items:start">
  <div class="card"><div class="flex between" style="align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">${esc(dayName)}</h3>${list.length?`<span class="tk-tag">${done} of ${list.length} done</span>`:''}</div>
